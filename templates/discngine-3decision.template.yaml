@@ -462,7 +462,7 @@ Resources:
         HelpSubdomain: !Ref HelpSubdomain
   3decisionBackupsStack:
     Type: AWS::CloudFormation::Stack
-    DependsOn: 33decisionSecretStack
+    DependsOn: 3decisionSecretStack
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Properties:
