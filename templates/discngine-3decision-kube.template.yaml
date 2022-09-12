@@ -219,6 +219,30 @@ Resources:
           access-key: ${AccessKey}
           secret-access-key: ${SecretAccessKey}
         ---
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: eso-secret
+          namespace: tdecision
+          labels: 
+            type: aws
+        type: Opaque
+        stringData:
+          access-key: ${AccessKey}
+          secret-access-key: ${SecretAccessKey}
+        ---
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: eso-secret
+          namespace: redis-cluster
+          labels: 
+            type: aws
+        type: Opaque
+        stringData:
+          access-key: ${AccessKey}
+          secret-access-key: ${SecretAccessKey}
+        ---
         apiVersion: external-secrets.io/v1beta1
         kind: ClusterSecretStore
         metadata:
