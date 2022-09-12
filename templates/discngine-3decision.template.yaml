@@ -443,6 +443,7 @@ Resources:
         EKSServiceCidr: !Ref EKSServiceCidr
         AccessKey: !GetAtt 3decisionSecretStack.Outputs.AccessKey
         SecretAccessKey: !GetAtt 3decisionSecretStack.Outputs.SecretAccessKey
+        BucketName: !GetAtt 3decisionBackupsStack.Outputs.BucketName
   3decisionDNSStack:
     Type: AWS::CloudFormation::Stack
     Condition: ConfigureDNS
