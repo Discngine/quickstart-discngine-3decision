@@ -460,3 +460,15 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         HelpSubdomain: !Ref HelpSubdomain
+  3decisionBackupsStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: 33decisionSecretStack
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      TemplateURL: !Sub
+        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/discngine-3decision-backups.template.yaml'
+        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+      Parameters:
+        User: !GetAtt 3decisionSecretStack.Outputs.User
