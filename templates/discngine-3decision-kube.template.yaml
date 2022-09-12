@@ -63,6 +63,8 @@ Parameters:
     Type: String
   AccessKey:
     Type: String
+  BucketName:
+    Type: String
 
 Conditions:
   AzureUnused: !Equals [!Ref AzureClientId, ""]
@@ -312,6 +314,8 @@ Resources:
         nest.env.okta_redirect_uri.value: !Ref OktaRedirectUri
         nfs.public.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.10", "172.20.10.10" ]
         nfs.private.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.11", "172.20.10.11" ]
+        backup.bucket.name: ${BucketName}
+        backup.bucket.provider: "aws"
   ChoralChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: DatabaseSecrets
