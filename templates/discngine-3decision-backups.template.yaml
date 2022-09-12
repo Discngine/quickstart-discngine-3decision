@@ -19,7 +19,7 @@ Resources:
     Properties:
       PolicyName: !Sub '3decisionPolicyBucket-${AWS::Region}'
       Users:
-        - ${User}
+        - !Ref User
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
