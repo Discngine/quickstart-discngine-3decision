@@ -200,7 +200,7 @@ Resources:
           OKTA_DOMAIN: "${OktaDomain}"
           OKTA_SERVER_ID: "${OktaServerId}"
           OKTA_SECRET: "${OktaSecret}"
-  DatabaseSecrets:
+  DatabaseSecretsExternalSecrets:
     Type: "AWSQS::Kubernetes::Resource"
     DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
     Properties:
@@ -212,30 +212,6 @@ Resources:
         kind: Secret
         metadata:
           name: eso-secret
-          labels: 
-            type: aws
-        type: Opaque
-        stringData:
-          access-key: ${AccessKey}
-          secret-access-key: ${SecretAccessKey}
-        ---
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: eso-secret
-          namespace: tdecision
-          labels: 
-            type: aws
-        type: Opaque
-        stringData:
-          access-key: ${AccessKey}
-          secret-access-key: ${SecretAccessKey}
-        ---
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: eso-secret
-          namespace: redis-cluster
           labels: 
             type: aws
         type: Opaque
@@ -302,9 +278,45 @@ Resources:
               remoteRef:
                 key: 3dec-choral-db
                 property: password
+  EsoSecretsTdecision:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
+    Properties:
+      ClusterName: !Ref EKSClusterName
+      Namespace: tdecision
+      Manifest: !Sub |
+        ---
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: eso-secret
+          labels: 
+            type: aws
+        type: Opaque
+        stringData:
+          access-key: ${AccessKey}
+          secret-access-key: ${SecretAccessKey}
+  EsoSecretsRedisCluster:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
+    Properties:
+      ClusterName: !Ref EKSClusterName
+      Namespace: redis-cluster
+      Manifest: !Sub |
+        ---
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: eso-secret
+          labels: 
+            type: aws
+        type: Opaque
+        stringData:
+          access-key: ${AccessKey}
+          secret-access-key: ${SecretAccessKey}
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
-    DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets ]
+    DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecretsExternalSecrets ]
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
     Properties:
       ClusterID: !Ref EKSClusterName
@@ -342,7 +354,7 @@ Resources:
         backup.bucket.provider: "aws"
   ChoralChart:
     Type: "AWSQS::Kubernetes::Helm"
-    DependsOn: DatabaseSecrets
+    DependsOn: DatabaseSecretsExternalSecrets
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
     Properties:
       ClusterID: !Ref EKSClusterName
