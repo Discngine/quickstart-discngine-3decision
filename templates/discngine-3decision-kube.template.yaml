@@ -145,8 +145,49 @@ Resources:
       Name: sentinel
       Namespace: redis-cluster
       Chart: oci://fra.ocir.io/discngine1/3decision_kube/redis-sentinel:16.3.1
-      Values:
-        global.storageClass: gp2-encrypted
+      ValueYaml: |
+        global:
+          storageClass: gp2-encrypted
+          redis:
+            password: "lapin80"
+        commonConfiguration: |-
+          # Enable AOF https://redis.io/topics/persistence#append-only-file
+          appendonly no
+          # Disable RDB persistence, AOF persistence already enabled.
+          save 300 1
+        sentinel:
+          enabled: true
+        master:
+          service:
+            ports:
+              redis: 6380
+        replica:
+          extraVolumes:
+          - name: secret-key
+            secret:
+              secretName: ssh-key-secret
+          - name: config-oci
+            configMap:
+              name: oci-cli-cm
+          initContainers:
+            - name: redis-pull-container
+              envFrom:
+              - configMapRef:
+                  name: env-cm
+              - secretRef:
+                  name: aws-key-secret
+              image: fra.ocir.io/discngine1/3decision_kube/redis-initpull:0.0.1
+              imagePullPolicy: Always
+              volumeMounts:
+              - mountPath: /root/.ssh/
+                name: secret-key
+                readOnly: true
+              - mountPath: /root/.oci/
+                name: config-oci
+                readOnly: true
+              - mountPath: /data
+                name: redis-data
+      
   ExternalSecretsOperator:
     Type: "AWSQS::Kubernetes::Helm"
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
