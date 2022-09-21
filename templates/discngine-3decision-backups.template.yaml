@@ -29,7 +29,7 @@ Resources:
               - s3:PutObject
               - s3:ListBucket
             Resource: 
-              - !Sub "${GetAtt.Bucket.Arn}/*"
+              - !Sub "${Bucket.Arn}/*"
 Outputs:
   BucketName:
     Value: !Ref Bucket
