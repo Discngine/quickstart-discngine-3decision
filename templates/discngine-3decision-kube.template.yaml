@@ -278,7 +278,7 @@ Resources:
               remoteRef:
                 key: 3dec-choral-db
                 property: password
-  EsoSecretsTdecision:
+  RedisSecretsTdecision:
     Type: "AWSQS::Kubernetes::Resource"
     DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
     Properties:
@@ -289,14 +289,16 @@ Resources:
         apiVersion: v1
         kind: Secret
         metadata:
-          name: eso-secret
+          name: aws-key-secret
           labels: 
             type: aws
         type: Opaque
         stringData:
-          access-key: ${AccessKey}
-          secret-access-key: ${SecretAccessKey}
-  EsoSecretsRedisCluster:
+          AWS_ACCESS_KEY_ID: ${AccessKey}
+          AWS_SECRET_ACCESS_KEY: ${SecretAccessKey}
+          AWS_DEFAULT_REGION: ${AWS::Region}
+          
+  RedisSecretsRedisCluster:
     Type: "AWSQS::Kubernetes::Resource"
     DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
     Properties:
@@ -307,13 +309,15 @@ Resources:
         apiVersion: v1
         kind: Secret
         metadata:
-          name: eso-secret
+          name: aws-key-secret
           labels: 
             type: aws
         type: Opaque
         stringData:
-          access-key: ${AccessKey}
-          secret-access-key: ${SecretAccessKey}
+          AWS_ACCESS_KEY_ID: ${AccessKey}
+          AWS_SECRET_ACCESS_KEY: ${SecretAccessKey}
+          AWS_DEFAULT_REGION: ${AWS::Region}
+          
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecretsExternalSecrets ]
