@@ -166,17 +166,22 @@ Resources:
           - name: secret-key
             secret:
               secretName: ssh-key-secret
+              optional: true
           - name: config-oci
             configMap:
               name: oci-cli-cm
+              optional: true
           initContainers:
             - name: redis-pull-container
               envFrom:
               - configMapRef:
                   name: env-cm
+                  optional: true
               - secretRef:
                   name: aws-key-secret
-              image: fra.ocir.io/discngine1/3decision_kube/redis-initpull:0.0.1
+                  optional: true
+              image: fra.ocir.io/discngine1/3decision_kube/redis-backup:0.0.1
+              args: ["pull"]
               imagePullPolicy: Always
               volumeMounts:
               - mountPath: /root/.ssh/
