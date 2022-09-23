@@ -408,7 +408,7 @@ Resources:
         DBSecurityGroup: !GetAtt RDSStack.Outputs.DBSecurityGroup
   3decisionKubeStack:
     Type: AWS::CloudFormation::Stack
-    DependsOn: JWTStack
+    DependsOn: [ JWTStack , 3decisionBackupsStack]
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Properties:
