@@ -175,12 +175,13 @@ Resources:
             - name: redis-pull-container
               envFrom:
               - configMapRef:
-                  name: env-cm
+                  name: sentinel-backup-env-cm
                   optional: true
               - secretRef:
                   name: aws-key-secret
                   optional: true
               image: fra.ocir.io/discngine1/3decision_kube/redis-backup:0.0.1
+              command: ["./entrypoint.sh"]
               args: ["pull"]
               imagePullPolicy: Always
               volumeMounts:
@@ -372,7 +373,7 @@ Resources:
       ClusterID: !Ref EKSClusterName
       Name: tdecision
       Namespace: !Ref TNamespace
-      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.0.0
+      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.1.0-test
       Values:
         nodeCloud.volumes.jwtSecret.name: 3decision-jwt-secret
         oracle.connectionString: !Ref DBConnectionString

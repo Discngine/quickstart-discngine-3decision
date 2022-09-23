@@ -341,6 +341,7 @@ Resources:
         QSS3BucketName: !Ref QSS3BucketName
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        KubernetesVersion: "1.22"
   JWTStack:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Delete
