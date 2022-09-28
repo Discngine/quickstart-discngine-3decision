@@ -30,6 +30,7 @@ Resources:
               - s3:ListBucket
             Resource: 
               - !Sub "${Bucket.Arn}/*"
+              - !Sub "${Bucket.Arn}"
 Outputs:
   BucketName:
     Value: !Ref Bucket

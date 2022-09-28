@@ -491,7 +491,7 @@ Resources:
         ConsulUIAccessCIDR: !Ref RemoteAccessCIDR
         VaultUIAccessCIDR: !Ref RemoteAccessCIDR
         NodeVolumeSize: !Ref NodeVolumeSize
-        KubernetesVersion: !Ref 'AWS::NoValue'
+        KubernetesVersion: "1.22"
         CustomAmiId: !Ref CustomAmiId
   EKSStack:
     Type: AWS::CloudFormation::Stack
