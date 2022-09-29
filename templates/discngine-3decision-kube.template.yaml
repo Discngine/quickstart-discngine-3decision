@@ -247,6 +247,7 @@ Resources:
           OKTA_DOMAIN: "${OktaDomain}"
           OKTA_SERVER_ID: "${OktaServerId}"
           OKTA_SECRET: "${OktaSecret}"
+  
   DatabaseSecretsExternalSecrets:
     Type: "AWSQS::Kubernetes::Resource"
     DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
@@ -365,6 +366,38 @@ Resources:
           AWS_SECRET_ACCESS_KEY: ${SecretAccessKey}
           AWS_DEFAULT_REGION: ${AWS::Region}
           
+  SentinelBackupConfigmapTdecision:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn: TDecisionNamespace
+    Properties:
+      ClusterName: !Ref EKSClusterName
+      Namespace: !Ref TNamespace
+      Manifest: !Sub |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: sentinel-backup-env-cm
+        data:
+          BUCKET_NAME: ${BucketName}
+          PROVIDER: aws
+          PUBLIC_URL: ${BackupPublicUrl}
+
+  SentinelBackupConfigmapSentinel:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn: TDecisionNamespace
+    Properties:
+      ClusterName: !Ref EKSClusterName
+      Namespace: redis-cluster
+      Manifest: !Sub |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: sentinel-backup-env-cm
+        data:
+          BUCKET_NAME: ${BucketName}
+          PROVIDER: aws
+          PUBLIC_URL: ${BackupPublicUrl}
+
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecretsExternalSecrets ]
