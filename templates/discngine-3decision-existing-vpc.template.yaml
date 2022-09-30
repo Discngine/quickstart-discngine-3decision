@@ -356,6 +356,10 @@ Parameters:
                   This will default to tdecision if not given.
                   The namespace will be created if it doesn't already exists."
     Type: String
+  BackupPublicUrl: 
+    Default: "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/discngine1/b/bkredispublicdata/o/dump.rdb"
+    Description: "Required: The URL of the Public data Dumb used by 3decision"
+    Type: String
   JWTSecretName:
     Default: "3dec-JWT-ssh"
     Description: "Name of the secret created in secrets manager that will contain an ssh key fed to the application."
@@ -520,7 +524,6 @@ Resources:
         VPCID: !Ref VPCID
         PerAccountSharedResources: !Ref PerAccountSharedResources
         PerRegionSharedResources: !Ref PerRegionSharedResources
-        EfsStorageClass: 'Enabled'
         ClusterAutoScaler: 'Enabled'
         EKSPublicAccessEndpoint: 'Enabled'
         AdditionalEKSAdminUserArn: !Ref AdditionalEKSAdminUserArn
@@ -567,3 +570,4 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         HelpSubdomain: !Ref HelpSubdomain
+        BackupPublicUrl: !Ref BackupPublicUrl
