@@ -10,6 +10,8 @@ Parameters:
   TNamespace:
     Default: tdecision
     Type: String
+  BackupPublicUrl:
+    Type: String
   JWTPrivateKey:
     Type: String
     NoEcho: true
@@ -139,7 +141,7 @@ Resources:
   RedisChart:
     Type: "AWSQS::Kubernetes::Helm"
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
-    DependsOn: EncryptedStorageClass
+    DependsOn: [ EncryptedStorageClass, SentinelBackupConfigmapSentinel ]
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: sentinel

@@ -40,6 +40,7 @@ Metadata:
         Parameters:
           - TNamespace
           - JWTSecretName
+          - BackupPublicUrl
       - Label:
           default: Discngine 3decision authentication configuration
         Parameters:
@@ -204,6 +205,10 @@ Parameters:
     Description: "Optional: The name of the kubernetes namespace in which the 3decision helm chart will be deployed.
                   This will default to tdecision if not given.
                   The namespace will be created if it doesn't already exists."
+    Type: String
+  BackupPublicUrl: 
+    Default: "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/discngine1/b/bkredispublicdata/o/dump.rdb"
+    Description: "Required: The URL of the Public data Dump used by 3decision"
     Type: String
   JWTSecretName:
     Default: "3dec-JWT-ssh"

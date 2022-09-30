@@ -60,6 +60,7 @@ Metadata:
         Parameters:
           - TNamespace
           - JWTSecretName
+          - BackupPublicUrl
       - Label:
           default: Discngine 3decision authentication configuration
         Parameters:
