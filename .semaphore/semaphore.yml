@@ -1,0 +1,51 @@
+version: v1.0
+name: 3decision Quickstart templates upload
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu2004
+global_job_config:
+  # Connect secret to all jobs in the pipeline
+  secrets:
+    - name: 3dec-quickstart
+blocks:
+  - name: Cloudformation linting
+    run:
+      when: "pull_request =~ '.*'"
+    task:
+      jobs:
+        - name: linting
+          commands:
+            - checkout
+            - export PATH=$PATH:~/.local/bin
+            - cd ~/
+            - git clone https://github.com/aws-quickstart/qs-cfn-lint-rules.git
+            - cd qs-cfn-lint-rules
+            - pip install --user -e .
+            - cfn-lint ~/quickstart-discngine-3decision/templates/* -a ~/qs-cfn-lint-rules/qs_cfn_lint_rules/ -i E3001 W9001 W9002 W9003 W9004 W9005 W9006
+  - name: Test templates upload
+    skip:
+      when: "branch = 'main' OR pull_request =~ '.*'"
+    task:
+      jobs:
+        - name: templates upload
+          commands:
+            - checkout
+            - export AWS_ACCESS_KEY_ID=${ACCESS_KEY}
+            - export AWS_SECRET_ACCESS_KEY=${SECRET_ACCESS_KEY}
+            - sh ~/quickstart-discngine-3decision/.semaphore/bin/rewrite_qss.sh quickstart-discngine-3decision-test/
+            - aws s3 sync ~/quickstart-discngine-3decision/templates s3://3decision-eu-central-1/quickstart-discngine-3decision-test/templates
+  - name: Templates upload
+    run:
+      when: "branch = 'main'"
+    skip:
+      when: "pull_request =~ '.*'"
+    task:
+      jobs:
+        - name: templates upload
+          commands:
+            - checkout
+            - export AWS_ACCESS_KEY_ID=${ACCESS_KEY}
+            - export AWS_SECRET_ACCESS_KEY=${SECRET_ACCESS_KEY}
+            - sh ~/quickstart-discngine-3decision/.semaphore/bin/rewrite_qss.sh quickstart-discngine-3decision/
+            - aws s3 sync ~/quickstart-discngine-3decision/templates s3://3decision-eu-central-1/quickstart-discngine-3decision/templates
