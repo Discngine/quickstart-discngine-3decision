@@ -145,8 +145,12 @@ Resources:
       Name: sentinel
       Namespace: redis-cluster
       Chart: oci://fra.ocir.io/discngine1/3decision_kube/redis-sentinel:16.3.1
-      Values:
-        global.storageClass: gp2-encrypted
+      ValueYaml: |
+        global:
+          storageClass: gp2-encrypted
+        serviceAccount:
+          annotations:
+            eks.amazonaws.com/role-arn: ${RedisRoleArn}
   ExternalSecretsOperator:
     Type: "AWSQS::Kubernetes::Helm"
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
@@ -272,20 +276,6 @@ Resources:
           name: redis-s3-upload
           annotations:
             eks.amazonaws.com/role-arn: ${RedisRoleArn}
-  RedisServiceAccount:
-    Type: "AWSQS::Kubernetes::Resource"
-    DependsOn: [ RedisChart ]
-    Properties:
-      ClusterName: !Ref EKSClusterName
-      Namespace: redis-cluster
-      Manifest: !Sub |
-        ---
-        apiVersion: v1
-        kind: ServiceAccount
-        metadata:
-          name: redis-s3-upload
-          annotations:
-            eks.amazonaws.com/role-arn: ${RedisRoleArn}
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
@@ -323,7 +313,8 @@ Resources:
         nfs.public.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.10", "172.20.10.10" ]
         nfs.private.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.11", "172.20.10.11" ]
         redis.url: !Ref RedisAccessPointAlias
-        redis.serviceAccountName: "redis-s3-upload"
+        redis.serviceAccount.annotations: |
+          eks.amazonaws.com/role-arn: ${RedisRoleArn}
   ChoralChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: DatabaseSecrets
