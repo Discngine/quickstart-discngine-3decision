@@ -145,7 +145,7 @@ Resources:
       Name: sentinel
       Namespace: redis-cluster
       Chart: oci://fra.ocir.io/discngine1/3decision_kube/redis-sentinel:16.3.1
-      ValueYaml: |
+      ValueYaml: !Sub |
         global:
           storageClass: gp2-encrypted
         serviceAccount:
