@@ -465,6 +465,8 @@ Resources:
         HelpSubdomain: !Ref HelpSubdomain
         EKSServiceCidr: !Ref EKSServiceCidr
         SecretRoleArn: !GetAtt 3decisionSecretStack.Outputs.RoleArn
+        RedisRoleArn: !GetAtt 3decisionBucketStack.Outputs.RedisRoleArn
+        RedisAccessPointAlias: !GetAtt 3decisionBucketStack.Outputs.RedisAccessPointAlias
   3decisionDNSStack:
     Type: AWS::CloudFormation::Stack
     Condition: ConfigureDNS
