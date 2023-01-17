@@ -593,3 +593,4 @@ Resources:
         ApiSubdomain: !Ref ApiSubdomain
         HelpSubdomain: !Ref HelpSubdomain
         NodeGroupArn: !Ref NodeGroupArn
+        OIDCIssuerURL: !Ref EKSStack.Outputs.OIDCIssuerURL

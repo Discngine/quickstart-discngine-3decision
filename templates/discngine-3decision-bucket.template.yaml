@@ -8,7 +8,7 @@ Metadata:
 Parameters:
   VPCID:
     Type: String
-  NodeGroupArn:
+  OIDCIssuerURLWithoutProtocol:
     Type: String
 Resources:
   Bucket:
@@ -54,15 +54,24 @@ Resources:
   RedisRole:
     Type: AWS::IAM::Role
     Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS:
-                - !Ref NodeGroupArn
-            Action:
-              - 'sts:AssumeRole'
+      AssumeRolePolicyDocument: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/${OIDCIssuerURLWithoutProtocol}"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "${OIDCIssuerURLWithoutProtocol}:sub": "system:serviceaccount:tdecision:redis-s3-upload"
+                }
+              }
+            }
+          ]
+        }
       Description: 'Role designed to access the redis access point inside EKS pods'
       RoleName: !Sub '3decision-redis-s3-${AWS::Region}'
   RedisPolicy:
