@@ -65,8 +65,8 @@ Resources:
               },
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
-                "StringEquals": {
-                  "${OIDCIssuerURLWithoutProtocol}:sub": "system:serviceaccount:tdecision:redis-s3-upload"
+                "StringLike": {
+                  "${OIDCIssuerURLWithoutProtocol}:sub": "system:serviceaccount:*:redis-s3-upload"
                 }
               }
             }

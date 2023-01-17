@@ -272,6 +272,20 @@ Resources:
           name: redis-s3-upload
           annotations:
             eks.amazonaws.com/role-arn: ${RedisRoleArn}
+  RedisServiceAccount:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn: [ RedisChart ]
+    Properties:
+      ClusterName: !Ref EKSClusterName
+      Namespace: redis-cluster
+      Manifest: !Sub |
+        ---
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: redis-s3-upload
+          annotations:
+            eks.amazonaws.com/role-arn: ${RedisRoleArn}
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
