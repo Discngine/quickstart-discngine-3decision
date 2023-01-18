@@ -13,6 +13,7 @@ Parameters:
 Resources:
   Bucket:
     Type: AWS::S3::Bucket
+    UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
       VersioningConfiguration:
@@ -25,6 +26,7 @@ Resources:
   BucketPolicy:
     Type: AWS::S3::BucketPolicy
     Metadata: { cfn-lint: { config: { ignore_checks: [EIAMPolicyActionWildcard] } } }
+    UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
       Bucket: !Ref Bucket
