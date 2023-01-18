@@ -149,6 +149,7 @@ Resources:
         global:
           storageClass: gp2-encrypted
         serviceAccount:
+          name: redis-s3-upload
           annotations:
             eks.amazonaws.com/role-arn: ${RedisRoleArn}
   ExternalSecretsOperator:
@@ -262,20 +263,6 @@ Resources:
               remoteRef:
                 key: 3dec-choral-db
                 property: password
-  RedisServiceAccount:
-    Type: "AWSQS::Kubernetes::Resource"
-    DependsOn: [ TDecisionNamespace ]
-    Properties:
-      ClusterName: !Ref EKSClusterName
-      Namespace: tdecision
-      Manifest: !Sub |
-        ---
-        apiVersion: v1
-        kind: ServiceAccount
-        metadata:
-          name: redis-s3-upload
-          annotations:
-            eks.amazonaws.com/role-arn: ${RedisRoleArn}
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
