@@ -61,6 +61,10 @@ Parameters:
     Type: String
   SecretRoleArn:
     Type: String
+  RedisRoleArn:
+    Type: String
+  RedisAccessPointAlias:
+    Type: String
 
 Conditions:
   AzureUnused: !Equals [!Ref AzureClientId, ""]
@@ -141,8 +145,12 @@ Resources:
       Name: sentinel
       Namespace: redis-cluster
       Chart: oci://fra.ocir.io/discngine1/3decision_kube/redis-sentinel:16.3.1
-      Values:
-        global.storageClass: gp2-encrypted
+      ValueYaml: !Sub |
+        global:
+          storageClass: gp2-encrypted
+        serviceAccount:
+          annotations:
+            eks.amazonaws.com/role-arn: ${RedisRoleArn}
   ExternalSecretsOperator:
     Type: "AWSQS::Kubernetes::Helm"
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
@@ -254,6 +262,20 @@ Resources:
               remoteRef:
                 key: 3dec-choral-db
                 property: password
+  RedisServiceAccount:
+    Type: "AWSQS::Kubernetes::Resource"
+    DependsOn: [ TDecisionNamespace ]
+    Properties:
+      ClusterName: !Ref EKSClusterName
+      Namespace: tdecision
+      Manifest: !Sub |
+        ---
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: redis-s3-upload
+          annotations:
+            eks.amazonaws.com/role-arn: ${RedisRoleArn}
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
@@ -290,6 +312,9 @@ Resources:
         nest.env.okta_redirect_uri.value: !Ref OktaRedirectUri
         nfs.public.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.10", "172.20.10.10" ]
         nfs.private.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.11", "172.20.10.11" ]
+        redis.url: !Ref RedisAccessPointAlias
+        redis.serviceAccount.annotations: !Sub |
+          eks.amazonaws.com/role-arn: ${RedisRoleArn}
   ChoralChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: DatabaseSecrets
