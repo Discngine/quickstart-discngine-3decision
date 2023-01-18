@@ -21,7 +21,9 @@ blocks:
             - cd ~/
             - git clone https://github.com/aws-quickstart/qs-cfn-lint-rules.git
             - cd qs-cfn-lint-rules
-            - pip install --user -r requirements.txt
+            - python -m venv .
+            - . ./bin/activate
+            - pip install -e .
             - cfn-lint ~/quickstart-discngine-3decision/templates/* -a ~/qs-cfn-lint-rules/qs_cfn_lint_rules/ -i E3001 W9001 W9002 W9003 W9004 W9005 W9006
   - name: Test templates upload
   # Run on commit on non main branch
