@@ -2,8 +2,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: "This template sets up Discngine 3decision infrastructure. (qs-1snm79fb4)."
 Metadata:
-  QuickStartDocumentation:
-    EntrypointName: "Launch into an existing EKS cluster"
   LintSpellExclude:
     - Discngine
     - 3decision
@@ -223,6 +221,9 @@ Parameters:
   NodeGroupArn:
     Type: String
     Description: "Required: Arn of the default NodeGroup used"
+  OIDCIssuerURL:
+    Type: String
+    Description: "Required: URL of the oidc provider"
   NodeSecurityGroup:
     Description: "Required: Id of the EKS SecurityGroup in which we will add the RDS ingress"
     Type: String
@@ -426,7 +427,7 @@ Resources:
           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
       Parameters:
         VPCID: !Ref VPCID
-        NodeGroupArn: !Ref NodeGroupArn
+        OIDCIssuerURLWithoutProtocol: !Join ['', !Split ['https://', !Ref OIDCIssuerURL]]
   3decisionKubeStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: JWTStack
@@ -464,6 +465,8 @@ Resources:
         HelpSubdomain: !Ref HelpSubdomain
         EKSServiceCidr: !Ref EKSServiceCidr
         SecretRoleArn: !GetAtt 3decisionSecretStack.Outputs.RoleArn
+        RedisRoleArn: !GetAtt 3decisionBucketStack.Outputs.RedisRoleArn
+        RedisAccessPointAlias: !GetAtt 3decisionBucketStack.Outputs.RedisAccessPointAlias
   3decisionDNSStack:
     Type: AWS::CloudFormation::Stack
     Condition: ConfigureDNS
