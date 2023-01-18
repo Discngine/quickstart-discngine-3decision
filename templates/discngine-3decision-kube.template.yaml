@@ -313,7 +313,7 @@ Resources:
         nfs.public.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.10", "172.20.10.10" ]
         nfs.private.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.11", "172.20.10.11" ]
         redis.url: !Ref RedisAccessPointAlias
-        redis.serviceAccount.annotations: |
+        redis.serviceAccount.annotations: !Sub |
           eks.amazonaws.com/role-arn: ${RedisRoleArn}
   ChoralChart:
     Type: "AWSQS::Kubernetes::Helm"

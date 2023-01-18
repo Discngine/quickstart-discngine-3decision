@@ -43,7 +43,6 @@ Resources:
                 s3:DataAccessPointAccount: !Ref AWS::AccountId
   RedisAccessPoint:
     Type: AWS::S3::AccessPoint
-    DeletionPolicy: Retain
     Properties:
       Bucket: !Ref Bucket
       Name: 3decision-redis-access-point
