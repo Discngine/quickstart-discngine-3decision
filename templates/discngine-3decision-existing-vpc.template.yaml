@@ -515,7 +515,6 @@ Resources:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
-    DependsOn: AdvancedConfigDefaultsStack
     Properties:
       TemplateURL: !Sub
         - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-amazon-eks/templates/amazon-eks-entrypoint-existing-vpc.template.yaml'
@@ -546,7 +545,7 @@ Resources:
         ProvisionBastionHost: !Ref ProvisionBastionHost
   NodeGroupArn:
     Type: Custom::CliQuery
-    DependsOn: [ AdvancedConfigDefaultsStack, EKSStack ]
+    DependsOn: [ EKSStack ]
     Properties:
       ServiceToken: !Sub ['arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${Prefix}-ResourceReader', {Prefix: !FindInMap [Config, Prefix, Value]}]
       AwsCliCommand: !Sub "eks describe-nodegroup --cluster-name ${EKSStack.Outputs.EKSClusterName} --nodegroup-name ${NodeGroupName} --query 'nodegroup.{nodeRole: nodeRole}'"
@@ -593,3 +592,4 @@ Resources:
         ApiSubdomain: !Ref ApiSubdomain
         HelpSubdomain: !Ref HelpSubdomain
         NodeGroupArn: !Ref NodeGroupArn
+        OIDCIssuerURL: !GetAtt EKSStack.Outputs.OIDCIssuerURL
