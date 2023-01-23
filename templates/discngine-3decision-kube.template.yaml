@@ -145,6 +145,10 @@ Resources:
       Chart: oci://fra.ocir.io/discngine1/3decision_kube/redis-sentinel:16.3.1
       ValueYaml: |
         global:
+          serviceAccount:
+            name: redis-s3-upload
+          annotations:
+            eks.amazonaws.com/role-arn: ${RedisRoleArn}
           storageClass: gp2-encrypted
           redis:
             password: "lapin80"
@@ -174,9 +178,6 @@ Resources:
               envFrom:
               - configMapRef:
                   name: sentinel-backup-env-cm
-                  optional: true
-              - secretRef:
-                  name: aws-key-secret
                   optional: true
               image: fra.ocir.io/discngine1/3decision_kube/redis-backup:0.0.1
               command: ["./entrypoint.sh"]
