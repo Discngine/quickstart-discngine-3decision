@@ -10,8 +10,6 @@ Parameters:
   TNamespace:
     Default: tdecision
     Type: String
-  BackupPublicUrl:
-    Type: String
   JWTPrivateKey:
     Type: String
     NoEcho: true
@@ -64,8 +62,6 @@ Parameters:
   SecretAccessKey:
     Type: String
   AccessKey:
-    Type: String
-  BucketName:
     Type: String
 
 Conditions:
@@ -328,46 +324,7 @@ Resources:
               remoteRef:
                 key: 3dec-choral-db
                 property: password
-  RedisSecretsTdecision:
-    Type: "AWSQS::Kubernetes::Resource"
-    DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
-    Properties:
-      ClusterName: !Ref EKSClusterName
-      Namespace: tdecision
-      Manifest: !Sub |
-        ---
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: aws-key-secret
-          labels: 
-            type: aws
-        type: Opaque
-        stringData:
-          AWS_ACCESS_KEY_ID: ${AccessKey}
-          AWS_SECRET_ACCESS_KEY: ${SecretAccessKey}
-          AWS_DEFAULT_REGION: ${AWS::Region}
-          
-  RedisSecretsRedisCluster:
-    Type: "AWSQS::Kubernetes::Resource"
-    DependsOn: [ TDecisionNamespace, ChoralNamespace, ExternalSecretsOperator ]
-    Properties:
-      ClusterName: !Ref EKSClusterName
-      Namespace: redis-cluster
-      Manifest: !Sub |
-        ---
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: aws-key-secret
-          labels: 
-            type: aws
-        type: Opaque
-        stringData:
-          AWS_ACCESS_KEY_ID: ${AccessKey}
-          AWS_SECRET_ACCESS_KEY: ${SecretAccessKey}
-          AWS_DEFAULT_REGION: ${AWS::Region}
-          
+
   SentinelBackupConfigmapTdecision:
     Type: "AWSQS::Kubernetes::Resource"
     DependsOn: TDecisionNamespace

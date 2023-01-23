@@ -40,7 +40,6 @@ Metadata:
         Parameters:
           - TNamespace
           - JWTSecretName
-          - BackupPublicUrl
       - Label:
           default: Discngine 3decision authentication configuration
         Parameters:
@@ -206,10 +205,7 @@ Parameters:
                   This will default to tdecision if not given.
                   The namespace will be created if it doesn't already exists."
     Type: String
-  BackupPublicUrl: 
-    Default: "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/discngine1/b/bkredispublicdata/o/dump.rdb"
-    Description: "Required: The URL of the Public data Dump used by 3decision"
-    Type: String
+
   JWTSecretName:
     Default: "3dec-JWT-ssh"
     Description: "Name of the secret created in secrets manager that will contain an ssh key fed to the application."
@@ -346,7 +342,6 @@ Resources:
         QSS3BucketName: !Ref QSS3BucketName
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
-        KubernetesVersion: "1.22"
   JWTStack:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Delete
@@ -422,7 +417,6 @@ Resources:
         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
       Parameters:
-        BackupPublicUrl: !Ref BackupPublicUrl
         TNamespace: !Ref TNamespace
         JWTPrivateKey: !Sub '{{resolve:secretsmanager:${JWTSecretName}:SecretString:private_key}}'
         JWTPublicKey: !Sub '{{resolve:secretsmanager:${JWTSecretName}:SecretString:public_key}}'
@@ -468,15 +462,3 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         HelpSubdomain: !Ref HelpSubdomain
-  3decisionBackupsStack:
-    Type: AWS::CloudFormation::Stack
-    DependsOn: 3decisionSecretStack
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/discngine-3decision-backups.template.yaml'
-        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        User: !GetAtt 3decisionSecretStack.Outputs.User
