@@ -138,6 +138,7 @@ Resources:
       Chart: ingress-nginx
   RedisChart:
     Type: "AWSQS::Kubernetes::Helm"
+    DependsOn: [SentinelBackupConfigmapSentinel]
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
     DependsOn: EncryptedStorageClass
     Properties:
