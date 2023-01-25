@@ -381,8 +381,7 @@ Resources:
         nest.env.okta_redirect_uri.value: !Ref OktaRedirectUri
         nfs.public.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.10", "172.20.10.10" ]
         nfs.private.serviceIP: !If [ ServiceCidrSecondary, "10.100.10.11", "172.20.10.11" ]
-        rbac.cluster.redisBackup.annotations: !Sub |
-          eks.amazonaws.com/role-arn: ${RedisRoleArn}
+        rbac.cluster.redisBackup.annotations: !Sub "eks.amazonaws.com/role-arn: ${RedisRoleArn}"
 
   ChoralChart:
     Type: "AWSQS::Kubernetes::Helm"
