@@ -185,7 +185,6 @@ Resources:
               optional: true
           initContainers:
             - name: redis-pull-container
-              serviceAccountName: redis-s3-upload
               envFrom:
               - configMapRef:
                   name: sentinel-backup-env-cm
