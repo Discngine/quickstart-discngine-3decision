@@ -109,7 +109,7 @@ Resources:
     Properties:
       ClusterName: !Ref EKSClusterName
       Namespace: 'kube-system'
-      Manifest: !Sub |
+      Manifest: |
         kind: Namespace
         apiVersion: v1
         metadata:
@@ -157,7 +157,7 @@ Resources:
       Name: sentinel
       Namespace: redis-cluster
       Chart: oci://fra.ocir.io/discngine1/3decision_kube/redis-sentinel:16.3.1
-      ValueYaml: !Sub |
+      ValueYaml: |
         global:
           storageClass: gp2-encrypted
         serviceAccount:
