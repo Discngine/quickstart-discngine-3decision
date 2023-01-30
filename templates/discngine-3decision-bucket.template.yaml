@@ -91,6 +91,7 @@ Resources:
             Action:
               - s3:PutObject
               - s3:GetObject
+              - s3:ListBucket
             Resource: 
               - !GetAtt RedisAccessPoint.Arn
               - !Join [ "", [Fn::GetAtt: RedisAccessPoint.Arn, "/*"] ]
