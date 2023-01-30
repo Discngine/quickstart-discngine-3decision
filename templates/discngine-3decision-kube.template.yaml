@@ -177,10 +177,6 @@ Resources:
             secret:
               secretName: ssh-key-secret
               optional: true
-          - name: config-oci
-            configMap:
-              name: oci-cli-cm
-              optional: true
           initContainers:
             - name: redis-pull-container
               envFrom:
@@ -194,9 +190,6 @@ Resources:
               volumeMounts:
               - mountPath: /root/.ssh/
                 name: secret-key
-                readOnly: true
-              - mountPath: /root/.oci/
-                name: config-oci
                 readOnly: true
               - mountPath: /data
                 name: redis-data
