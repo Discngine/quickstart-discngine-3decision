@@ -152,8 +152,6 @@ Resources:
         serviceAccount:
           create: false
           name: redis-s3-upload
-          redis:
-            password: "lapin80"
         commonConfiguration: |-
           # Enable AOF https://redis.io/topics/persistence#append-only-file
           appendonly no
