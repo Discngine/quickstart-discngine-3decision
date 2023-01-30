@@ -352,7 +352,7 @@ Resources:
       ClusterID: !Ref EKSClusterName
       Name: tdecision
       Namespace: !Ref TNamespace
-      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.1.6-test
+      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.1.6
       Values:
         nodeCloud.volumes.jwtSecret.name: 3decision-jwt-secret
         oracle.connectionString: !Ref DBConnectionString
