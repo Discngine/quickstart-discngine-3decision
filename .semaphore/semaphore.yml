@@ -21,7 +21,7 @@ blocks:
             - cd ~/
             - git clone https://github.com/aws-quickstart/qs-cfn-lint-rules.git
             - cd qs-cfn-lint-rules
-            - sudo apt update -y
+            - sudo apt update
             - sudo apt install python3.8-venv -y
             - python3 -m venv .
             - . ./bin/activate
