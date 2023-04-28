@@ -89,6 +89,10 @@ During Quick Start deployment, you can choose `default` as your Okta server ID. 
 `\https://3decision.<you_domain>.<your_top_level_domain>`
 
 . For *Authorized redirect URIs*, enter the following. Replace `<your domain>` and `<your_top_level_domain>` in the URI shown with your information (for example, `discngine.com`).
+
++
+`\https://3decision-api.<you_domain>.<your_top_level_domain>/auth/google/callback`
+
 . Copy the client ID and client secret, as you'll use it during the Quick Start deployment.
 
 
