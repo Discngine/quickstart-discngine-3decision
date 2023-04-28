@@ -62,6 +62,36 @@ During deployment, you are prompted to provide information about your authentica
 
 During Quick Start deployment, you can choose `default` as your Okta server ID. 3decision will use the scopes `email`, `profile`, `openid`, and `offline_access` and the claims `email` and `name` from the ID token. For more information, refer to https://help.okta.com/en/prod/Content/Topics/Apps/Apps_App_Integration_Wizard_OIDC.htm[Create OIDC app integrations using AIW].
 
+==== Creating a Google Workspace Application
+
+. Sign in to the Google Cloud console
+
+===== Consent screen configuration =====
+. Enter a name for your application (for example, `Discngine 3decision prod`).
+. Enter your support email address.
+. App logo and App domain sections are optional and must be filled in if you want to use them.
+. Enter developer contact information
+. Choose *Save and continue*.
+. Next is the Scopes section. *Click Add or Remove Scopes*
+. Choose *email* and *profile* and *openid* which are required for 3decision to work.
+. Choose *Save and continue*.
+
+===== Credentials configuration =====
+
+. Choose *Enable APIs & Services*.
+. Choose *Credentials*.
+. Choose *Create Credentials*.
+. Choose *OAuth client ID*.
+. Choose *Web application*.
+. Enter a name for your application (for example, `Discngine 3decision prod`).
+. For *Authorized Javascript Origins*, enter the following. Replace `<your domain>` and `<your_top_level_domain>` in the URI shown with your information (for example, `discngine.com`).
++
+`\https://3decision.<you_domain>.<your_top_level_domain>`
+
+. For *Authorized redirect URIs*, enter the following. Replace `<your domain>` and `<your_top_level_domain>` in the URI shown with your information (for example, `discngine.com`).
+. Copy the client ID and client secret, as you'll use it during the Quick Start deployment.
+
+
 === VPC Tagging
 
 If you are deploying 3decision in an existing VPC, ensure that the private subnets have the correct tags. 
