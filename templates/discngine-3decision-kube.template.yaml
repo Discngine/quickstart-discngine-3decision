@@ -351,11 +351,12 @@ Resources:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
+    UpdateReplacePolicy: Retain
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: tdecision
       Namespace: !Ref TNamespace
-      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.1.6
+      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.2.0
       Values:
         nodeCloud.volumes.jwtSecret.name: 3decision-jwt-secret
         oracle.connectionString: !Ref DBConnectionString
@@ -389,6 +390,7 @@ Resources:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: DatabaseSecrets
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
+    UpdateReplacePolicy: Retain
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: choral
