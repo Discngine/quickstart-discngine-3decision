@@ -151,7 +151,7 @@ Resources:
   RedisChart:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: [SentinelBackupConfigmapSentinel, RedisClusterNamespace, TdecisionChart, EncryptedStorageClass]
-    Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
+    Metadata: { cfn-lint: { config: { ignore_checks: [ E3012, E9101 ] } } }
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: sentinel
@@ -352,6 +352,7 @@ Resources:
     DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
     UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: tdecision
@@ -391,6 +392,7 @@ Resources:
     DependsOn: DatabaseSecrets
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
     UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: choral

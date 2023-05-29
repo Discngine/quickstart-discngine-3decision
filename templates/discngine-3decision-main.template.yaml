@@ -20,7 +20,6 @@ Metadata:
           - PrivateSubnet1CIDR
           - PrivateSubnet2CIDR
           - PrivateSubnet3CIDR
-          - RemoteAccessCIDR
       - Label:
           default: Amazon EC2 configuration
         Parameters:
@@ -28,16 +27,13 @@ Metadata:
       - Label:
           default: Amazon EKS configuration
         Parameters:
-          - ConfigSetName
           - KubernetesVersion
           - NodeVolumeSize
           - NodeInstanceType
           - NumberOfNodes
           - AdditionalEKSAdminUserArn
           - AdditionalEKSAdminRoleArn
-          - ProvisionBastionHost
           - CustomAmiId
-          - NodeGroupName
       - Label:
           default: Discngine 3decision network configuration
         Parameters:
@@ -103,8 +99,6 @@ Metadata:
         default: Quick Start S3 bucket region
       QSS3KeyPrefix:
         default: Quick Start S3 key prefix
-      RemoteAccessCIDR:
-        default: Allowed external access CIDR
       VPCCIDR:
         default: VPC CIDR
       PerAccountSharedResources:
@@ -119,16 +113,12 @@ Metadata:
         default: Additional EKS admin ARN (IAM user)
       AdditionalEKSAdminRoleArn:
         default: Additional EKS admin ARN (IAM role)
-      ConfigSetName:
-        default: Config set name
       KubernetesVersion:
         default: Kubernetes version
       CustomAmiId:
         default: Custom AMI Id
       NodeVolumeSize:
         default: Size of worker nodes volumes
-      NodeGroupName:
-        default: Name of the node group
       DBSnapshotIdentifier:
         default: Identifier of the database snapshot
       DBInstanceIdentifier:
@@ -159,8 +149,6 @@ Metadata:
         default: Type of loadbalancer created
       LoadBalancerClass:
         default: Loadbalancer class
-      ProvisionBastionHost:
-        default: Whether to provision a bastion host
       AzureClientId:
         default: Azure app client id
       AzureSecret:
@@ -295,16 +283,6 @@ Parameters:
       can include numbers, lowercase letters, uppercase letters, hyphens (-), and
       forward slash (/).
     Type: String
-  RemoteAccessCIDR:
-    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
-    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: The CIDR IP range that is permitted to access the bastion instance. This will have no effect if the bastion creation is set to false.
-    Default: "127.0.0.1/32"
-    Type: String
-  ConfigSetName:
-    Type: String
-    Default: "dng-3decision"
-    Description: "Required: SSM Name used to map advanced parameters to an EKS cluster."
   KubernetesVersion:
   # https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-release-calendar
     Type: String
@@ -320,11 +298,6 @@ Parameters:
     Type: String
     Default: ""
     Description: "Optional: If an AMI ID is specified, it is used instead of the default EKS images for cluster nodes."
-  NodeGroupName:
-    Type: String
-    Default: "Default"
-    Description: "Optional: Name of the NodeGroup created in EKS.
-                  This should usually not be changed"
   PerAccountSharedResources:
     Type: String
     AllowedValues: ['AutoDetect', 'Yes', 'No']
@@ -445,11 +418,6 @@ Parameters:
                   This will create an application loadBalancer by default and should generally not be changed.
                   By selecting nginx you will have a classic load balancer with a self signed certificate."
     Type: String
-  ProvisionBastionHost:
-    Type: String
-    AllowedValues: [ "Enabled", "Disabled" ]
-    Default: "Disabled"
-    Description: Choose "Enabled" to create a bastion host. This could be used to debug EKS nodes.
   AzureClientId:
     Type: String
     Default: ""
@@ -550,9 +518,6 @@ Resources:
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         VPCID: !GetAtt VPCStack.Outputs.VPCID
-        PublicSubnet1ID: !GetAtt VPCStack.Outputs.PublicSubnet1ID
-        PublicSubnet2ID: !GetAtt VPCStack.Outputs.PublicSubnet2ID
-        PublicSubnet3ID: !GetAtt VPCStack.Outputs.PublicSubnet3ID
         PrivateSubnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
@@ -567,10 +532,8 @@ Resources:
         CertificateArn: !Ref CertificateArn
         KeyPairName: !Ref KeyPairName
         NumberOfNodes: !Ref NumberOfNodes
-        ConfigSetName: !Ref ConfigSetName
         KubernetesVersion: !Ref KubernetesVersion
         NodeInstanceType: !Ref NodeInstanceType
-        RemoteAccessCIDR: !Ref RemoteAccessCIDR
         PerAccountSharedResources: !Ref PerAccountSharedResources
         PerRegionSharedResources: !Ref PerRegionSharedResources
         AdditionalEKSAdminUserArn: !Ref AdditionalEKSAdminUserArn
@@ -578,10 +541,8 @@ Resources:
         NodeVolumeSize: !Ref NodeVolumeSize
         LoadBalancerType: !Ref LoadBalancerType
         LoadBalancerClass: !Ref LoadBalancerClass
-        ProvisionBastionHost: !Ref ProvisionBastionHost
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
         CustomAmiId: !Ref CustomAmiId
-        NodeGroupName: !Ref NodeGroupName
         AzureClientId: !Ref AzureClientId
         AzureTenant: !Ref AzureTenant
         AzureSecret: !Ref AzureSecret
