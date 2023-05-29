@@ -68,7 +68,7 @@ Resources:
       Timeout: 900
       Code:
         S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-        S3Key: !Sub ${QSS3KeyPrefix}functions/packages/Prerequisites/lambda.zip
+        S3Key: !Sub ${QSS3KeyPrefix}/submodules/quickstart-amazon-eks/functions/packages/Prerequisites/lambda.zip
   Prerequisites:
     Type: Custom::Prerequisites
     Properties:
