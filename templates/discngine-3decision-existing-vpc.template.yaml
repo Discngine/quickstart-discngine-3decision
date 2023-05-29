@@ -500,6 +500,7 @@ Resources:
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
       Tags: [{ Key: eks-quickstart, Value: RegionalSharedResources }]
+
   EKSClusterRole:
     Type: AWS::IAM::Role
     Properties:
@@ -572,7 +573,6 @@ Resources:
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
-      Name: EKS-3decision
       Version: !Ref KubernetesVersion
       RoleArn: !GetAtt EKSClusterRole.Arn
       EncryptionConfig:
