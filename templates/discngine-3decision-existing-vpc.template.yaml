@@ -511,7 +511,7 @@ Resources:
     Properties:
       Name: EKS-3decision
       Version: !Ref KubernetesVersion
-      RoleArn: !Ref EKSClusterRole
+      RoleArn: !GetAtt EKSClusterRole.Arn
       EncryptionConfig:
         - Provider:
             KeyArn: !Ref EKSKey
