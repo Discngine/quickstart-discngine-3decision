@@ -514,7 +514,7 @@ Resources:
       RoleArn: !GetAtt EKSClusterRole.Arn
       EncryptionConfig:
         - Provider:
-            KeyArn: !Ref EKSKey
+            KeyArn: !GetAtt EKSKey.Arn
           Resources: ["secrets"]
       ResourcesVpcConfig:
         SecurityGroupIds:
