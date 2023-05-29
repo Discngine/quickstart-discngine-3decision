@@ -627,12 +627,17 @@ Resources:
         KeyName: !Ref KeyPairName
         UserData:
           Fn::Base64: !Sub |
+            #!/bin/bash
+            set -o xtrace
             /etc/eks/bootstrap.sh ${EKSCluster} \
                               --b64-cluster-ca ${EKSCluster.CertificateAuthorityData} \
                               --apiserver-endpoint ${EKSCluster.Endpoint} \
                               --use-max-pods false \
                               --kubelet-extra-args '--max-pods=110'
-
+            /opt/aws/bin/cfn-signal --exit-code $? \
+                     --stack ${AWS::StackName} \
+                     --resource NodeGroup \
+                     --region ${AWS::Region}
 
   NodeGroup:
     Type: AWS::EKS::Nodegroup
