@@ -673,14 +673,6 @@ Resources:
       SourceSecurityGroupId: !Ref ControlPlaneSecurityGroup
       ToPort: 443
 
-
-  NodeInstanceProfile:
-    Type: "AWS::IAM::InstanceProfile"
-    Properties:
-      Path: /
-      Roles:
-        - !Ref EKSNodeRole
-
   EKSLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
@@ -691,8 +683,6 @@ Resources:
               VolumeSize: !Ref NodeVolumeSize
               VolumeType: gp2
               DeleteOnTermination: true
-        IamInstanceProfile:
-          Arn: !GetAtt NodeInstanceProfile.Arn
         DisableApiTermination: true
         NetworkInterfaces:
           - DeviceIndex: 0
