@@ -502,7 +502,7 @@ Resources:
             {
               "Effect": "Allow",
               "Principal": {
-                "Federated": "${EKSControlPlane.Outputs.OIDCProviderArn}"
+                "Federated": "${IdentityProviderConfig.Arn}"
               },
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
