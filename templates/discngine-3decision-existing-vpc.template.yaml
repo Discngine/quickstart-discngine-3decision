@@ -851,7 +851,8 @@ Resources:
     Metadata:
       cfn-lint: { config: { ignore_checks: [EIAMPolicyWildcardResource] } }
     Properties:
-      AssumeRolePolicyDocument: !Sub |
+      AssumeRolePolicyDocument: !Sub 
+      - |
         {
           "Version": "2012-10-17",
           "Statement": [
@@ -863,13 +864,14 @@ Resources:
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
                 "StringEquals": {
-                  "${EKS.OIDCIssuerURL}:aud": "sts.amazonaws.com",
-                  "${EKS.OIDCIssuerURL}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+                  "${OIDCIssuerURL}:aud": "sts.amazonaws.com",
+                  "${OIDCIssuerURL}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
                 }
               }
             }
           ]
         }
+      - OIDCIssuerURL: !Join ['', !Split ['https://', !Ref OIDCIssuerURL]]
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
       Policies:
