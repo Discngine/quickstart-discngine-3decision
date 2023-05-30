@@ -721,6 +721,16 @@ Resources:
               Groups: [system:masters]
             - !Ref AWS::NoValue
 
+  ClusterOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      ClientIdList:
+        - sts.amazonaws.com
+        - !Sub sts.${AWS::Region}.amazonaws.com
+      ThumbprintList:
+        - 9e99a48a9960b14926bb7f3b02e22da2b0ab7280
+      Url: !GetAtt EKS.OIDCIssuerURL
+
   IdentityProviderConfig:
     Type: AWS::EKS::IdentityProviderConfig
     Properties:
@@ -848,7 +858,7 @@ Resources:
             {
               "Effect": "Allow",
               "Principal": {
-                "Federated": "${IdentityProviderConfig}"
+                "Federated": "${ClusterOIDCProvider}"
               },
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
