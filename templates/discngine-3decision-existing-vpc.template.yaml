@@ -261,17 +261,14 @@ Parameters:
     Description: "Optional: If an AMI ID is specified, it is used instead of the default EKS images for cluster nodes."
   PerAccountSharedResources:
     Type: String
-    AllowedValues: ['AutoDetect', 'Yes', 'No']
-    Default: 'AutoDetect'
+    AllowedValues: ['Yes', 'No']
+    Default: 'Yes'
     Description: You can set "Yes" or "No" according to whether another EKS quickstart has been deployed in your account.
-                 Setting "AutoDetect" will check that for you.
-                 However, this option should not be used if you have SCPs blocking all access in certain regions as all cloudformation stacks will be listed in all regions. 
   PerRegionSharedResources:
     Type: String
-    AllowedValues: ['AutoDetect', 'Yes', 'No']
-    Default: 'AutoDetect'
+    AllowedValues: ['Yes', 'No']
+    Default: 'Yes'
     Description: You can set "Yes" or "No" according to whether another EKS quickstart has been deployed in your region.
-                 Setting "AutoDetect" will check that for you.
   NumberOfNodes:
     Default: 3
     Description: The number of Amazon EKS node instances. The default is one for each of the three Availability Zones.
@@ -449,9 +446,6 @@ Mappings:
       EC2ServicePrincipal: "ec2.sc2s.sgov.gov"
 
 Conditions:
-  DetectSharedStacks: !And
-    - !Equals [!Ref PerAccountSharedResources, AutoDetect]
-    - !Equals [!Ref PerRegionSharedResources, AutoDetect]
   CreatePerAccountSharedResources: !Equals [!Ref PerAccountSharedResources, 'Yes']
   CreatePerRegionSharedResources: !Equals [!Ref PerRegionSharedResources, 'Yes']
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, aws-quickstart]
@@ -459,20 +453,6 @@ Conditions:
   AddRole: !Not [!Equals [!Ref AdditionalEKSAdminRoleArn, '']]
 
 Resources:
-  AutoDetectSharedResources:
-    Type: AWS::CloudFormation::Stack
-    Condition: DetectSharedStacks
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      TemplateURL: !Sub
-        - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/eks/amazon-eks-prerequisites.template.yaml
-        - S3Region: !If [UsingDefaultBucket, !Ref AWS::Region, !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3BucketRegion: !Ref QSS3BucketRegion
-        QSS3KeyPrefix: !Ref QSS3KeyPrefix
   AccountSharedResources:
     Type: AWS::CloudFormation::Stack
     Condition: CreatePerAccountSharedResources
@@ -686,7 +666,7 @@ Resources:
     Properties:
       ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eks-quickstart-GetCallerArn
 
-  EKSCluster:
+  EKS:
     Type: AWSQS::EKS::Cluster
     Properties:
       ResourcesVpcConfig:
@@ -744,18 +724,18 @@ Resources:
   IdentityProviderConfig:
     Type: AWS::EKS::IdentityProviderConfig
     Properties:
-      ClusterName: !Ref EKSCluster
+      ClusterName: !Ref EKS
       Type: oidc
       Oidc:
         ClientId: "kubernetes"
-        IssuerUrl: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
+        IssuerUrl: !GetAtt EKS.OpenIdConnectIssuerUrl
 
   NodeSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Security group for all nodes in the cluster
       Tags:
-        - Key: !Sub kubernetes.io/cluster/${EKSCluster}
+        - Key: !Sub kubernetes.io/cluster/${EKS}
           Value: owned
       VpcId: !Ref VPCID
 
@@ -842,9 +822,9 @@ Resources:
           Fn::Base64: !Sub |
             #!/bin/bash
             set -o xtrace
-            /etc/eks/bootstrap.sh ${EKSCluster} \
+            /etc/eks/bootstrap.sh ${EKS} \
                               --b64-cluster-ca ${EKSCluster.CertificateAuthorityData} \
-                              --apiserver-endpoint ${EKSCluster.Endpoint} \
+                              --apiserver-endpoint ${EKS.Endpoint} \
                               --use-max-pods false \
                               --kubelet-extra-args '--max-pods=110'
             /opt/aws/bin/cfn-signal --exit-code $? \
@@ -860,7 +840,7 @@ Resources:
     Type: AWS::EKS::Nodegroup
     Properties:
       NodegroupName: Default
-      ClusterName: !Ref EKSCluster
+      ClusterName: !Ref EKS
       NodeRole: !GetAtt EKSNodeRole.Arn
       ScalingConfig:
         MinSize: !Ref NumberOfNodes
@@ -894,7 +874,7 @@ Resources:
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         VPCID: !Ref VPCID
-        EKSClusterName: !Ref EKSCluster
+        EKSClusterName: !Ref EKS
         DBInstanceIdentifier: !Ref DBInstanceIdentifier
         DBName: !Ref DBName
         DBInstanceClass: !Ref DBInstanceClass
@@ -930,4 +910,4 @@ Resources:
         HelpSubdomain: !Ref HelpSubdomain
         NodeGroupRoleArn: !GetAtt EKSNodeRole.Arn
         NodeSecurityGroup: !Ref NodeSecurityGroup
-        OIDCIssuerURL: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
+        OIDCIssuerURL: !GetAtt EKS.OpenIdConnectIssuerUrl

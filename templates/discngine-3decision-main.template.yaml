@@ -300,17 +300,14 @@ Parameters:
     Description: "Optional: If an AMI ID is specified, it is used instead of the default EKS images for cluster nodes."
   PerAccountSharedResources:
     Type: String
-    AllowedValues: ['AutoDetect', 'Yes', 'No']
-    Default: 'AutoDetect'
+    AllowedValues: ['Yes', 'No']
+    Default: 'Yes'
     Description: You can set "Yes" or "No" according to whether another EKS quickstart has been deployed in your account.
-                 Setting "AutoDetect" will check that for you.
-                 However, this option should not be used if you have SCPs blocking all access in certain regions as all cloudformation stacks will be listed in all regions. 
   PerRegionSharedResources:
     Type: String
-    AllowedValues: ['AutoDetect', 'Yes', 'No']
-    Default: 'AutoDetect'
+    AllowedValues: ['Yes', 'No']
+    Default: 'Yes'
     Description: You can set "Yes" or "No" according to whether another EKS quickstart has been deployed in your region.
-                 Setting "AutoDetect" will check that for you.
   NumberOfNodes:
     Default: 3
     Description: The number of Amazon EKS node instances. The default is one for each of the three Availability Zones.
