@@ -498,19 +498,6 @@ Resources:
                 "Service": "ec2.amazonaws.com"
               },
               "Action": "sts:AssumeRole",
-            },
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Federated": "${IdentityProviderConfig.Arn}"
-              },
-              "Action": "sts:AssumeRoleWithWebIdentity",
-              "Condition": {
-                "StringEquals": {
-                  "${EKS.OIDCIssuerURL}:aud": "sts.amazonaws.com",
-                  "${EKS.OIDCIssuerURL}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
-                }
-              }
             }
           ]
         }
@@ -841,12 +828,64 @@ Resources:
           HttpEndpoint: enabled
           HttpTokens: required
 
+  AmazonEksEbsCsiDriverRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint: { config: { ignore_checks: [EIAMPolicyWildcardResource] } }
+    Properties:
+      AssumeRolePolicyDocument: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "${IdentityProviderConfig.Arn}"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "${EKS.OIDCIssuerURL}:aud": "sts.amazonaws.com",
+                  "${EKS.OIDCIssuerURL}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+                }
+              }
+            }
+          ]
+        }
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
+      Policies:
+        - PolicyName: AmazonEbsCsiDeviceEncryption
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:CreateGrant
+                  - kms:ListGrants
+                  - kms:RevokeGrant
+                Resource: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+                Condition: { Bool: { kms:GrantIsForAWSResource: true } }
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:DescribeKey
+                  - kms:Encrypt
+                  - kms:GenerateDataKey
+                  - kms:GenerateDataKeyWithoutPlaintext
+                  - kms:GenerateDataKeyPair
+                  - kms:GenerateDataKeyPairWithoutPlaintext
+                  - kms:ReEncryptFrom
+                  - kms:ReEncryptTo
+                Resource: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+
   CSIDriver:
     Type: AWS::EKS::Addon
     Properties: 
       AddonName: aws-ebs-csi-driver
       ClusterName: !Ref EKS
       ResolveConflicts: NONE
+      ServiceAccountRoleArn: !GetAtt AmazonEksEbsCsiDriverRole.Arn
 
   NodeGroup:
     Type: AWS::EKS::Nodegroup
