@@ -507,8 +507,8 @@ Resources:
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
                 "StringEquals": {
-                  "${EKSControlPlane.Outputs.OIDCProviderEndpoint}:aud": "sts.amazonaws.com",
-                  "${EKSControlPlane.Outputs.OIDCProviderEndpoint}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+                  "${EKS.OIDCIssuerURL}:aud": "sts.amazonaws.com",
+                  "${EKS.OIDCIssuerURL}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
                 }
               }
             }
