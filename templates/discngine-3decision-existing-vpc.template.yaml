@@ -871,7 +871,7 @@ Resources:
             }
           ]
         }
-      - OIDCIssuerURLWithoutProtocol: !Join ['', !Split ['https://', !Ref EKS.OIDCIssuerURL]]
+      - OIDCIssuerURLWithoutProtocol: !Join ['', !Split ['https://', !GetAtt EKS.OIDCIssuerURL]]
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
       Policies:
