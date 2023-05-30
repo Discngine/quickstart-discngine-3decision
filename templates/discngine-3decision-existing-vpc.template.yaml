@@ -707,8 +707,8 @@ Resources:
           - Arn: !GetAtt EKSNodeRole.Arn
             Username: system:node:{{EC2PrivateDNSName}}
             Groups: [system:bootstrappers, system:nodes]
-          - Arn: !Ref KubernetesAdminRole.Arn
-            Username: !Ref KubernetesAdminRole.Arn
+          - Arn: !GetAtt KubernetesAdminRole.Arn
+            Username: !GetAtt KubernetesAdminRole.Arn
             Groups: [system:masters]
           - Arn: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-helm
             Username: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-helm
