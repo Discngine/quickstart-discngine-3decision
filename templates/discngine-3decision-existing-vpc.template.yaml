@@ -841,12 +841,12 @@ Resources:
           HttpEndpoint: enabled
           HttpTokens: required
 
-CSIDriver:
-  Type: AWS::EKS::Addon
-  Properties: 
-    AddonName: aws-ebs-csi-driver
-    ClusterName: !Ref EKS
-    ResolveConflicts: NONE
+  CSIDriver:
+    Type: AWS::EKS::Addon
+    Properties: 
+      AddonName: aws-ebs-csi-driver
+      ClusterName: !Ref EKS
+      ResolveConflicts: NONE
 
   NodeGroup:
     Type: AWS::EKS::Nodegroup
