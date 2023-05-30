@@ -87,7 +87,7 @@ Resources:
           fsType: ext4
           type: gp2
           encrypted: "true"
-        provisioner: kubernetes.io/aws-ebs
+        provisioner: ebs.csi.aws.com
         reclaimPolicy: Delete
         volumeBindingMode: WaitForFirstConsumer
   TDecisionNamespace:
