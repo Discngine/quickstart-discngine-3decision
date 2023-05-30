@@ -670,7 +670,7 @@ Resources:
     Type: AWSQS::EKS::Cluster
     Properties:
       ResourcesVpcConfig:
-        SecurityGroupIds: !Ref ControlPlaneSecurityGroup
+        SecurityGroupIds: [!Ref ControlPlaneSecurityGroup]
         SubnetIds: [!Ref PrivateSubnet1ID, !Ref PrivateSubnet2ID, !Ref PrivateSubnet3ID]
         PublicAccessCidrs: ["0.0.0.0/0"]
         EndpointPrivateAccess: true
