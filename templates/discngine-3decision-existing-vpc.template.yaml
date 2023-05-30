@@ -848,13 +848,13 @@ Resources:
             {
               "Effect": "Allow",
               "Principal": {
-                "Federated": "${IdentityProviderConfig.IdentityProviderConfigArn}"
+                "Federated": "${IdentityProviderConfig}"
               },
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
                 "StringEquals": {
-                  "${EKS.OIDCIssuerURL}:aud": "sts.amazonaws.com",
-                  "${EKS.OIDCIssuerURL}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+                  "https://${EKS.OIDCIssuerURL}:aud": "sts.amazonaws.com",
+                  "https://${EKS.OIDCIssuerURL}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
                 }
               }
             }
