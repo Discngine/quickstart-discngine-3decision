@@ -451,6 +451,7 @@ Conditions:
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, aws-quickstart]
   AddUser: !Not [!Equals [!Ref AdditionalEKSAdminUserArn, '']]
   AddRole: !Not [!Equals [!Ref AdditionalEKSAdminRoleArn, '']]
+  UseCustomAmi: !Not [!Equals [!Ref CustomAmiId, '']]
 
 Resources:
   AccountSharedResources:
@@ -825,7 +826,10 @@ Resources:
             AssociatePublicIpAddress: false
             Groups:
               - !Ref NodeSecurityGroup
-        ImageId: !Sub '{{resolve:ssm:/aws/service/eks/optimized-ami/${KubernetesVersion}/amazon-linux-2/recommended/image_id}}' #!Ref CustomAmiId
+        ImageId: !If
+          - UseCustomAmi
+          - !Ref CustomAmiId
+          - !Sub '{{resolve:ssm:/aws/service/eks/optimized-ami/${KubernetesVersion}/amazon-linux-2/recommended/image_id}}'
         InstanceType: !Ref NodeInstanceType
         KeyName: !Ref KeyPairName
         UserData:
