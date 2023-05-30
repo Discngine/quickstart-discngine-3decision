@@ -823,7 +823,7 @@ Resources:
             #!/bin/bash
             set -o xtrace
             /etc/eks/bootstrap.sh ${EKS} \
-                              --b64-cluster-ca ${EKSCluster.CertificateAuthorityData} \
+                              --b64-cluster-ca ${EKS.CertificateAuthorityData} \
                               --apiserver-endpoint ${EKS.Endpoint} \
                               --use-max-pods false \
                               --kubelet-extra-args '--max-pods=110'
