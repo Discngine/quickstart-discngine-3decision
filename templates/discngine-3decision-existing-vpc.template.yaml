@@ -728,7 +728,7 @@ Resources:
       Type: oidc
       Oidc:
         ClientId: "kubernetes"
-        IssuerUrl: !GetAtt EKS.OpenIdConnectIssuerUrl
+        IssuerUrl: !GetAtt EKS.OIDCIssuerURL
 
   NodeSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
@@ -910,4 +910,4 @@ Resources:
         HelpSubdomain: !Ref HelpSubdomain
         NodeGroupRoleArn: !GetAtt EKSNodeRole.Arn
         NodeSecurityGroup: !Ref NodeSecurityGroup
-        OIDCIssuerURL: !GetAtt EKS.OpenIdConnectIssuerUrl
+        OIDCIssuerURL: !GetAtt EKS.OIDCIssuerURL
