@@ -704,8 +704,7 @@ Resources:
       Version: !Ref KubernetesVersion
       KubernetesApiAccess:
         Roles:
-          - Arn: !Sub
-              - ${EKSNodeRole.Arn}
+          - Arn: !GetAtt EKSNodeRole.Arn
             Username: system:node:{{EC2PrivateDNSName}}
             Groups: [system:bootstrappers, system:nodes]
           - Arn: !Ref KubernetesAdminRole.Arn
