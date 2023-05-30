@@ -782,6 +782,6 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         HelpSubdomain: !Ref HelpSubdomain
-        NodeGroupArn: !GetAtt NodeGroup.Arn
+        NodeGroupArn: !GetAtt EKSNodeRole.Arn
         NodeSecurityGroup: !Ref NodeSecurityGroup
         OIDCIssuerURL: !GetAtt EKSCluster.OpenIdConnectIssuerUrl

@@ -13,7 +13,7 @@ Metadata:
           - EKSClusterName
           - VPCID
           - ConfigureEKS
-          - NodeGroupArn
+          - NodeGroupRoleArn
           - NodeSecurityGroup
       - Label:
           default: Discngine 3decision network configuration
@@ -121,8 +121,8 @@ Metadata:
         default: Okta server id
       OktaRedirectUri:
         default: Okta app redirect uri
-      NodeGroupArn:
-        default: Arn of the default node group
+      NodeGroupRoleArn:
+        default: Arn of the default node group role
       NodeSecurityGroup:
         default: Security group of the default node group
 Parameters:
@@ -218,9 +218,9 @@ Parameters:
     Default: 'false'
     Type: String
     AllowedValues: ['true', 'false']
-  NodeGroupArn:
+  NodeGroupRoleArn:
     Type: String
-    Description: "Required: Arn of the default NodeGroup used"
+    Description: "Required: Arn of the default NodeGroup role used"
   OIDCIssuerURL:
     Type: String
     Description: "Required: URL of the oidc provider"
@@ -415,7 +415,7 @@ Resources:
         DatabaseName: !GetAtt RDSStack.Outputs.DbInstanceName
         VpcId: !Ref VPCID
         DBSecurityGroup: !GetAtt RDSStack.Outputs.DBSecurityGroup
-        NodeGroupArn: !Ref NodeGroupArn
+        NodeGroupRoleArn: !Ref NodeGroupRoleArn
   3decisionBucketStack:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Delete
