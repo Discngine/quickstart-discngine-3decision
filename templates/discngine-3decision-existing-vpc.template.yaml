@@ -848,7 +848,7 @@ Resources:
             {
               "Effect": "Allow",
               "Principal": {
-                "Federated": "${IdentityProviderConfig.Arn}"
+                "Federated": "${IdentityProviderConfig}"
               },
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
