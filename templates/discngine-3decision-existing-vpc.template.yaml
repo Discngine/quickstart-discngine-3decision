@@ -452,6 +452,7 @@ Conditions:
   AddUser: !Not [!Equals [!Ref AdditionalEKSAdminUserArn, '']]
   AddRole: !Not [!Equals [!Ref AdditionalEKSAdminRoleArn, '']]
   UseCustomAmi: !Not [!Equals [!Ref CustomAmiId, '']]
+  Commercial: !Equals [!Ref AWS::Partition, aws]
 
 Resources:
   AccountSharedResources:
