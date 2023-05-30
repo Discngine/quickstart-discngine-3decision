@@ -455,6 +455,8 @@ Conditions:
   CreatePerAccountSharedResources: !Equals [!Ref PerAccountSharedResources, 'Yes']
   CreatePerRegionSharedResources: !Equals [!Ref PerRegionSharedResources, 'Yes']
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, aws-quickstart]
+  AddUser: !Not [!Equals [!Ref AdditionalEKSAdminUserArn, '']]
+  AddRole: !Not [!Equals [!Ref AdditionalEKSAdminRoleArn, '']]
 
 Resources:
   AutoDetectSharedResources:
@@ -570,30 +572,175 @@ Resources:
             Action: "kms:*"
             Resource: "*"
 
-  EKSCluster:
-    Type: AWS::EKS::Cluster
+  KubernetesAdminRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks: [EIAMPolicyWildcardResource]
+          ignore_reasons:
+            EIAMPolicyWildcardResource: >-
+              Action eks:DescribeAddonConfiguration requires a wildcard
+              resource. As of 2023-02-05, cfn-lint falsely reports this as an
+              issue.
     Properties:
-      Version: !Ref KubernetesVersion
-      RoleArn: !GetAtt EKSClusterRole.Arn
-      EncryptionConfig:
-        - Provider:
-            KeyArn: !GetAtt EKSKey.Arn
-          Resources: ["secrets"]
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: eksStackPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - eks:CreateCluster
+                  - eks:DescribeAddonConfiguration
+                  - eks:DescribeAddonVersions
+                  - eks:ListClusters
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - eks:AccessKubernetesApi
+                  - eks:AssociateEncryptionConfig
+                  - eks:AssociateIdentityProviderConfig
+                  - eks:CreateAddon
+                  - eks:CreateFargateProfile
+                  - eks:CreateNodegroup
+                  - eks:DeleteAddon
+                  - eks:DeleteCluster
+                  - eks:DeleteNodegroup
+                  - eks:DeleteFargateProfile
+                  - eks:DescribeAddon
+                  - eks:DescribeCluster
+                  - eks:DescribeFargateProfile
+                  - eks:DescribeIdentityProviderConfig
+                  - eks:DescribeNodegroup
+                  - eks:DescribeUpdate
+                  - eks:DisassociateIdentityProviderConfig
+                  - eks:ListAddons
+                  - eks:ListFargateProfiles
+                  - eks:ListIdentityProviderConfigs
+                  - eks:ListNodegroups
+                  - eks:ListTagsForResource
+                  - eks:ListUpdates
+                  - eks:TagResource
+                  - eks:UntagResource
+                  - eks:UpdateAddon
+                  - eks:UpdateClusterConfig
+                  - eks:UpdateClusterVersion
+                  - eks:UpdateNodegroupConfig
+                  - eks:UpdateNodegroupVersion
+                Resource:
+                  - !Sub arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:addon/*/*/*
+                  - !Sub arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:cluster/*
+                  - !Sub arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:fargateprofile/*/*/*
+                  - !Sub arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:identityproviderconfig/*/*/*/*
+                  - !Sub arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:nodegroup/*/*/*
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeVpcs
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:*/*
+              - Effect: Allow
+                Action:
+                  - events:DeleteRule
+                  - events:PutRule
+                  - events:PutTargets
+                  - events:RemoveTargets
+                Resource:
+                  - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/*
+                  - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/*/*
+              - Effect: Allow
+                Action:
+                  - lambda:AddPermission
+                  - lambda:InvokeFunction
+                  - lambda:RemovePermission
+                Resource: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*:log-stream:*
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub arn:${AWS::Partition}:s3:::*/*
+
+  CallerArn:
+    Type: Custom::GetCallerArn
+    Properties:
+      ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eks-quickstart-GetCallerArn
+
+  EKSCluster:
+    Type: AWSQS::EKS::Cluster
+    Properties:
       ResourcesVpcConfig:
-        SecurityGroupIds:
-          - !Ref ControlPlaneSecurityGroup
-        SubnetIds:
-          - !Ref PrivateSubnet1ID
-          - !Ref PrivateSubnet2ID
-          - !Ref PrivateSubnet3ID
-        EndpointPublicAccess: true # TO CHANGE
+        SecurityGroupIds: !Ref ControlPlaneSecurityGroup
+        SubnetIds: [!Ref PrivateSubnet1ID, !Ref PrivateSubnet2ID, !Ref PrivateSubnet3ID]
+        PublicAccessCidrs: ["0.0.0.0/0"]
         EndpointPrivateAccess: true
-      #        PublicAccessCidrs: [ "1.1.1.2/32" ]
-      Logging:
-        ClusterLogging:
-          EnabledTypes:
-            - Type: api
-            - Type: audit
+        EndpointPublicAccess: true
+      EnabledClusterLoggingTypes: !Ref AWS::NoValue
+      EncryptionConfig:
+        - Resources: [secrets]
+          Provider:
+            KeyArn: !GetAtt EKSKey.Arn
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      Version: !Ref KubernetesVersion
+      KubernetesApiAccess:
+        Roles:
+          - Arn: !Sub
+              - ${EKSNodeRole.Arn}
+            Username: system:node:{{EC2PrivateDNSName}}
+            Groups: [system:bootstrappers, system:nodes]
+          - Arn: !Ref KubernetesAdminRole.Arn
+            Username: !Ref KubernetesAdminRole.Arn
+            Groups: [system:masters]
+          - Arn: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-helm
+            Username: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-helm
+            Groups: [system:masters]
+          - Arn: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-get
+            Username: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-get
+            Groups: [system:masters]
+          - Arn: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-resource
+            Username: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/awsqs-kubernetes-resource
+            Groups: [system:masters]
+          # We don't know whether GetCallerArn returned a user arn or a role arn, so we just add it to both
+          - Arn: !GetAtt CallerArn.Arn
+            Username: !GetAtt CallerArn.Arn
+            Groups: [system:masters]
+          - !If
+            - AddRole
+            - Arn: !Ref AdditionalEKSAdminRoleArn
+              Username: !Ref AdditionalEKSAdminRoleArn
+              Groups: [system:masters]
+            - !Ref AWS::NoValue
+        Users:
+          # We don't know whether GetCallerArn returned a user arn or a role arn, so we just add it to both
+          - Arn: !GetAtt CallerArn.Arn
+            Username: !GetAtt CallerArn.Arn
+            Groups: [system:masters]
+          - !If
+            - AddUser
+            - Arn: !Ref AdditionalEKSAdminUserArn
+              Username: !Ref AdditionalEKSAdminUserArn
+              Groups: [system:masters]
+            - !Ref AWS::NoValue
 
   IdentityProviderConfig:
     Type: AWS::EKS::IdentityProviderConfig
