@@ -1173,7 +1173,7 @@ Resources:
   LoadBalancerControllerHelmChart:
     Type: AWSQS::Kubernetes::Helm
     Properties:
-      ClusterID: !Ref EksClusterName
+      ClusterID: !Ref EKS
       Namespace: kube-system
       Name: aws-load-balancer-controller
       Repository: https://aws.github.io/eks-charts
