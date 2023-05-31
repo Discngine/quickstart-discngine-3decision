@@ -410,7 +410,7 @@ Resources:
       Chart: ingress-nginx
   RedisChart:
     Type: "AWSQS::Kubernetes::Helm"
-    DependsOn: [SentinelBackupConfigmapSentinel, RedisClusterNamespace, EncryptedStorageClass]
+    DependsOn: [SentinelBackupConfigmapSentinel, RedisClusterNamespace, EncryptedStorageClass, LoadBalancerControllerHelmChart]
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012, E9101 ] } } }
     Properties:
       ClusterID: !Ref EKSClusterName
@@ -609,7 +609,7 @@ Resources:
           
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
-    DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
+    DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager, LoadBalancerControllerHelmChart ]
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
