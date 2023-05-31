@@ -52,13 +52,3 @@ Resources:
       HostedZoneId: !Ref HostedZoneId
       Name: !Sub "${ApiSubdomain}.${DomainName}"
       Type: A
-  wikiRecord:
-    Type: "AWS::Route53::RecordSet"
-    Properties:
-      AliasTarget:
-        DNSName: !Ref DNSName
-        EvaluateTargetHealth: true
-        HostedZoneId: !Ref CanonicalHostedZoneId
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Sub "${HelpSubdomain}.${DomainName}"
-      Type: A
