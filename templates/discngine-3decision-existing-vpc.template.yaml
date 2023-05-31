@@ -677,13 +677,13 @@ Resources:
     Type: Custom::CleanupLoadBalancers
     Properties:
       ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eks-quickstart-CleanupLoadBalancers
-      ClusterName: 'EKS-GY2Z1AVQ'
+      ClusterName: !Ref GenerateClusterName
 
   EKS:
     Type: AWSQS::EKS::Cluster
     DependsOn: CleanupLoadBalancers
     Properties:
-      Name: 'EKS-GY2Z1AVQ'
+      Name: !Ref GenerateClusterName
       ResourcesVpcConfig:
         SecurityGroupIds: [!Ref ControlPlaneSecurityGroup]
         SubnetIds: [!Ref PrivateSubnet1ID, !Ref PrivateSubnet2ID, !Ref PrivateSubnet3ID]
