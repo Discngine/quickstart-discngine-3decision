@@ -110,8 +110,8 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CopyZipsFunction.Arn
       DestBucket: !Ref LambdaZipsBucket
-      SourceBucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Prefix: !Ref QSS3KeyPrefix
+      SourceBucket: 3decision-eu-central-1
+      Prefix: quickstart-discngine-3decision/
       Version: 1.0.0
       RandomStr: !Ref RandomStr
       Objects:
