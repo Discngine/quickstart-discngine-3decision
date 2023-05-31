@@ -144,6 +144,7 @@ Resources:
       AllocatedStorage: "1024"
       MaxAllocatedStorage: 3072
       CharacterSetName: AL32UTF8
+      DeletionProtection: true
       DBInstanceClass: !Ref DBInstanceClass
       DBInstanceIdentifier: !Ref DBInstanceIdentifier
       DBName: !Ref DBName
