@@ -1,9 +1,7 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "This creates an EKS cluster, and sets up Discngine 3decision infrastructure. (qs-1snm79fed)."
+Description: "This creates an EKS cluster. (qs-1snm79fed)."
 Metadata:
-  QuickStartDocumentation:
-    EntrypointName: "Launch into an existing VPC"
   LintSpellExclude:
     - Discngine
     - 3decision
@@ -433,15 +431,9 @@ Resources:
     Properties:
       ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eks-quickstart-GetCallerArn
 
-  GenerateClusterName:
-    Type: Custom::GenerateClusterName
-    Properties:
-      ServiceToken: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:eks-quickstart-GenerateClusterName
-
   EKS:
     Type: AWSQS::EKS::Cluster
     Properties:
-      Name: !Ref GenerateClusterName
       ResourcesVpcConfig:
         SecurityGroupIds: [!Ref ControlPlaneSecurityGroup]
         SubnetIds: [!Ref PrivateSubnet1ID, !Ref PrivateSubnet2ID, !Ref PrivateSubnet3ID]
