@@ -439,6 +439,8 @@ Resources:
         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
       Parameters:
+        VPCID: !Ref VPCID
+        OIDCIssuerURLWithoutProtocol: !Join ['', !Split ['https://', !Ref OIDCIssuerURL]]
         TNamespace: !Ref TNamespace
         JWTPrivateKey: !Sub '{{resolve:secretsmanager:${JWTSecretName}:SecretString:private_key}}'
         JWTPublicKey: !Sub '{{resolve:secretsmanager:${JWTSecretName}:SecretString:public_key}}'
