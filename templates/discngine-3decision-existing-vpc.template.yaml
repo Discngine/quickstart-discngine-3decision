@@ -850,11 +850,6 @@ Resources:
           HttpPutResponseHopLimit : 2
           HttpEndpoint: enabled
           HttpTokens: required
-        TagSpecifications:
-          - ResourceType: instance
-            Tags:
-              - Key: Workload
-                Value: RAM
 
   AmazonEksEbsCsiDriverRole:
     Type: AWS::IAM::Role
@@ -927,6 +922,8 @@ Resources:
         MinSize: !Ref NumberOfNodes
         DesiredSize: !Ref NumberOfNodes
         MaxSize: !Ref NumberOfNodes
+      Labels:
+        workload: RAM
       Subnets:
         - !Ref PrivateSubnet1ID
         - !Ref PrivateSubnet2ID
