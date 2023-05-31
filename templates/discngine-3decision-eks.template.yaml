@@ -440,7 +440,6 @@ Resources:
 
   EKS:
     Type: AWSQS::EKS::Cluster
-    DependsOn: CleanupLoadBalancers
     Properties:
       Name: !Ref GenerateClusterName
       ResourcesVpcConfig:
