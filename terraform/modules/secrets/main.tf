@@ -43,42 +43,35 @@ resource "aws_security_group_rule" "lambda_security_group_egress" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
-resource "aws_s3_bucket" "b1" {
+resource "aws_s3_bucket" "lambda_sources" {
   force_destroy = "true"
 }
 
 # Upload an object
 resource "aws_s3_object" "object" {
-  bucket      = aws_s3_bucket.b1.id
-  key         = "layer.zip"
-  source      = "${path.root}/function/layer.zip"
-  source_hash = filemd5("${path.root}/function/layer.zip")
-}
-
-resource "aws_lambda_layer_version" "lambda_layer_oracle" {
-  layer_name = "oracle_lambda_layer_name"
-
-  s3_bucket = aws_s3_bucket.b1.id
-  s3_key    = aws_s3_object.object.id
+  bucket      = aws_s3_bucket.lambda_sources.id
+  key         = "package.zip"
+  source      = "${path.root}/function/package.zip"
+  source_hash = filemd5("${path.root}/function/package.zip")
 }
 
 resource "aws_lambda_function" "secret_rotator_lambda" {
   function_name = "tdec-rotator-lambda"
 
-  layers = [aws_lambda_layer_version.lambda_layer_oracle.arn]
   role   = aws_iam_role.secret_rotator_lambda_role.arn
 
-  handler          = "handler.lambda_handler"
-  filename         = "${path.root}/function/package.zip"
+  handler          = "lambda_function.lambda_handler"
+  s3_bucket = aws_s3_bucket.lambda_sources.id
+  s3_key    = aws_s3_object.object.id
   source_code_hash = filebase64sha256("${path.root}/function/package.zip")
 
-  runtime = "python3.8"
+  runtime = "python3.9"
   timeout = 30
 
   environment {
     variables = {
       SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.eu-central-1.amazonaws.com",
-      LD_LIBRARY_PATH          = "/var/lang/lib:/lib64:/usr/lib64:/var/runtime:/var/runtime/lib:/var/task:/var/task/lib:/opt/lib"
+      EXCLUDE_CHARACTERS = "' ! \" # $ % & ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ ` { | } ~"
     }
   }
 
@@ -148,7 +141,8 @@ resource "aws_iam_policy" "secret_rotator_lambda_policy" {
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface",
           "ec2:AssignPrivateIpAddresses",
-          "ec2:UnassignPrivateIpAddresses"
+          "ec2:UnassignPrivateIpAddresses",
+          "ec2:DetachNetworkInterface"
         ],
         Resource = "*",
         Effect   = "Allow"

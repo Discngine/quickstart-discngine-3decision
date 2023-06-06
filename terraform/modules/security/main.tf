@@ -26,7 +26,7 @@ resource "aws_security_group_rule" "add_db_to_security_eks" {
   security_group_id        = var.node_security_group_id
 }
 
-resource "aws_security_group_rule" "allow_lambda_access_to_db" {
+resource "aws_security_group_rule" "allow_db_access_from_lambda" {
   type                     = "ingress"
   protocol                 = "tcp"
   from_port                = 1521

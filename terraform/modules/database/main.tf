@@ -72,6 +72,15 @@ resource "aws_security_group" "db_security_group" {
   vpc_id      = var.vpc_id
 }
 
+resource "aws_security_group_rule" "db_security_group_egress" {
+  type              = "egress"
+  security_group_id = aws_security_group.db_security_group.id
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
 resource "aws_db_instance" "db_instance" {
   allocated_storage      = 1024
   max_allocated_storage  = 3000
