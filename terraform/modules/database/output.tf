@@ -17,5 +17,5 @@ output "db_name" {
 }
 
 output "db_endpoint" {
-  value = element(split(":", aws_db_instance.db_instance.endpoint), 0)
+  value = aws_db_instance.db_instance.endpoint
 }

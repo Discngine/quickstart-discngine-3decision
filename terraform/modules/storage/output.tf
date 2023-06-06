@@ -7,3 +7,15 @@
 # Release (Date): 1.0 (July 2018)
 #
 # Copyright Oracle, Inc.  All rights reserved.
+
+output "bucket_name" {
+  value = aws_s3_bucket.bucket.bucket
+}
+
+output "access_point_alias" {
+  value = aws_s3_access_point.redis_access_point.alias
+}
+
+output "redis_role_arn" {
+  value = aws_iam_role.redis_role.arn
+}

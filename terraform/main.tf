@@ -18,7 +18,7 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "2.4.1"
+      version = ">=2.10.1"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
@@ -51,17 +51,36 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  config_path = module.oke.filename
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_ca_cert)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+    command     = "aws"
+  }
 }
 
 provider "helm" {
   kubernetes {
-    config_path = module.oke.filename
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_ca_cert)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+      command     = "aws"
+    }
   }
 }
 
 provider "kubectl" {
-  config_path = module.oke.filename
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_ca_cert)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+    command     = "aws"
+  }
+  load_config_file = false
 }
 
 provider "tls" {
@@ -122,6 +141,7 @@ module "secrets" {
   private_subnet_ids   = module.network.private_subnet_ids
   db_name              = module.database.db_name
   db_endpoint          = module.database.db_endpoint
+  node_group_role_arn  = module.eks.node_group_role_arn
 }
 
 module "volumes" {
@@ -134,15 +154,38 @@ module "storage" {
   # Input
   account_id      = local.account_id
   vpc_id          = module.network.vpc_id
-  eks_oidc_issuer = module.eks.eks_oidc_issuer
+  eks_oidc_issuer = module.eks.oidc_issuer
 }
 
-#module "kubernetes" {
-#  source = "./modules/kubernetes"
-#
-#  # Input
-#  depends_on = [module.eks]
-#}
+module "kubernetes" {
+  source = "./modules/kubernetes"
+
+  # Input
+  account_id              = local.account_id
+  vpc_id                  = module.network.vpc_id
+  tdecision_namespace     = var.tdecision_namespace
+  redis_sentinel_chart    = var.redis_sentinel_chart
+  cert_manager_chart      = var.cert_manager_chart
+  external_secrets_chart  = var.external_secrets_chart
+  reloader_chart          = var.reloader_chart
+  jwt_ssh_private         = module.secrets.jwt_private_key
+  jwt_ssh_public          = module.secrets.jwt_public_key
+  okta_oidc               = var.okta_oidc
+  azure_oidc              = var.azure_oidc
+  google_oidc             = var.google_oidc
+  secrets_access_role_arn = module.secrets.secrets_access_role_arn
+  bucket_name             = module.storage.bucket_name
+  access_point_alias      = module.storage.access_point_alias
+  public_volume_id        = module.volumes.public_volume_id
+  redis_role_arn          = module.storage.redis_role_arn
+  eks_service_cidr        = module.eks.service_cidr
+  db_name                 = module.database.db_endpoint
+  db_endpoint             = module.database.db_endpoint
+  cluster_name            = module.eks.cluster_name
+  eks_oidc_issuer         = module.eks.oidc_issuer
+
+  depends_on = [module.eks]
+}
 
 #module "dns" {
 #  source = "./modules/dns"

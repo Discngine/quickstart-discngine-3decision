@@ -14,3 +14,4 @@ variable "db_security_group_id" {}
 variable "private_subnet_ids" {}
 variable "db_name" {}
 variable "db_endpoint" {}
+variable "node_group_role_arn" {}

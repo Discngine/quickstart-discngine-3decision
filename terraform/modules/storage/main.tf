@@ -8,14 +8,6 @@
 #
 # Copyright Oracle, Inc.  All rights reserved.
 
-terraform {
-  required_providers {
-    oci = {
-      source = "oracle/oci"
-    }
-  }
-}
-
 locals {
   oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)
 }

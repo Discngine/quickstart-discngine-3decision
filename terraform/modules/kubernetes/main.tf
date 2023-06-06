@@ -26,7 +26,21 @@ terraform {
   }
 }
 
-resource "kubernetes_namespace" "tdec_namespace" {
+resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
+  metadata {
+    name = "gp2-encrypted"
+  }
+  parameters = {
+    fsType    = "ext4"
+    type      = "gp2"
+    encrypted = "true"
+  }
+  storage_provisioner = "ebs.csi.aws.com"
+  reclaim_policy      = "Delete"
+  volume_binding_mode = "WaitForFirstConsumer"
+}
+
+resource "kubernetes_namespace" "tdecision_namespace" {
   metadata {
     name = var.tdecision_namespace
   }
@@ -50,53 +64,9 @@ resource "kubernetes_namespace" "tools_namespace" {
   }
 }
 
-resource "kubectl_manifest" "sqlcl" {
-  yaml_body  = <<YAML
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: sqlcl
-  namespace: tools
-  labels:
-    role: help
-    app: sqlcl
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: sqlcl
-  template:
-    metadata:
-      name: sqlcl
-      namespace: tools
-      labels:
-        role: help
-        app: sqlcl
-    spec:
-      containers:
-        - name: web
-          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
-          command: [ "/bin/bash", "-c", "--" ]
-          envFrom:
-          - secretRef:
-              name: database-secrets
-          env:
-            - name: CONNECTION_STRING
-              value: ${var.connection_string}
-            - name: sq3
-              value: /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
-            - name: sqc
-              value: /root/sqlcl/bin/sql CHEMBL_23/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
-            - name: sqs
-              value: /root/sqlcl/bin/sql SYS/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} as sysdba
-          args: [ "sleep infinity" ]
-  YAML
-  depends_on = [kubernetes_namespace.tools_namespace]
-}
-
 resource "kubernetes_secret" "jwt_secret" {
   metadata {
-    name      = var.jwt_secret_name
+    name      = "3decision-jwt-secret"
     namespace = var.tdecision_namespace
   }
 
@@ -104,191 +74,183 @@ resource "kubernetes_secret" "jwt_secret" {
     "id_rsa"     = var.jwt_ssh_private
     "id_rsa.pub" = var.jwt_ssh_public
   }
-  depends_on = [kubernetes_namespace.tdec_namespace]
-}
-
-resource "kubernetes_secret" "bucket_access" {
-  metadata {
-    name      = "bucket-access"
-    namespace = var.tdecision_namespace
-  }
-  data = {
-    bucketName = var.bucket_name
-    namespace  = var.namespace
-  }
-  depends_on = [kubernetes_namespace.tdec_namespace]
+  depends_on = [kubernetes_namespace.tdecision_namespace]
 }
 
 resource "kubectl_manifest" "secretstore" {
   yaml_body  = <<YAML
-    apiVersion: external-secrets.io/v1beta1
-    kind: ClusterSecretStore
-    metadata:
-      name: oci-secret-store
-      namespace: external-secrets
-    spec:
-      provider:
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: aws-secret-store
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      role: ${var.secrets_access_role_arn}
   YAML
   depends_on = [helm_release.external_secrets_chart]
 }
 
 resource "kubectl_manifest" "ClusterExternalSecret" {
-  yaml_body  = <<YAML
+  yaml_body = <<YAML
+---
 apiVersion: external-secrets.io/v1beta1
 kind: ClusterExternalSecret
 metadata:
   name: database-secrets
-  namespace: external-secrets
 spec:
   externalSecretName: database-secrets
   namespaceSelector:
     matchExpressions:
-      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_namespace}, choral, tools]}
-  refreshTime: "1m"
+      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_namespace}, choral]}
+  refreshTime: 1m
   externalSecretSpec:
+    refreshInterval: 1m
     secretStoreRef:
-      name: oci-secret-store
+      name: aws-secret-store
       kind: ClusterSecretStore
-    refreshInterval: "1m"
     target:
       name: database-secrets
       creationPolicy: Owner
     data:
-      - secretKey: SYS_DB_PASSWD
-        remoteRef:
-          key: sys_passwd_${var.name_resources}${var.secret_names_suffix}
-      - secretKey: ORACLE_PASSWORD
-        remoteRef:
-          key: tdec_passwd_${var.name_resources}${var.secret_names_suffix}
-      - secretKey: DB_PASSWD
-        remoteRef:
-          key: tdec_passwd_${var.name_resources}${var.secret_names_suffix}
-      - secretKey: CHEMBL_DB_PASSWD
-        remoteRef:
-          key: chembl_passwd_${var.name_resources}${var.secret_names_suffix}
-      - secretKey: CHORAL_DB_PASSWD
-        remoteRef:
-          key: choral_passwd_${var.name_resources}${var.secret_names_suffix}
+    - secretKey: SYS_DB_PASSWD
+      remoteRef:
+        key: 3dec-admin-db
+        property: password
+    - secretKey: DB_PASSWD
+      remoteRef:
+        key: 3dec-pd_t1_dng_threedecision-db
+        property: password
+    - secretKey: ORACLE_PASSWORD
+      remoteRef:
+        key: 3dec-pd_t1_dng_threedecision-db
+        property: password
+    - secretKey: CHEMBL_DB_PASSWD
+      remoteRef:
+        key: 3dec-chembl_29-db
+        property: password
+    - secretKey: CHORAL_DB_PASSWD
+      remoteRef:
+        key: 3dec-choral_owner-db
+        property: password
   YAML
-  depends_on = [helm_release.external_secrets_chart]
+  depends_on = [
+    kubectl_manifest.secretstore,
+    kubernetes_namespace.tdecision_namespace,
+    kubernetes_namespace.choral_namespace
+  ]
 }
 
-resource "kubernetes_secret" "nest-authentication-secrets" {
+resource "kubernetes_secret" "nest_authentication_secrets" {
   metadata {
     name      = "nest-authentication-secrets"
     namespace = var.tdecision_namespace
   }
   data = {
-    AZURE_TENANT     = var.azure_oidc.tenant
-    AZURE_SECRET     = var.azure_oidc.secret
-    GOOGLE_SECRET    = var.google_oidc.secret
-    AZUREBTOC_TENANT = var.azurebtc_oidc.tenant
-    AZUREBTOC_SECRET = var.azurebtc_oidc.secret
-    AZUREBTOC_POLICY = var.azurebtc_oidc.policy
-    OKTA_DOMAIN      = var.okta_oidc.domain
-    OKTA_SERVER_ID   = var.okta_oidc.server_id
-    OKTA_SECRET      = var.okta_oidc.secret
+    AZURE_TENANT   = var.azure_oidc.tenant
+    AZURE_SECRET   = var.azure_oidc.secret
+    GOOGLE_SECRET  = var.google_oidc.secret
+    OKTA_DOMAIN    = var.okta_oidc.domain
+    OKTA_SERVER_ID = var.okta_oidc.server_id
+    OKTA_SECRET    = var.okta_oidc.secret
   }
-  depends_on = [kubernetes_namespace.tdec_namespace]
+  depends_on = [kubernetes_namespace.tdecision_namespace]
 }
 
 resource "kubectl_manifest" "sentinel_configmap_redis" {
-  yaml_body  = <<YAML
+  for_each = toset([var.tdecision_namespace, "redis-cluster"])
+
+  yaml_body = <<YAML
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  namespace: ${var.redis_sentinel_chart.namespace}
   name: sentinel-backup-env-cm
+  namespace: ${each.key}
 data:
-  BUCKET_NAME: ${var.bucket_name}
+  BUCKET_NAME: ${var.access_point_alias}
   PROVIDER: aws
-  OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING: "True"
-  YAML
-  depends_on = [kubernetes_namespace.redis_namespace]
-}
-
-locals {
-  values_config = <<EOT
-      commonConfiguration: |-
-        # Enable AOF https://redis.io/topics/persistence#append-only-file
-        appendonly no
-        # Disable RDB persistence, AOF persistence already enabled.
-        save 300 1
-      sentinel:
-        enabled: true
-        resources:
-          requests:
-            cpu: 100m
-            memory: 500Mi
-      master:
-        service:
-          ports:
-            redis: 6380
-      replica:
-        resources:
-          requests:
-            cpu: 500m
-            memory: 2Gi
-        extraVolumes:
-        - name: secret-key
-          secret:
-            secretName: ssh-key-secret
-            optional: true
-        - name: config-oci
-          configMap:
-            name: oci-cli-cm
-            optional: true
-        initContainers:
-          - name: redis-pull-container
-            envFrom:
-            - configMapRef:
-                name: sentinel-backup-env-cm
-                optional: true
-            - secretRef:
-                name: aws-key-secret
-                optional: true
-            image: fra.ocir.io/discngine1/3decision_kube/redis-backup:0.0.1
-            command: ["./entrypoint.sh"]
-            args: ["pull"]
-            imagePullPolicy: Always
-            volumeMounts:
-            - mountPath: /root/.ssh/
-              name: secret-key
-              readOnly: true
-            - mountPath: /root/.oci/
-              name: config-oci
-              readOnly: true
-            - mountPath: /data
-              name: redis-data
-EOT
+YAML
+  depends_on = [
+    kubernetes_namespace.redis_namespace,
+    kubernetes_namespace.tdecision_namespace
+  ]
 }
 
 ######################
 #        HELM
 ######################
 
-resource "helm_release" "ingress_nginx_release" {
-  name             = var.ingress_nginx_chart.name
-  chart            = var.ingress_nginx_chart.chart
-  namespace        = var.ingress_nginx_chart.namespace
-  create_namespace = var.ingress_nginx_chart.create_namespace
-  repository       = var.ingress_nginx_chart.repository
-  version          = var.ingress_nginx_chart.version
-  timeout          = 1200
-
-  values = [<<YAML
-    controller:
-      service:
-        annotations:
-          service.beta.kubernetes.io/oci-load-balancer-shape: flexible
-          service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: 10
-          service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: 100
-          service.beta.kubernetes.io/oci-load-balancer-security-list-management-mode: "None"
-        loadBalancerIP: ${var.lb_public_ip}
-    YAML
-  ]
+locals {
+  values_config = <<YAML
+global:
+  storageClass: gp2-encrypted
+serviceAccount:
+  create: false
+  name: redis-s3-upload
+commonConfiguration: |-
+  # Enable AOF https://redis.io/topics/persistence#append-only-file
+  appendonly no
+  # Disable RDB persistence, AOF persistence already enabled.
+  save 300 1
+sentinel:
+  enabled: true
+  resources:
+    requests:
+      cpu: 500m
+      memory: 500Mi
+master:
+  service:
+    ports:
+      redis: 6380
+replica:
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+  extraVolumes:
+  - name: secret-key
+    secret:
+      secretName: ssh-key-secret
+      optional: true
+  initContainers:
+    - name: redis-pull-container
+      envFrom:
+      - configMapRef:
+          name: sentinel-backup-env-cm
+          optional: true
+      image: fra.ocir.io/discngine1/3decision_kube/redis-backup:0.0.1
+      command: ["./entrypoint.sh"]
+      args: ["pull"]
+      imagePullPolicy: Always
+      volumeMounts:
+      - mountPath: /root/.ssh/
+        name: secret-key
+        readOnly: true
+      - mountPath: /data
+        name: redis-data
+YAML
 }
+
+#resource "helm_release" "ingress_nginx_release" {
+#  name             = var.ingress_nginx_chart.name
+#  chart            = var.ingress_nginx_chart.chart
+#  namespace        = var.ingress_nginx_chart.namespace
+#  create_namespace = var.ingress_nginx_chart.create_namespace
+#  repository       = var.ingress_nginx_chart.repository
+#  version          = var.ingress_nginx_chart.version
+#  timeout          = 1200
+#
+#  values = [<<YAML
+#    controller:
+#      service:
+#        loadBalancerIP: ${var.lb_public_ip}
+#    YAML
+#  ]
+#}
 
 resource "helm_release" "cert_manager_release" {
   name             = var.cert_manager_chart.name
@@ -313,7 +275,10 @@ resource "helm_release" "sentinel_release" {
   version          = var.redis_sentinel_chart.version
   timeout          = 1200
   values           = [local.values_config]
-  depends_on       = [kubectl_manifest.sentinel_configmap_redis]
+  depends_on = [
+    kubectl_manifest.sentinel_configmap_redis,
+    kubernetes_storage_class_v1.encrypted_storage_class
+  ]
 }
 
 resource "helm_release" "external_secrets_chart" {
@@ -332,4 +297,459 @@ resource "helm_release" "reloader_chart" {
   namespace        = var.reloader_chart.namespace
   create_namespace = var.reloader_chart.create_namespace
   timeout          = 1200
+}
+
+
+##############
+# APP CHARTS
+##############
+
+locals {
+  connection_string = "${var.db_endpoint}/${var.db_name}"  
+}
+
+resource "helm_release" "tdecision_chart" {
+  name       = "tdecision"
+  repository = "oci://fra.ocir.io/discngine1/3decision_kube"
+  chart      = "3decision-helm"
+  version    = "2.2.0"
+  namespace  = var.tdecision_namespace
+  timeout    = 1200
+  values = [<<YAML
+    oracle:
+      connectionString: ${local.connection_string}
+      hostString: ${var.db_endpoint}/
+      pdbString: ${var.db_name}
+    volumes:
+      storageClassName: gp2-encrypted
+      claimPods:
+        backend:
+          publicdata:
+            awsElasticBlockStore:
+              fsType: ext4
+              volumeID: ${var.public_volume_id}
+              availabilityZone: eu-central-1a
+    ingress:
+      host: !Ref DomainName
+      certificateArn: !Ref CertificateArn
+      visibility: !Ref LoadBalancerType
+      ui:
+        host: !Ref MainSubdomain
+      api:
+        host: !Ref ApiSubdomain
+      class: !Ref LoadBalancerClass
+    nest:
+      env:
+        okta_client_id:
+          name: OKTA_CLIENT_ID
+          value: ${var.okta_oidc.client_id}
+        okta_redirect_uri:
+          name: OKTA_REDIRECT_URI
+          value: "https://3decision-api.discngine.io/auth/okta/callback"
+        azure_client_id:
+          name: AZURE_CLIENT_ID
+          value: ${var.azure_oidc.client_id}
+        azure_redirect_uri:
+          name: AZURE_REDIRECT_URI
+          value: https://3decision-api.discngine.io/auth/azure/callback
+        google_client_id:
+          name: GOOGLE_CLIENT_ID
+          value: ${var.google_oidc.client_id}
+        google_redirect_uri:
+          name: GOOGLE_REDIRECT_URI
+          value: https://3decision-api.discngine.io/auth/google/callback
+    nfs:
+      public:
+        serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
+      private:
+        serviceIP: ${cidrhost(var.eks_service_cidr, 266)}
+    rbac:
+      cluster:
+        redisBackup:
+          annotations: eks.amazonaws.com/role-arn: ${var.redis_role_arn}
+  YAML
+  ]
+  depends_on = [
+    kubernetes_storage_class_v1.encrypted_storage_class,
+    helm_release.cert_manager_release,
+    kubectl_manifest.ClusterExternalSecret,
+    kubernetes_secret.nest_authentication_secrets,
+    helm_release.aws_load_balancer_controller
+  ]
+}
+
+resource "helm_release" "choral_chart" {
+  name       = "choral"
+  repository = "oci://fra.ocir.io/discngine1/3decision_kube"
+  chart      = "choral-helm"
+  version    = "1.1.6"
+  namespace  = "choral"
+  values = [<<YAML
+    oracle:
+      connectionString: ${local.connection_string}
+    pvc:
+      storageClassName: gp2-encrypted
+  YAML
+  ]
+  timeout    = 1200
+  depends_on = [
+    kubernetes_storage_class_v1.encrypted_storage_class,
+    kubectl_manifest.ClusterExternalSecret,
+  ]
+}
+
+locals {
+  oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)
+}
+
+resource "aws_iam_role" "load_balancer_controller" {
+  name = "load_balancer_controller"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::${var.account_id}:oidc-provider/${local.oidc_issuer}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "${local.oidc_issuer}:aud": [
+            "sts.amazonaws.com",
+            "sts.eu-central-1.amazonaws.com"
+          ],
+          "${local.oidc_issuer}:sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
+        }
+      }
+    }
+  ]
+}
+EOF
+
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    "arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicReadOnly"
+  ]
+
+  inline_policy {
+    name   = "load-balancer-controller-policy"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeAccountAttributes",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeCoipPools",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeTags",
+        "ec2:DescribeVpcPeeringConnections",
+        "ec2:DescribeVpcs",
+        "ec2:GetCoipPoolUsage",
+        "elasticloadbalancing:DescribeListenerCertificates",
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeLoadBalancerAttributes",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeRules",
+        "elasticloadbalancing:DescribeSSLPolicies",
+        "elasticloadbalancing:DescribeTags",
+        "elasticloadbalancing:DescribeTargetGroupAttributes",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeTargetHealth"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "cognito-idp:DescribeUserPoolClient",
+      "Resource": "arn:aws:cognito-idp:eu-central-1:${var.account_id}:userpool/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "acm:ListCertificates",
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "acm:DescribeCertificate",
+      "Resource": "arn:aws:acm:eu-central-1:${var.account_id}:certificate/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:ListServerCertificates",
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetServerCertificate"
+      ],
+      "Resource": "arn:aws:acm:eu-central-1:${var.account_id}:server-certificate/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "waf-regional:GetWebACL",
+        "waf-regional:GetWebACLForResource",
+        "waf-regional:AssociateWebACL",
+        "waf-regional:DisassociateWebACL"
+      ],
+      "Resource": [
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*",
+        "arn:aws:waf-regional:eu-central-1:${var.account_id}:webacl/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "wafv2:GetWebACL",
+        "wafv2:GetWebACLForResource",
+        "wafv2:AssociateWebACL",
+        "wafv2:DisassociateWebACL"
+      ],
+      "Resource": [
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*",
+        "arn:aws:cognito-idp:eu-central-1:${var.account_id}:userpool/*",
+        "arn:aws:wafv2:eu-central-1:${var.account_id}:*/webacl/*/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "shield:CreateProtection",
+        "shield:GetSubscriptionState"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "shield:DeleteProtection",
+        "shield:DescribeProtection"
+      ],
+      "Resource": "arn:aws:shield::${var.account_id}:protection/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
+        "arn:aws:ec2:eu-central-1:${var.account_id}:security-group-rule/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:CreateSecurityGroup",
+      "Resource": [
+        "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
+        "arn:aws:ec2:eu-central-1:${var.account_id}:vpc/${var.vpc_id}"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateSecurityGroup"
+        },
+        "Null": {
+          "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "ec2:DeleteTags"
+      ],
+      "Resource": "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
+      "Condition": {
+        "Null": {
+          "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
+          "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:DeleteSecurityGroup"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "Null": {
+          "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:CreateLoadBalancer",
+        "elasticloadbalancing:CreateTargetGroup"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "Null": {
+          "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:CreateListener",
+        "elasticloadbalancing:DeleteListener",
+        "elasticloadbalancing:CreateRule",
+        "elasticloadbalancing:DeleteRule"
+      ],
+      "Resource": [
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/app/*/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/net/*/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/app/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/net/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/net/*/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:AddTags",
+        "elasticloadbalancing:RemoveTags"
+      ],
+      "Resource": [
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:targetgroup/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/net/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*"
+      ],
+      "Condition": {
+        "Null": {
+          "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
+          "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:AddTags",
+        "elasticloadbalancing:RemoveTags"
+      ],
+      "Resource": [
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/net/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/app/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/net/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/app/*/*/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:ModifyLoadBalancerAttributes",
+        "elasticloadbalancing:SetIpAddressType",
+        "elasticloadbalancing:SetSecurityGroups",
+        "elasticloadbalancing:SetSubnets",
+        "elasticloadbalancing:DeleteLoadBalancer",
+        "elasticloadbalancing:ModifyTargetGroup",
+        "elasticloadbalancing:ModifyTargetGroupAttributes",
+        "elasticloadbalancing:DeleteTargetGroup"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "Null": {
+          "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:DeregisterTargets"
+      ],
+      "Resource": "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:targetgroup/*/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:SetWebAcl"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:AddListenerCertificates",
+        "elasticloadbalancing:ModifyListener",
+        "elasticloadbalancing:ModifyRule",
+        "elasticloadbalancing:RemoveListenerCertificates"
+      ],
+      "Resource": [
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/net/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/app/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/net/*/*/*",
+        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/app/*/*/*"
+      ]
+    }
+  ]
+}
+EOF
+  }
+}
+
+resource "helm_release" "aws_load_balancer_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+
+  values = [<<YAML
+    clusterName: ${var.cluster_name}
+    hostNetwork: false
+    image:
+      repository: public.ecr.aws/eks/aws-load-balancer-controller
+    nodeSelector:
+      kubernetes.io/os: linux
+    region: eu-central-1
+    replicaCount: 1
+    resources:
+      limits:
+        cpu: 100m
+        memory: 80Mi
+    serviceAccount:
+      annotations:
+        eks.amazonaws.com/role-arn: ${aws_iam_role.load_balancer_controller.arn}
+      create: true
+      name: aws-load-balancer-controller
+    vpcId: ${var.vpc_id}
+  YAML
+  ]
 }

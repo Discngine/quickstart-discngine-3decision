@@ -20,3 +20,7 @@ output "jwt_private_key" {
 output "secrets_lambda_security_group_id" {
   value = aws_security_group.lambda_security_group.id
 }
+
+output "secrets_access_role_arn" {
+  value = aws_iam_role.secrets_access_role.arn
+}

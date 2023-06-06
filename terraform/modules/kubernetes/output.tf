@@ -7,7 +7,3 @@
 # Release (Date): 1.0 (July 2018)
 #
 # Copyright Oracle, Inc.  All rights reserved.
-
-output ingress_nginx_chart {
-  value = helm_release.ingress_nginx_release
-}

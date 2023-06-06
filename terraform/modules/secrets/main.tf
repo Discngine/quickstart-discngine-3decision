@@ -94,7 +94,7 @@ resource "aws_lambda_permission" "allow_secret_manager_call_lambda" {
 }
 
 resource "aws_iam_role" "secret_rotator_lambda_role" {
-  name = "tdec-rotator-lambda-role"
+  name_prefix = "tdec-rotator-lambda"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -197,7 +197,7 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
       username = each.key
       password = each.key != "CHORAL_OWNER" ? "Ch4ng3m3f0rs3cur3p4ss" : random_password.choral_password.result
       engine   = "oracle"
-      host     = var.db_endpoint
+      host     = element(split(":", var.db_endpoint), 0)
       dbname   = var.db_name
     }
   )
@@ -212,4 +212,48 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
   rotation_rules {
     automatically_after_days = 30
   }
+}
+
+resource "aws_iam_role" "secrets_access_role" {
+  name_prefix = "tdec-database-secrets"
+  assume_role_policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": ["${var.node_group_role_arn}"]
+        },
+        "Action": ["sts:AssumeRole"]
+      }
+    ]
+  })
+
+  description = "Role designed to create Kubernetes secrets from Secrets Manager for 3decision quickstart"
+}
+
+resource "aws_iam_policy" "secrets_access_policy" {
+  name_prefix   = "tdec-database-secrets"
+  policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "secretsmanager:GetResourcePolicy",
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+          "secretsmanager:ListSecretVersionIds"
+        ],
+        "Resource": [
+          for secret in aws_secretsmanager_secret.db_passwords : secret.arn
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "secrets_access" {
+  role       = aws_iam_role.secrets_access_role.id
+  policy_arn = aws_iam_policy.secrets_access_policy.arn
 }
