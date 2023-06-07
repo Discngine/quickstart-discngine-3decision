@@ -21,7 +21,7 @@ output "cluster_ca_cert" {
 }
 
 output "node_security_group_id" {
-  value = aws_security_group.eks_cluster_sg.id
+  value = aws_eks_cluster.cluster.vpc_config.0.cluster_security_group_id
 }
 
 output "oidc_issuer" {

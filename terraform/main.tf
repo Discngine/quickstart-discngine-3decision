@@ -179,7 +179,7 @@ module "kubernetes" {
   public_volume_id        = module.volumes.public_volume_id
   redis_role_arn          = module.storage.redis_role_arn
   eks_service_cidr        = module.eks.service_cidr
-  db_name                 = module.database.db_endpoint
+  db_name                 = module.database.db_name
   db_endpoint             = module.database.db_endpoint
   cluster_name            = module.eks.cluster_name
   eks_oidc_issuer         = module.eks.oidc_issuer

@@ -180,6 +180,10 @@ resource "aws_iam_openid_connect_provider" "default" {
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
 }
 
+locals {
+  oidc_issuer = element(split("https://", aws_eks_cluster.cluster.identity.0.oidc.0.issuer), 1)
+}
+
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_csi_driver_role" {
   managed_policy_arns = [
@@ -197,8 +201,8 @@ resource "aws_iam_role" "eks_csi_driver_role" {
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "${aws_eks_cluster.cluster.identity.0.oidc.0.issuer}:aud": "sts.amazonaws.com",
-          "${aws_eks_cluster.cluster.identity.0.oidc.0.issuer}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          "${local.oidc_issuer}:aud": "sts.amazonaws.com",
+          "${local.oidc_issuer}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
         }
       }
     }

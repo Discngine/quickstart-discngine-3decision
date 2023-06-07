@@ -189,8 +189,9 @@ locals {
 global:
   storageClass: gp2-encrypted
 serviceAccount:
-  create: false
-  name: redis-s3-upload
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: ${var.redis_role_arn}  
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -312,62 +313,69 @@ resource "helm_release" "tdecision_chart" {
   name       = "tdecision"
   repository = "oci://fra.ocir.io/discngine1/3decision_kube"
   chart      = "3decision-helm"
-  version    = "2.2.0"
+  version    = "2.2.1-test"
   namespace  = var.tdecision_namespace
   timeout    = 1200
   values = [<<YAML
-    oracle:
-      connectionString: ${local.connection_string}
-      hostString: ${var.db_endpoint}/
-      pdbString: ${var.db_name}
-    volumes:
-      storageClassName: gp2-encrypted
-      claimPods:
-        backend:
-          publicdata:
-            awsElasticBlockStore:
-              fsType: ext4
-              volumeID: ${var.public_volume_id}
-              availabilityZone: eu-central-1a
-    ingress:
-      host: !Ref DomainName
-      certificateArn: !Ref CertificateArn
-      visibility: !Ref LoadBalancerType
-      ui:
-        host: !Ref MainSubdomain
-      api:
-        host: !Ref ApiSubdomain
-      class: !Ref LoadBalancerClass
-    nest:
-      env:
-        okta_client_id:
-          name: OKTA_CLIENT_ID
-          value: ${var.okta_oidc.client_id}
-        okta_redirect_uri:
-          name: OKTA_REDIRECT_URI
-          value: "https://3decision-api.discngine.io/auth/okta/callback"
-        azure_client_id:
-          name: AZURE_CLIENT_ID
-          value: ${var.azure_oidc.client_id}
-        azure_redirect_uri:
-          name: AZURE_REDIRECT_URI
-          value: https://3decision-api.discngine.io/auth/azure/callback
-        google_client_id:
-          name: GOOGLE_CLIENT_ID
-          value: ${var.google_oidc.client_id}
-        google_redirect_uri:
-          name: GOOGLE_REDIRECT_URI
-          value: https://3decision-api.discngine.io/auth/google/callback
-    nfs:
-      public:
-        serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
-      private:
-        serviceIP: ${cidrhost(var.eks_service_cidr, 266)}
-    rbac:
-      cluster:
-        redisBackup:
-          annotations: eks.amazonaws.com/role-arn: ${var.redis_role_arn}
-  YAML
+oracle:
+  connectionString: ${local.connection_string}
+  hostString: ${var.db_endpoint}/
+  pdbString: ${var.db_name}
+volumes:
+  storageClassName: gp2-encrypted
+  claimPods:
+    backend:
+      publicdata:
+        awsElasticBlockStore:
+          fsType: ext4
+          volumeID: ${var.public_volume_id}
+          availabilityZone: eu-central-1a
+ingress:
+  host: discngine.io
+  certificateArn: arn:aws:acm:eu-central-1:751149478800:certificate/209f6889-36ae-49f9-8531-a2c5dc3f7ab8
+  visibility: internet-facing
+  ui:
+    host: 3decision
+  api:
+    host: 3decision-api
+  class: alb
+nest:
+  env:
+    okta_client_id:
+      name: OKTA_CLIENT_ID
+      value: ${var.okta_oidc.client_id}
+    okta_redirect_uri:
+      name: OKTA_REDIRECT_URI
+      value: "https://3decision-api.discngine.io/auth/okta/callback"
+    azure_client_id:
+      name: AZURE_CLIENT_ID
+      value: ${var.azure_oidc.client_id}
+    azure_redirect_uri:
+      name: AZURE_REDIRECT_URI
+      value: https://3decision-api.discngine.io/auth/azure/callback
+    google_client_id:
+      name: GOOGLE_CLIENT_ID
+      value: ${var.google_oidc.client_id}
+    google_redirect_uri:
+      name: GOOGLE_REDIRECT_URI
+      value: https://3decision-api.discngine.io/auth/google/callback
+nfs:
+  public:
+    serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
+  private:
+    serviceIP: ${cidrhost(var.eks_service_cidr, 266)}
+rbac:
+  cluster:
+    redisBackup:
+      annotations:
+        eks.amazonaws.com/role-arn: ${var.redis_role_arn}
+redis:
+  nodeSelector: null
+pocket_features:
+  nodeSelector: null
+scientific_monolith:
+  nodeSelector: null
+YAML
   ]
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
@@ -442,7 +450,9 @@ EOF
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": "iam:CreateServiceLinkedRole",
+      "Action": [
+        "iam:CreateServiceLinkedRole"
+      ],
       "Resource": "*",
       "Condition": {
         "StringEquals": {
@@ -456,98 +466,51 @@ EOF
         "ec2:DescribeAccountAttributes",
         "ec2:DescribeAddresses",
         "ec2:DescribeAvailabilityZones",
-        "ec2:DescribeCoipPools",
-        "ec2:DescribeInstances",
         "ec2:DescribeInternetGateways",
-        "ec2:DescribeNetworkInterfaces",
-        "ec2:DescribeSecurityGroups",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeTags",
-        "ec2:DescribeVpcPeeringConnections",
         "ec2:DescribeVpcs",
+        "ec2:DescribeVpcPeeringConnections",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeInstances",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeTags",
         "ec2:GetCoipPoolUsage",
-        "elasticloadbalancing:DescribeListenerCertificates",
-        "elasticloadbalancing:DescribeListeners",
-        "elasticloadbalancing:DescribeLoadBalancerAttributes",
+        "ec2:DescribeCoipPools",
         "elasticloadbalancing:DescribeLoadBalancers",
-        "elasticloadbalancing:DescribeRules",
+        "elasticloadbalancing:DescribeLoadBalancerAttributes",
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeListenerCertificates",
         "elasticloadbalancing:DescribeSSLPolicies",
-        "elasticloadbalancing:DescribeTags",
-        "elasticloadbalancing:DescribeTargetGroupAttributes",
+        "elasticloadbalancing:DescribeRules",
         "elasticloadbalancing:DescribeTargetGroups",
-        "elasticloadbalancing:DescribeTargetHealth"
+        "elasticloadbalancing:DescribeTargetGroupAttributes",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:DescribeTags"
       ],
       "Resource": "*"
     },
     {
       "Effect": "Allow",
-      "Action": "cognito-idp:DescribeUserPoolClient",
-      "Resource": "arn:aws:cognito-idp:eu-central-1:${var.account_id}:userpool/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "acm:ListCertificates",
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "acm:DescribeCertificate",
-      "Resource": "arn:aws:acm:eu-central-1:${var.account_id}:certificate/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "iam:ListServerCertificates",
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
       "Action": [
-        "iam:GetServerCertificate"
-      ],
-      "Resource": "arn:aws:acm:eu-central-1:${var.account_id}:server-certificate/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
+        "cognito-idp:DescribeUserPoolClient",
+        "acm:ListCertificates",
+        "acm:DescribeCertificate",
+        "iam:ListServerCertificates",
+        "iam:GetServerCertificate",
         "waf-regional:GetWebACL",
         "waf-regional:GetWebACLForResource",
         "waf-regional:AssociateWebACL",
-        "waf-regional:DisassociateWebACL"
-      ],
-      "Resource": [
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*",
-        "arn:aws:waf-regional:eu-central-1:${var.account_id}:webacl/*"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
+        "waf-regional:DisassociateWebACL",
         "wafv2:GetWebACL",
         "wafv2:GetWebACLForResource",
         "wafv2:AssociateWebACL",
-        "wafv2:DisassociateWebACL"
-      ],
-      "Resource": [
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*",
-        "arn:aws:cognito-idp:eu-central-1:${var.account_id}:userpool/*",
-        "arn:aws:wafv2:eu-central-1:${var.account_id}:*/webacl/*/*"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
+        "wafv2:DisassociateWebACL",
+        "shield:GetSubscriptionState",
+        "shield:DescribeProtection",
         "shield:CreateProtection",
-        "shield:GetSubscriptionState"
+        "shield:DeleteProtection"
       ],
       "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "shield:DeleteProtection",
-        "shield:DescribeProtection"
-      ],
-      "Resource": "arn:aws:shield::${var.account_id}:protection/*"
     },
     {
       "Effect": "Allow",
@@ -555,23 +518,21 @@ EOF
         "ec2:AuthorizeSecurityGroupIngress",
         "ec2:RevokeSecurityGroupIngress"
       ],
-      "Resource": [
-        "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
-        "arn:aws:ec2:eu-central-1:${var.account_id}:security-group-rule/*"
-      ]
+      "Resource": "*"
     },
     {
       "Effect": "Allow",
-      "Action": "ec2:CreateSecurityGroup",
-      "Resource": [
-        "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
-        "arn:aws:ec2:eu-central-1:${var.account_id}:vpc/${var.vpc_id}"
-      ]
+      "Action": [
+        "ec2:CreateSecurityGroup"
+      ],
+      "Resource": "*"
     },
     {
       "Effect": "Allow",
-      "Action": "ec2:CreateTags",
-      "Resource": "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "arn:aws:ec2:*:*:security-group/*",
       "Condition": {
         "StringEquals": {
           "ec2:CreateAction": "CreateSecurityGroup"
@@ -587,7 +548,7 @@ EOF
         "ec2:CreateTags",
         "ec2:DeleteTags"
       ],
-      "Resource": "arn:aws:ec2:eu-central-1:${var.account_id}:security-group/*",
+      "Resource": "arn:aws:ec2:*:*:security-group/*",
       "Condition": {
         "Null": {
           "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
@@ -630,14 +591,7 @@ EOF
         "elasticloadbalancing:CreateRule",
         "elasticloadbalancing:DeleteRule"
       ],
-      "Resource": [
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/app/*/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/net/*/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/app/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/net/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/net/*/*"
-      ]
+      "Resource": "*"
     },
     {
       "Effect": "Allow",
@@ -646,9 +600,9 @@ EOF
         "elasticloadbalancing:RemoveTags"
       ],
       "Resource": [
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:targetgroup/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/net/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:loadbalancer/app/*/*"
+        "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+        "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+        "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
       ],
       "Condition": {
         "Null": {
@@ -664,10 +618,10 @@ EOF
         "elasticloadbalancing:RemoveTags"
       ],
       "Resource": [
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/net/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/app/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/net/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/app/*/*/*"
+        "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
+        "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
+        "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+        "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
       ]
     },
     {
@@ -692,32 +646,43 @@ EOF
     {
       "Effect": "Allow",
       "Action": [
+        "elasticloadbalancing:AddTags"
+      ],
+      "Resource": [
+        "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+        "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+        "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "elasticloadbalancing:CreateAction": [
+            "CreateTargetGroup",
+            "CreateLoadBalancer"
+          ]
+        },
+        "Null": {
+          "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
         "elasticloadbalancing:RegisterTargets",
         "elasticloadbalancing:DeregisterTargets"
       ],
-      "Resource": "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:targetgroup/*/*"
+      "Resource": "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
     },
     {
       "Effect": "Allow",
       "Action": [
-        "elasticloadbalancing:SetWebAcl"
+        "elasticloadbalancing:SetWebAcl",
+        "elasticloadbalancing:ModifyListener",
+        "elasticloadbalancing:AddListenerCertificates",
+        "elasticloadbalancing:RemoveListenerCertificates",
+        "elasticloadbalancing:ModifyRule"
       ],
       "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:AddListenerCertificates",
-        "elasticloadbalancing:ModifyListener",
-        "elasticloadbalancing:ModifyRule",
-        "elasticloadbalancing:RemoveListenerCertificates"
-      ],
-      "Resource": [
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/net/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener/app/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/net/*/*/*",
-        "arn:aws:elasticloadbalancing:eu-central-1:${var.account_id}:listener-rule/app/*/*/*"
-      ]
     }
   ]
 }

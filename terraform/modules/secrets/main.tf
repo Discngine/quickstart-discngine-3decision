@@ -212,6 +212,7 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
   rotation_rules {
     automatically_after_days = 30
   }
+  depends_on = [ aws_secretsmanager_secret_version.db_passwords_version ]
 }
 
 resource "aws_iam_role" "secrets_access_role" {
