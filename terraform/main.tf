@@ -113,6 +113,8 @@ module "eks" {
   # Input
   vpc_id             = module.network.vpc_id
   private_subnet_ids = module.network.private_subnet_ids
+
+  depends_on = [module.network]
 }
 
 module "database" {
