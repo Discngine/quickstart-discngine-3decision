@@ -173,6 +173,7 @@ module "volumes" {
   region                  = var.region
   availability_zone_names = local.availability_zone_names
   public_volume_snapshot  = var.public_volume_snapshot
+  private_volume_snapshot  = var.private_volume_snapshot
 }
 
 module "storage" {
@@ -213,6 +214,7 @@ module "kubernetes" {
   bucket_name             = module.storage.bucket_name
   access_point_alias      = module.storage.access_point_alias
   public_volume_id        = module.volumes.public_volume_id
+  private_volume_id       = module.volumes.private_volume_id
   redis_role_arn          = module.storage.redis_role_arn
   eks_service_cidr        = module.eks.service_cidr
   db_name                 = module.database.db_name

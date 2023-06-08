@@ -312,6 +312,11 @@ volumes:
           fsType: ext4
           volumeID: ${var.public_volume_id}
           availabilityZone: ${var.availability_zone_names[0]}
+      privatedata:
+        awsElasticBlockStore:
+          fsType: ext4
+          volumeID: ${var.private_volume_id}
+          availabilityZone: ${var.availability_zone_names[0]}
 ingress:
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}

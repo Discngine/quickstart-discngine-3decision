@@ -104,10 +104,6 @@ resource "aws_db_instance" "db_instance" {
   deletion_protection = !var.force_destroy
   skip_final_snapshot = false
   final_snapshot_identifier = "db3dec-final-snapshot"
-
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
 resource "aws_db_parameter_group" "db_param_group" {

@@ -221,3 +221,8 @@ variable "public_volume_snapshot" {
   default = null
   description = "Snapshot id of the public data volume. If left empty the public snapshot will be used."
 }
+
+variable "private_volume_snapshot" {
+  default = null
+  description = "Used to recreate volume from snapshot in case of DR. Otherwise the volume will be empty"
+}
