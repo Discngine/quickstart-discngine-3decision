@@ -95,7 +95,7 @@ resource "aws_db_instance" "db_instance" {
   option_group_name         = "default:oracle-se2-cdb-19"
   port                      = "1521"
   multi_az                  = var.high_availability
-  kms_key_id                = var.snapshot_identifier != null ? aws_kms_key.encryption_key.arn : null
+  kms_key_id                = aws_kms_key.encryption_key.arn
   db_subnet_group_name      = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids    = [aws_security_group.db_security_group.id]
   storage_type              = "gp2"
@@ -105,6 +105,9 @@ resource "aws_db_instance" "db_instance" {
   skip_final_snapshot       = false
   final_snapshot_identifier = "db3dec-final-snapshot"
   backup_retention_period   = var.backup_retention_period
+  lifecycle {
+    ignore_changes = [kms_key_id, snapshot_identifier]
+  }
 }
 
 resource "aws_db_parameter_group" "db_param_group" {

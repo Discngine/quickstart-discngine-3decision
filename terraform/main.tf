@@ -38,9 +38,7 @@ terraform {
     }
   }
   backend "s3" {
-    bucket               = "dng-terraform"
     key                  = "terraform.state"
-    region               = "eu-central-1"
     workspace_key_prefix = "3decision-quickstart"
     encrypt              = "true"
   }
