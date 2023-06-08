@@ -7,6 +7,10 @@ Metadata:
     - Discngine
     - 3decision
 Parameters:
+  VPCID:
+    Type: String
+  OIDCIssuerURLWithoutProtocol:
+    Type: String
   TNamespace:
     Default: tdecision
     Type: String
@@ -73,6 +77,262 @@ Conditions:
   ServiceCidrSecondary: !Equals [!Ref EKSServiceCidr, "10.100.0.0/16"]
 
 Resources:
+  LoadBalancerControllerIAMRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks: [EIAMPolicyWildcardResource]
+          ignore_reasons:
+            EIAMPolicyWildcardResource: >-
+              Action elasticloadbalancing:DescribeTags requires a wildcard
+              resource. As of 2023-02-05, cfn-lint falsely reports this as an
+              issue.
+    Properties:
+      AssumeRolePolicyDocument: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/${OIDCIssuerURLWithoutProtocol}"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "${OIDCIssuerURLWithoutProtocol}:aud": [
+                    "sts.amazonaws.com",
+                    "sts.${AWS::Region}.amazonaws.com"
+                  ],
+                  "${OIDCIssuerURLWithoutProtocol}:sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
+                }
+              }
+            }
+          ]
+        }
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonElasticContainerRegistryPublicReadOnly
+      Policies:
+        - PolicyName: load-balancer-controller-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: iam:CreateServiceLinkedRole
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    iam:AWSServiceName: elasticloadbalancing.amazonaws.com
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeAccountAttributes
+                  - ec2:DescribeAddresses
+                  - ec2:DescribeAvailabilityZones
+                  - ec2:DescribeCoipPools
+                  - ec2:DescribeInstances
+                  - ec2:DescribeInternetGateways
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeTags
+                  - ec2:DescribeVpcPeeringConnections
+                  - ec2:DescribeVpcs
+                  - ec2:GetCoipPoolUsage
+                  - elasticloadbalancing:DescribeListenerCertificates
+                  - elasticloadbalancing:DescribeListeners
+                  - elasticloadbalancing:DescribeLoadBalancerAttributes
+                  - elasticloadbalancing:DescribeLoadBalancers
+                  - elasticloadbalancing:DescribeRules
+                  - elasticloadbalancing:DescribeSSLPolicies
+                  - elasticloadbalancing:DescribeTags
+                  - elasticloadbalancing:DescribeTargetGroupAttributes
+                  - elasticloadbalancing:DescribeTargetGroups
+                  - elasticloadbalancing:DescribeTargetHealth
+                Resource: '*'
+              - Effect: Allow
+                Action: cognito-idp:DescribeUserPoolClient
+                Resource: !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*
+              - Effect: Allow
+                Action: acm:ListCertificates
+                Resource: '*'
+              - Effect: Allow
+                Action: acm:DescribeCertificate
+                Resource: !Sub arn:${AWS::Partition}:acm:${AWS::Region}:${AWS::AccountId}:certificate/*
+              - Effect: Allow
+                Action: iam:ListServerCertificates
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iam:GetServerCertificate
+                Resource: !Sub arn:${AWS::Partition}:acm:${AWS::Region}:${AWS::AccountId}:server-certificate/*
+              - Effect: Allow
+                Action:
+                  - waf-regional:GetWebACL
+                  - waf-regional:GetWebACLForResource
+                  - waf-regional:AssociateWebACL
+                  - waf-regional:DisassociateWebACL
+                Resource:
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/*/*
+                  - !Sub arn:${AWS::Partition}:waf-regional:${AWS::Region}:${AWS::AccountId}:webacl/*
+              - Effect: Allow
+                Action:
+                  - wafv2:GetWebACL
+                  - wafv2:GetWebACLForResource
+                  - wafv2:AssociateWebACL
+                  - wafv2:DisassociateWebACL
+                Resource:
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/*/*
+                  - !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*
+                  - !Sub arn:${AWS::Partition}:wafv2:${AWS::Region}:${AWS::AccountId}:*/webacl/*/*
+              - Effect: Allow
+                Action:
+                  - shield:CreateProtection
+                  - shield:GetSubscriptionState
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - shield:DeleteProtection
+                  - shield:DescribeProtection
+                Resource: !Sub arn:${AWS::Partition}:shield::${AWS::AccountId}:protection/*
+              - Effect: Allow
+                Action:
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group-rule/*
+              - Effect: Allow
+                Action: ec2:CreateSecurityGroup
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPCID}
+              - Effect: Allow
+                Action: ec2:CreateTags
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                Condition:
+                  StringEquals:
+                    ec2:CreateAction: CreateSecurityGroup
+                  'Null':
+                    aws:RequestTag/elbv2.k8s.aws/cluster: 'false'
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                  - ec2:DeleteTags
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                Condition:
+                  'Null':
+                    aws:RequestTag/elbv2.k8s.aws/cluster: 'true'
+                    aws:ResourceTag/elbv2.k8s.aws/cluster: 'false'
+              - Effect: Allow
+                Action:
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:DeleteSecurityGroup
+                Resource: '*'
+                Condition:
+                  'Null':
+                    aws:ResourceTag/elbv2.k8s.aws/cluster: 'false'
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:CreateLoadBalancer
+                  - elasticloadbalancing:CreateTargetGroup
+                Resource: '*'
+                Condition:
+                  'Null':
+                    aws:RequestTag/elbv2.k8s.aws/cluster: 'false'
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:CreateListener
+                  - elasticloadbalancing:DeleteListener
+                  - elasticloadbalancing:CreateRule
+                  - elasticloadbalancing:DeleteRule
+                Resource:
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/app/*/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/net/*/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/app/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/net/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/net/*/*
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:AddTags
+                  - elasticloadbalancing:RemoveTags
+                Resource:
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/net/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:loadbalancer/app/*/*
+                Condition:
+                  'Null':
+                    aws:RequestTag/elbv2.k8s.aws/cluster: 'true'
+                    aws:ResourceTag/elbv2.k8s.aws/cluster: 'false'
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:AddTags
+                  - elasticloadbalancing:RemoveTags
+                Resource:
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/net/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/app/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/net/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/app/*/*/*
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:ModifyLoadBalancerAttributes
+                  - elasticloadbalancing:SetIpAddressType
+                  - elasticloadbalancing:SetSecurityGroups
+                  - elasticloadbalancing:SetSubnets
+                  - elasticloadbalancing:DeleteLoadBalancer
+                  - elasticloadbalancing:ModifyTargetGroup
+                  - elasticloadbalancing:ModifyTargetGroupAttributes
+                  - elasticloadbalancing:DeleteTargetGroup
+                Resource: '*'
+                Condition:
+                  'Null':
+                    aws:ResourceTag/elbv2.k8s.aws/cluster: 'false'
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:RegisterTargets
+                  - elasticloadbalancing:DeregisterTargets
+                Resource: !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:targetgroup/*/*
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:SetWebAcl
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:AddListenerCertificates
+                  - elasticloadbalancing:ModifyListener
+                  - elasticloadbalancing:ModifyRule
+                  - elasticloadbalancing:RemoveListenerCertificates
+                Resource:
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/net/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener/app/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/net/*/*/*
+                  - !Sub arn:${AWS::Partition}:elasticloadbalancing:${AWS::Region}:${AWS::AccountId}:listener-rule/app/*/*/*
+
+  LoadBalancerControllerHelmChart:
+    Type: AWSQS::Kubernetes::Helm
+    Properties:
+      ClusterID: !Ref EKSClusterName
+      Namespace: kube-system
+      Name: aws-load-balancer-controller
+      Repository: https://aws.github.io/eks-charts
+      Chart: aws/aws-load-balancer-controller
+      Values:
+        clusterName: !Ref EKSClusterName
+        hostNetwork: 'false'
+        image.repository: public.ecr.aws/eks/aws-load-balancer-controller
+        nodeSelector.kubernetes\.io/os: linux
+        region: !Ref AWS::Region
+        replicaCount: 1
+        resources.limits.cpu: '100m'
+        resources.limits.memory: '80Mi'
+        serviceAccount.annotations.eks\.amazonaws\.com/role-arn: !GetAtt LoadBalancerControllerIAMRole.Arn
+        serviceAccount.create: 'true'
+        serviceAccount.name: aws-load-balancer-controller
+        vpcId: !Ref VPCID
+
   EncryptedStorageClass:
     Type: "AWSQS::Kubernetes::Resource"
     Properties:
@@ -87,7 +347,7 @@ Resources:
           fsType: ext4
           type: gp2
           encrypted: "true"
-        provisioner: kubernetes.io/aws-ebs
+        provisioner: ebs.csi.aws.com
         reclaimPolicy: Delete
         volumeBindingMode: WaitForFirstConsumer
   TDecisionNamespace:
@@ -150,8 +410,8 @@ Resources:
       Chart: ingress-nginx
   RedisChart:
     Type: "AWSQS::Kubernetes::Helm"
-    DependsOn: [SentinelBackupConfigmapSentinel, RedisClusterNamespace, TdecisionChart, EncryptedStorageClass]
-    Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
+    DependsOn: [SentinelBackupConfigmapSentinel, RedisClusterNamespace, EncryptedStorageClass, LoadBalancerControllerHelmChart]
+    Metadata: { cfn-lint: { config: { ignore_checks: [ E3012, E9101 ] } } }
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: sentinel
@@ -349,13 +609,15 @@ Resources:
           
   TdecisionChart:
     Type: "AWSQS::Kubernetes::Helm"
-    DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager ]
+    DependsOn: [ JWTSecret, EncryptedStorageClass, NestAuthSecret, DatabaseSecrets, CertManager, LoadBalancerControllerHelmChart ]
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: tdecision
       Namespace: !Ref TNamespace
-      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.1.6
+      Chart: oci://fra.ocir.io/discngine1/3decision_kube/3decision-helm:2.2.0
       Values:
         nodeCloud.volumes.jwtSecret.name: 3decision-jwt-secret
         oracle.connectionString: !Ref DBConnectionString
@@ -389,6 +651,8 @@ Resources:
     Type: "AWSQS::Kubernetes::Helm"
     DependsOn: DatabaseSecrets
     Metadata: { cfn-lint: { config: { ignore_checks: [ E3012 ] } } }
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
     Properties:
       ClusterID: !Ref EKSClusterName
       Name: choral
