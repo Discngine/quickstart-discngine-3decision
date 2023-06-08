@@ -190,6 +190,7 @@ global:
   storageClass: gp2-encrypted
 serviceAccount:
   create: true
+  name: sentinel-redis
   annotations:
     eks.amazonaws.com/role-arn: ${var.redis_role_arn}  
 commonConfiguration: |-

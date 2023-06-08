@@ -236,5 +236,5 @@ module "dns" {
   zone_id        = var.zone_id
   # Output
   cluster_id = module.eks.cluster_id
-  depends_on = [module.kubernetes]
+  depends_on = [module.kubernetes.tdecision_release]
 }

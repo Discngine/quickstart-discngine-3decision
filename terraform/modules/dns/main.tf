@@ -16,7 +16,7 @@ terraform {
 }
 
 data "aws_lb" "ingress_load_balancer" {
-  name = "lb3dec"
+  name = "lb-3dec"
 }
 
 resource "aws_route53_record" "tdec_record" {
