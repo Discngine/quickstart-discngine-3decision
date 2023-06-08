@@ -14,8 +14,6 @@ Parameters:
     Type: String
   ApiSubdomain:
     Type: String
-  HelpSubdomain:
-    Type: String
 Mappings:
   Config:
     Prefix: { Value: 'eks-quickstart' }
