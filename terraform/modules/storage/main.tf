@@ -20,15 +20,8 @@ resource "aws_s3_bucket" "bucket" {
 resource "aws_s3_bucket_ownership_controls" "bucket_ownership" {
   bucket = aws_s3_bucket.bucket.id
   rule {
-    object_ownership = "BucketOwnerPreferred"
+    object_ownership = "BucketOwnerEnforced"
   }
-}
-
-resource "aws_s3_bucket_acl" "acl" {
-  bucket = aws_s3_bucket.bucket.id
-  acl    = "private"
-
-  depends_on = [aws_s3_bucket_ownership_controls.bucket_ownership]
 }
 
 resource "aws_s3_bucket_versioning" "versioning" {
@@ -47,50 +40,6 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
-
-resource "aws_s3_bucket_policy" "bucket_policy" {
-  bucket = aws_s3_bucket.bucket.id
-
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Sid" : "AllowPublicAccess",
-        "Effect" : "Allow",
-        "Principal" : "*",
-        "Action" : "*",
-        "Resource" : [
-          aws_s3_bucket.bucket.arn,
-          "${aws_s3_bucket.bucket.arn}/*"
-        ],
-        "Condition" : {
-          "StringEquals" : {
-            "s3:DataAccessPointAccount" : var.account_id
-          }
-        }
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket.bucket]
-}
-
-resource "aws_s3_access_point" "redis_access_point" {
-  name   = "3decision-redis-access-point"
-  bucket = aws_s3_bucket.bucket.id
-
-  vpc_configuration {
-    vpc_id = var.vpc_id
-  }
-
-  public_access_block_configuration {
-    block_public_acls       = true
-    ignore_public_acls      = true
-    block_public_policy     = true
-    restrict_public_buckets = true
-  }
-}
-
 resource "aws_iam_role" "redis_role" {
   name_prefix = "3decision-redis-s3"
   assume_role_policy = jsonencode({
@@ -99,7 +48,7 @@ resource "aws_iam_role" "redis_role" {
       {
         "Effect" : "Allow",
         "Principal" : {
-          "Federated" : "arn:aws:iam::${var.account_id}:oidc-provider/${local.oidc_issuer}"
+          "Federated" : "${var.openid_provider_arn}"
         },
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
@@ -127,8 +76,8 @@ resource "aws_iam_policy" "redis_policy" {
           "s3:ListBucket"
         ],
         "Resource" : [
-          aws_s3_access_point.redis_access_point.arn,
-          "${aws_s3_access_point.redis_access_point.arn}/*"
+          "${aws_s3_bucket.bucket.arn}",
+          "${aws_s3_bucket.bucket.arn}/*"
         ]
       }
     ]

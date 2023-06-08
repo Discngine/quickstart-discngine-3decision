@@ -171,7 +171,7 @@ metadata:
   name: sentinel-backup-env-cm
   namespace: ${each.key}
 data:
-  BUCKET_NAME: ${var.access_point_alias}
+  BUCKET_NAME: ${var.bucket_name}
   PROVIDER: aws
 YAML
   depends_on = [
@@ -705,4 +705,5 @@ resource "helm_release" "aws_load_balancer_controller" {
     vpcId: ${var.vpc_id}
   YAML
   ]
+  depends_on = [ helm_release.cert_manager_release ]
 }

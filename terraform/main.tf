@@ -183,8 +183,9 @@ module "storage" {
   account_id    = local.account_id
   force_destroy = var.force_destroy
   # Output
-  vpc_id          = var.create_network ? module.network[0].vpc_id : var.vpc_id
-  eks_oidc_issuer = module.eks.oidc_issuer
+  vpc_id              = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  eks_oidc_issuer     = module.eks.oidc_issuer
+  openid_provider_arn = module.eks.openid_provider_arn
 }
 
 module "kubernetes" {
@@ -212,7 +213,6 @@ module "kubernetes" {
   jwt_ssh_public          = module.secrets.jwt_public_key
   secrets_access_role_arn = module.secrets.secrets_access_role_arn
   bucket_name             = module.storage.bucket_name
-  access_point_alias      = module.storage.access_point_alias
   public_volume_id        = module.volumes.public_volume_id
   private_volume_id       = module.volumes.private_volume_id
   redis_role_arn          = module.storage.redis_role_arn

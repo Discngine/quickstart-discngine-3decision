@@ -28,7 +28,6 @@ variable "main_subdomain" {}
 variable "api_subdomain" {}
 variable "secrets_access_role_arn" {}
 variable "bucket_name" {}
-variable "access_point_alias" {}
 variable "public_volume_id" {}
 variable "private_volume_id" {}
 variable "redis_role_arn" {}

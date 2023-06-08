@@ -32,6 +32,10 @@ output "oidc_issuer" {
   value = aws_eks_cluster.cluster.identity.0.oidc.0.issuer
 }
 
+output "openid_provider_arn" {
+  value = aws_iam_openid_connect_provider.default.arn
+}
+
 output "service_cidr" {
   value = aws_eks_cluster.cluster.kubernetes_network_config.0.service_ipv4_cidr
 }
