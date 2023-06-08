@@ -244,7 +244,6 @@ EOF
 resource "aws_eks_addon" "csi_driver" {
   cluster_name                = aws_eks_cluster.cluster.name
   addon_name                  = "aws-ebs-csi-driver"
-  resolve_conflicts_on_create = "NONE"
   service_account_role_arn    = aws_iam_role.eks_csi_driver_role.arn
 
   depends_on = [aws_eks_node_group.node_group]
