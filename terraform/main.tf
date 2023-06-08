@@ -47,7 +47,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-central-1"
+  region = var.region
 }
 
 provider "kubernetes" {
@@ -94,9 +94,13 @@ provider "random" {
 ###############
 
 data "aws_caller_identity" "current" {}
+data "aws_availability_zones" "available" {
+  state = "available"
+}
 
 locals {
-  account_id = data.aws_caller_identity.current.account_id
+  account_id              = data.aws_caller_identity.current.account_id
+  availability_zone_names = data.aws_availability_zones.available.names
 }
 
 ############
@@ -104,6 +108,7 @@ locals {
 ############
 
 module "network" {
+  count  = var.create_network ? 1 : 0
   source = "./modules/network"
   # Input
 }
@@ -111,8 +116,15 @@ module "network" {
 module "eks" {
   source = "./modules/eks"
   # Input
-  vpc_id             = module.network.vpc_id
-  private_subnet_ids = module.network.private_subnet_ids
+  region             = var.region
+  account_id         = local.account_id
+  kubernetes_version = var.kubernetes_version
+  custom_ami         = var.custom_ami
+  instance_type      = var.eks_instance_type
+  boot_volume_size   = var.boot_volume_size
+  # Output
+  vpc_id             = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  private_subnet_ids = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
 
   depends_on = [module.network]
 }
@@ -120,15 +132,21 @@ module "eks" {
 module "database" {
   source = "./modules/database"
   # Input
+  region              = var.region
+  account_id          = local.account_id
+  force_destroy       = var.force_destroy
+  snapshot_identifier = var.db_snapshot_identifier
+  high_availability   = var.db_high_availability
+  instance_type       = var.db_instance_type
+  # Output
   node_security_group_id = module.eks.node_security_group_id
-  vpc_id                 = module.network.vpc_id
-  private_subnet_ids     = module.network.private_subnet_ids
-  account_id             = local.account_id
+  vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  private_subnet_ids     = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
 }
 
 module "security" {
   source = "./modules/security"
-  # Input
+  # Output
   node_security_group_id           = module.eks.node_security_group_id
   db_security_group_id             = module.database.db_security_group_id
   secrets_lambda_security_group_id = module.secrets.secrets_lambda_security_group_id
@@ -137,10 +155,13 @@ module "security" {
 module "secrets" {
   source = "./modules/secrets"
   # Input
+  region               = var.region
   account_id           = local.account_id
-  vpc_id               = module.network.vpc_id
+  initial_db_passwords = var.initial_db_passwords
+  # Output
+  vpc_id               = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  private_subnet_ids   = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
   db_security_group_id = module.database.db_security_group_id
-  private_subnet_ids   = module.network.private_subnet_ids
   db_name              = module.database.db_name
   db_endpoint          = module.database.db_endpoint
   node_group_role_arn  = module.eks.node_group_role_arn
@@ -149,13 +170,19 @@ module "secrets" {
 module "volumes" {
   source = "./modules/volumes"
   # Input
+  region                  = var.region
+  availability_zone_names = local.availability_zone_names
+  public_volume_snapshot  = var.public_volume_snapshot
 }
 
 module "storage" {
   source = "./modules/storage"
   # Input
-  account_id      = local.account_id
-  vpc_id          = module.network.vpc_id
+  region        = var.region
+  account_id    = local.account_id
+  force_destroy = var.force_destroy
+  # Output
+  vpc_id          = var.create_network ? module.network[0].vpc_id : var.vpc_id
   eks_oidc_issuer = module.eks.oidc_issuer
 }
 
@@ -163,18 +190,25 @@ module "kubernetes" {
   source = "./modules/kubernetes"
 
   # Input
+  region                  = var.region
+  availability_zone_names = local.availability_zone_names
   account_id              = local.account_id
-  vpc_id                  = module.network.vpc_id
   tdecision_namespace     = var.tdecision_namespace
   redis_sentinel_chart    = var.redis_sentinel_chart
   cert_manager_chart      = var.cert_manager_chart
   external_secrets_chart  = var.external_secrets_chart
   reloader_chart          = var.reloader_chart
-  jwt_ssh_private         = module.secrets.jwt_private_key
-  jwt_ssh_public          = module.secrets.jwt_public_key
   okta_oidc               = var.okta_oidc
   azure_oidc              = var.azure_oidc
   google_oidc             = var.google_oidc
+  certificate_arn         = var.certificate_arn
+  domain                  = var.domain
+  main_subdomain          = var.main_subdomain
+  api_subdomain           = var.api_subdomain
+  # Output
+  vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  jwt_ssh_private         = module.secrets.jwt_private_key
+  jwt_ssh_public          = module.secrets.jwt_public_key
   secrets_access_role_arn = module.secrets.secrets_access_role_arn
   bucket_name             = module.storage.bucket_name
   access_point_alias      = module.storage.access_point_alias
@@ -189,8 +223,14 @@ module "kubernetes" {
   depends_on = [module.eks]
 }
 
-#module "dns" {
-#  source = "./modules/dns"
-#  # Input
-#  depends_on = [module.kubernetes]
-#}
+module "dns" {
+  source = "./modules/dns"
+  # Input
+  domain         = var.domain
+  main_subdomain = var.main_subdomain
+  api_subdomain  = var.api_subdomain
+  zone_id = var.zone_id
+  # Output
+  cluster_id = module.eks.cluster_id
+  depends_on     = [module.kubernetes]
+}

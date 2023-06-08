@@ -8,5 +8,11 @@
 #
 # Copyright Oracle, Inc.  All rights reserved.
 
+variable "region" {}
+variable "account_id" {}
 variable "vpc_id" {}
+variable "kubernetes_version" {}
+variable "custom_ami" {}
+variable "instance_type" {}
+variable "boot_volume_size" {}
 variable "private_subnet_ids" {}

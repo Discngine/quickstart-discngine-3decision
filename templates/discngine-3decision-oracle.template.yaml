@@ -141,8 +141,8 @@ Resources:
   PrimaryDBInstance:
     Type: AWS::RDS::DBInstance
     Properties:
-      AllocatedStorage: "1024"
-      MaxAllocatedStorage: 3072
+      AllocatedStorage: "500"
+      MaxAllocatedStorage: 1000
       CharacterSetName: AL32UTF8
       DeletionProtection: true
       DBInstanceClass: !Ref DBInstanceClass

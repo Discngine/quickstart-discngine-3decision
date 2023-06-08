@@ -16,7 +16,7 @@ resource "aws_kms_key" "cluster_secrets_key" {
 resource "aws_eks_cluster" "cluster" {
   name     = "EKS-tdecision"
   role_arn = aws_iam_role.eks_cluster_role.arn
-  version  = "1.26"
+  version  = var.kubernetes_version
 
   vpc_config {
     subnet_ids = var.private_subnet_ids
@@ -123,15 +123,15 @@ set -o xtrace
 }
 
 resource "aws_launch_template" "EKSLaunchTemplate" {
-  image_id                = nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
-  instance_type           = "t3.2xlarge"
+  image_id                = var.custom_ami != null ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  instance_type           = var.instance_type
   disable_api_termination = true
 
   block_device_mappings {
     device_name = "/dev/xvda"
 
     ebs {
-      volume_size           = "100"
+      volume_size           = var.boot_volume_size
       volume_type           = "gp2"
       delete_on_termination = true
     }
@@ -174,7 +174,7 @@ resource "aws_iam_openid_connect_provider" "default" {
 
   client_id_list = [
     "sts.amazonaws.com",
-    "sts.eu-central-1.amazonaws.com"
+    "sts.${var.region}.amazonaws.com"
   ]
 
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
@@ -218,7 +218,7 @@ EOF
           {
             Action   = ["kms:CreateGrant", "kms:ListGrants", "kms:RevokeGrant"]
             Effect   = "Allow"
-            Resource = "arn:aws:kms:eu-central-1:7511-4947-8800:key/*"
+            Resource = "arn:aws:kms:${var.region}:${var.account_id}:key/*"
           },
           {
             Action = [
@@ -233,7 +233,7 @@ EOF
               "kms:ReEncryptTo",
             ]
             Effect   = "Allow"
-            Resource = "arn:aws:kms:eu-central-1:7511-4947-8800:key/*"
+            Resource = "arn:aws:kms:${var.region}:${var.account_id}:key/*"
           }
         ]
       }

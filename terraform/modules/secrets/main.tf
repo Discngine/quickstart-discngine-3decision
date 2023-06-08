@@ -70,7 +70,7 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
 
   environment {
     variables = {
-      SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.eu-central-1.amazonaws.com",
+      SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.${var.region}.amazonaws.com",
       EXCLUDE_CHARACTERS = "' ! \" # $ % & ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ ` { | } ~"
     }
   }
@@ -150,7 +150,7 @@ resource "aws_iam_policy" "secret_rotator_lambda_policy" {
       {
         Effect   = "Allow",
         Action   = "logs:CreateLogGroup",
-        Resource = "arn:aws:logs:eu-central-1:${var.account_id}:*"
+        Resource = "arn:aws:logs:${var.region}:${var.account_id}:*"
       },
       {
         Effect = "Allow",
@@ -159,7 +159,7 @@ resource "aws_iam_policy" "secret_rotator_lambda_policy" {
           "logs:PutLogEvents"
         ],
         Resource = [
-          "arn:aws:logs:eu-central-1:${var.account_id}:log-group:/aws/lambda/tdec-rotator-lambda:*"
+          "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/tdec-rotator-lambda:*"
         ]
       }
     ]
@@ -195,7 +195,7 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
   secret_string = jsonencode(
     {
       username = each.key
-      password = each.key != "CHORAL_OWNER" ? "Ch4ng3m3f0rs3cur3p4ss" : random_password.choral_password.result
+      password = each.key != "CHORAL_OWNER" ? var.initial_db_passwords : random_password.choral_password.result
       engine   = "oracle"
       host     = element(split(":", var.db_endpoint), 0)
       dbname   = var.db_name

@@ -8,12 +8,8 @@
 #
 # Copyright Oracle, Inc.  All rights reserved.
 
-variable "suffix" {}
-variable "customer" {}
-variable "application" {}
-variable "environment" {}
-variable "subdomain_name" {}
-variable "dns_zone" {}
-variable "resource_group_name" {}
-variable "ttl" {}
-variable "ip" {}
+variable "domain" {}
+variable "main_subdomain" {}
+variable "api_subdomain" {}
+variable "zone_id" {}
+variable "cluster_id" {}

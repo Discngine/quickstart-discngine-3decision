@@ -8,6 +8,8 @@
 #
 # Copyright Oracle, Inc.  All rights reserved.
 
+variable "region" {}
 variable "account_id" {}
+variable "force_destroy" {}
 variable "vpc_id" {}
 variable "eks_oidc_issuer" {}

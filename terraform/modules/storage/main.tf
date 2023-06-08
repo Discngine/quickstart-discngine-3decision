@@ -14,7 +14,7 @@ locals {
 
 resource "aws_s3_bucket" "bucket" {
   bucket_prefix = "tdec"
-  force_destroy = false##var.force_destroy
+  force_destroy = var.force_destroy
 }
 
 resource "aws_s3_bucket_ownership_controls" "bucket_ownership" {
@@ -24,21 +24,21 @@ resource "aws_s3_bucket_ownership_controls" "bucket_ownership" {
   }
 }
 
-resource "aws_s3_bucket_acl" "example" {
+resource "aws_s3_bucket_acl" "acl" {
   bucket = aws_s3_bucket.bucket.id
   acl    = "private"
 
   depends_on = [aws_s3_bucket_ownership_controls.bucket_ownership]
 }
 
-resource "aws_s3_bucket_versioning" "versioning_example" {
+resource "aws_s3_bucket_versioning" "versioning" {
   bucket = aws_s3_bucket.bucket.id
   versioning_configuration {
     status = "Enabled"
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "example" {
+resource "aws_s3_bucket_public_access_block" "public_access_block" {
   bucket = aws_s3_bucket.bucket.id
 
   block_public_acls       = true
@@ -52,20 +52,20 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
   bucket = aws_s3_bucket.bucket.id
 
   policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Sid": "AllowPublicAccess",
-        "Effect": "Allow",
-        "Principal": "*",
-        "Action": "*",
-        "Resource": [
+        "Sid" : "AllowPublicAccess",
+        "Effect" : "Allow",
+        "Principal" : "*",
+        "Action" : "*",
+        "Resource" : [
           aws_s3_bucket.bucket.arn,
           "${aws_s3_bucket.bucket.arn}/*"
         ],
-        "Condition": {
-          "StringEquals": {
-            "s3:DataAccessPointAccount": var.account_id
+        "Condition" : {
+          "StringEquals" : {
+            "s3:DataAccessPointAccount" : var.account_id
           }
         }
       }
@@ -92,19 +92,19 @@ resource "aws_s3_access_point" "redis_access_point" {
 }
 
 resource "aws_iam_role" "redis_role" {
-  name               = "3decision-redis-s3-eu-central-1"
+  name_prefix = "3decision-redis-s3"
   assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Effect": "Allow",
-        "Principal": {
-          "Federated": "arn:aws:iam::${var.account_id}:oidc-provider/${local.oidc_issuer}"
+        "Effect" : "Allow",
+        "Principal" : {
+          "Federated" : "arn:aws:iam::${var.account_id}:oidc-provider/${local.oidc_issuer}"
         },
-        "Action": "sts:AssumeRoleWithWebIdentity",
-        "Condition": {
-          "StringLike": {
-            "${local.oidc_issuer}:sub": "system:serviceaccount:*:redis-s3-upload"
+        "Action" : "sts:AssumeRoleWithWebIdentity",
+        "Condition" : {
+          "StringLike" : {
+            "${local.oidc_issuer}:sub" : "system:serviceaccount:*:redis-s3-upload"
           }
         }
       }
@@ -115,18 +115,18 @@ resource "aws_iam_role" "redis_role" {
 }
 
 resource "aws_iam_policy" "redis_policy" {
-  name   = "3decision-redis-s3-eu-central-1"
+  name_prefix = "3decision-redis-s3"
   policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Effect": "Allow",
-        "Action": [
+        "Effect" : "Allow",
+        "Action" : [
           "s3:PutObject",
           "s3:GetObject",
           "s3:ListBucket"
         ],
-        "Resource": [
+        "Resource" : [
           aws_s3_access_point.redis_access_point.arn,
           "${aws_s3_access_point.redis_access_point.arn}/*"
         ]

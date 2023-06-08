@@ -88,7 +88,7 @@ spec:
   provider:
     aws:
       service: SecretsManager
-      region: eu-central-1
+      region: ${var.region}
       role: ${var.secrets_access_role_arn}
   YAML
   depends_on = [helm_release.external_secrets_chart]
@@ -235,24 +235,6 @@ replica:
         name: redis-data
 YAML
 }
-
-#resource "helm_release" "ingress_nginx_release" {
-#  name             = var.ingress_nginx_chart.name
-#  chart            = var.ingress_nginx_chart.chart
-#  namespace        = var.ingress_nginx_chart.namespace
-#  create_namespace = var.ingress_nginx_chart.create_namespace
-#  repository       = var.ingress_nginx_chart.repository
-#  version          = var.ingress_nginx_chart.version
-#  timeout          = 1200
-#
-#  values = [<<YAML
-#    controller:
-#      service:
-#        loadBalancerIP: ${var.lb_public_ip}
-#    YAML
-#  ]
-#}
-
 resource "helm_release" "cert_manager_release" {
   name             = var.cert_manager_chart.name
   chart            = var.cert_manager_chart.chart
@@ -329,15 +311,15 @@ volumes:
         awsElasticBlockStore:
           fsType: ext4
           volumeID: ${var.public_volume_id}
-          availabilityZone: eu-central-1a
+          availabilityZone: ${var.availability_zone_names[0]}
 ingress:
-  host: discngine.io
-  certificateArn: arn:aws:acm:eu-central-1:751149478800:certificate/209f6889-36ae-49f9-8531-a2c5dc3f7ab8
+  host: ${var.domain}
+  certificateArn: ${var.certificate_arn}
   visibility: internet-facing
   ui:
-    host: 3decision
+    host: ${var.main_subdomain}
   api:
-    host: 3decision-api
+    host: ${var.api_subdomain}
   class: alb
 nest:
   env:
@@ -346,19 +328,19 @@ nest:
       value: ${var.okta_oidc.client_id}
     okta_redirect_uri:
       name: OKTA_REDIRECT_URI
-      value: "https://3decision-api.discngine.io/auth/okta/callback"
+      value: "https://${var.api_subdomain}.discngine.io/auth/okta/callback"
     azure_client_id:
       name: AZURE_CLIENT_ID
       value: ${var.azure_oidc.client_id}
     azure_redirect_uri:
       name: AZURE_REDIRECT_URI
-      value: https://3decision-api.discngine.io/auth/azure/callback
+      value: https://${var.api_subdomain}.discngine.io/auth/azure/callback
     google_client_id:
       name: GOOGLE_CLIENT_ID
       value: ${var.google_oidc.client_id}
     google_redirect_uri:
       name: GOOGLE_REDIRECT_URI
-      value: https://3decision-api.discngine.io/auth/google/callback
+      value: https://${var.api_subdomain}.discngine.io/auth/google/callback
 nfs:
   public:
     serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
@@ -427,7 +409,7 @@ resource "aws_iam_role" "load_balancer_controller" {
         "StringEquals": {
           "${local.oidc_issuer}:aud": [
             "sts.amazonaws.com",
-            "sts.eu-central-1.amazonaws.com"
+            "sts.${var.region}.amazonaws.com"
           ],
           "${local.oidc_issuer}:sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
         }
@@ -703,7 +685,7 @@ resource "helm_release" "aws_load_balancer_controller" {
       repository: public.ecr.aws/eks/aws-load-balancer-controller
     nodeSelector:
       kubernetes.io/os: linux
-    region: eu-central-1
+    region: ${var.region}
     replicaCount: 1
     resources:
       limits:

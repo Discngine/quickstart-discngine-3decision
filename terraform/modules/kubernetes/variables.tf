@@ -8,6 +8,8 @@
 #
 # Copyright Oracle, Inc.  All rights reserved.
 
+variable "region" {}
+variable "availability_zone_names" {}
 variable "account_id" {}
 variable "vpc_id" {}
 variable "tdecision_namespace" {}
@@ -20,6 +22,10 @@ variable "jwt_ssh_public" {}
 variable "okta_oidc" {}
 variable "azure_oidc" {}
 variable "google_oidc" {}
+variable "certificate_arn" {}
+variable "domain" {}
+variable "main_subdomain" {}
+variable "api_subdomain" {}
 variable "secrets_access_role_arn" {}
 variable "bucket_name" {}
 variable "access_point_alias" {}

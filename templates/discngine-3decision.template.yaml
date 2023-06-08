@@ -390,7 +390,7 @@ Resources:
         VpcId: !Ref VPCID
         NodeSecurityGroupId: !Ref NodeSecurityGroup
         DBMultiZone: !Ref DBMultiZone
-        DBSnapshotIdentifier: !If [UseDBSnapshotIdentifier, !Ref DBSnapshotIdentifier, !Sub "arn:aws:rds:${AWS::Region}:751149478800:snapshot:db3dec2022-1"]
+        DBSnapshotIdentifier: !If [UseDBSnapshotIdentifier, !Ref DBSnapshotIdentifier, !Sub "arn:aws:rds:${AWS::Region}:751149478800:snapshot:db3dec"]
   EKSServiceCidr:
     Type: Custom::CliQuery
     UpdateReplacePolicy: Delete

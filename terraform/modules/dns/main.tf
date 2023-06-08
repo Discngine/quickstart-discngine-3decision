@@ -15,23 +15,13 @@ terraform {
   }
 }
 
-locals {
-  ingress_svc_name      = "ingress-nginx-controller"
-  ingress_svc_namespace = "ingress-nginx"
-  ingress_load_balancer_tags = {
-    "service.k8s.aws/resource" = "LoadBalancer"
-    "service.k8s.aws/stack"    = "${local.ingress_svc_namespace}/${local.ingress_svc_name}"
-    "elbv2.k8s.aws/cluster"    = var.cluster_id
-  }
-}
-
 data "aws_lb" "ingress_load_balancer" {
-  tags = local.ingress_load_balancer_tags
+  name = "lb3dec"
 }
 
 resource "aws_route53_record" "tdec_record" {
-  zone_id = "Z0993829VKYUI0DM32P4"
-  name    = "3decision.discngine.io"
+  zone_id = var.zone_id
+  name    = "${var.main_subdomain}.${var.domain}"
   type    = "A"
   alias {
     name                   = "dualstack.${data.aws_lb.ingress_load_balancer.dns_name}"
@@ -41,8 +31,8 @@ resource "aws_route53_record" "tdec_record" {
 }
 
 resource "aws_route53_record" "tdec_api_record" {
-  zone_id = "Z0993829VKYUI0DM32P4"
-  name    = "3decision-api.discngine.io"
+  zone_id = var.zone_id
+  name    = "${var.api_subdomain}.${var.domain}"
   type    = "A"
   alias {
     name                   = "dualstack.${data.aws_lb.ingress_load_balancer.dns_name}"

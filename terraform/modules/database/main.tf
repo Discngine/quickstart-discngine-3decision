@@ -46,7 +46,7 @@ resource "aws_kms_key" "encryption_key" {
       "Condition": {
         "StringEquals": {
           "kms:CallerAccount": "${var.account_id}",
-          "kms:ViaService": "rds.eu-central-1.amazonaws.com"
+          "kms:ViaService": "rds.${var.region}.amazonaws.com"
         }
       }
     }
@@ -82,10 +82,10 @@ resource "aws_security_group_rule" "db_security_group_egress" {
 }
 
 resource "aws_db_instance" "db_instance" {
-  allocated_storage      = 1024
-  max_allocated_storage  = 3000
+  allocated_storage      = 500
+  max_allocated_storage  = 1000
   character_set_name     = "AL32UTF8"
-  instance_class         = "db.t3.medium"
+  instance_class         = var.instance_type
   db_name                = "ORCL"
   identifier_prefix      = "db3dec"
   parameter_group_name   = aws_db_parameter_group.db_param_group.name
@@ -94,17 +94,16 @@ resource "aws_db_instance" "db_instance" {
   license_model          = "license-included"
   option_group_name      = "default:oracle-se2-cdb-19"
   port                   = "1521"
-  multi_az               = false
+  multi_az               = var.high_availability
   kms_key_id             = aws_kms_key.encryption_key.arn
   db_subnet_group_name   = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids = [aws_security_group.db_security_group.id]
   storage_type           = "gp2"
-  snapshot_identifier    = "arn:aws:rds:eu-central-1:751149478800:snapshot:db3dec2022-1"
+  snapshot_identifier    = var.snapshot_identifier != null ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
   publicly_accessible    = false
-
-  # CHANGE THIS
-  deletion_protection = false
-  skip_final_snapshot = true
+  deletion_protection = !var.force_destroy
+  skip_final_snapshot = false
+  final_snapshot_identifier = "db3dec-final-snapshot"
 
   lifecycle {
     ignore_changes = all
