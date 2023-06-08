@@ -93,6 +93,23 @@ variable "initial_db_passwords" {
   description = "The passwords of the schemas present in the snapshot"
 }
 
+variable "db_backup_retention_period" {
+  default = 7
+  description = "Number of days to keep database backups"
+}
+
+variable "license_type" {
+  default = "license-included"
+  description = "Whether the oracle license is BYOL or included"
+  validation {
+    condition = anytrue([
+      var.license_type == "license-included",
+      var.license_type == "bring-your-own-license",
+    ])
+    error_message = "License type can only be license-included or bring-your-own-license."
+  }
+}
+
 #################
 # Load Balancing
 #################

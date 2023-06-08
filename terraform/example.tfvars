@@ -22,6 +22,9 @@ db_snapshot_identifier = null
 # Whether to activate db high availability
 db_high_availability = false
 
+# Number of days to keep database backups
+db_backup_retention_period = 7
+
 # ARN of a certificate to add to the loadbalancer
 certificate_arn = ""
 
@@ -59,5 +62,6 @@ google_oidc = {
 kubernetes_version = "1.27"
 public_volume_snapshot = null
 db_instance_type = "db.t3.xlarge"
+license_type = "license-included"
 eks_instance_type = "t3.2xlarge"
 boot_volume_size = "50"

@@ -14,7 +14,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0.1"
+      version = "5.0.1"
     }
     helm = {
       source  = "hashicorp/helm"
@@ -132,12 +132,14 @@ module "eks" {
 module "database" {
   source = "./modules/database"
   # Input
-  region              = var.region
-  account_id          = local.account_id
-  force_destroy       = var.force_destroy
-  snapshot_identifier = var.db_snapshot_identifier
-  high_availability   = var.db_high_availability
-  instance_type       = var.db_instance_type
+  region                  = var.region
+  account_id              = local.account_id
+  force_destroy           = var.force_destroy
+  snapshot_identifier     = var.db_snapshot_identifier
+  high_availability       = var.db_high_availability
+  instance_type           = var.db_instance_type
+  backup_retention_period = var.db_backup_retention_period
+  license_type            = var.license_type
   # Output
   node_security_group_id = module.eks.node_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
@@ -173,7 +175,7 @@ module "volumes" {
   region                  = var.region
   availability_zone_names = local.availability_zone_names
   public_volume_snapshot  = var.public_volume_snapshot
-  private_volume_snapshot  = var.private_volume_snapshot
+  private_volume_snapshot = var.private_volume_snapshot
 }
 
 module "storage" {
@@ -231,8 +233,8 @@ module "dns" {
   domain         = var.domain
   main_subdomain = var.main_subdomain
   api_subdomain  = var.api_subdomain
-  zone_id = var.zone_id
+  zone_id        = var.zone_id
   # Output
   cluster_id = module.eks.cluster_id
-  depends_on     = [module.kubernetes]
+  depends_on = [module.kubernetes]
 }
