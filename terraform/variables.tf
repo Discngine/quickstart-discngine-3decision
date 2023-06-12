@@ -133,9 +133,9 @@ variable "api_subdomain" {
   description = "Name used for the api subdomain"
 }
 
-variable "zone_id" {
-  default = ""
-  description = "Route53 HostedZone id"
+variable "hosted_zone_id" {
+  default = null
+  description = "Route53 HostedZone id. If left null, create DNS records manually after apply."
 }
 
 ###############

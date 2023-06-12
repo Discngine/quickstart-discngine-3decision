@@ -226,12 +226,13 @@ module "kubernetes" {
 }
 
 module "dns" {
+  count  = var.hosted_zone_id != null ? 1 : 0
   source = "./modules/dns"
   # Input
   domain         = var.domain
   main_subdomain = var.main_subdomain
   api_subdomain  = var.api_subdomain
-  zone_id        = var.zone_id
+  zone_id        = var.hosted_zone_id
   # Output
   cluster_id = module.eks.cluster_id
   depends_on = [module.kubernetes.tdecision_release]

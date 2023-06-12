@@ -34,7 +34,7 @@ main_subdomain = "3decision"
 api_subdomain = "3decision-api"
 
 ## ROUTE 53 Hosted zone id
-zone_id = ""
+hosted_zone_id = null
 
 ## Azure AD Information
 azure_oidc = {
