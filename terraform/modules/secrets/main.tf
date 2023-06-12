@@ -81,8 +81,7 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment,
-    aws_security_group.lambda_security_group
+    aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
   ]
 }
 
