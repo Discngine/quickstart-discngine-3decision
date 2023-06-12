@@ -19,7 +19,9 @@ resource "aws_eks_cluster" "cluster" {
   version  = var.kubernetes_version
 
   vpc_config {
-    subnet_ids = var.private_subnet_ids
+    subnet_ids              = var.private_subnet_ids
+    endpoint_private_access = true
+    endpoint_public_access  = var.k8s_public_access
 
     security_group_ids = [aws_security_group.eks_cluster_sg.id]
   }
@@ -242,9 +244,9 @@ EOF
 }
 
 resource "aws_eks_addon" "csi_driver" {
-  cluster_name                = aws_eks_cluster.cluster.name
-  addon_name                  = "aws-ebs-csi-driver"
-  service_account_role_arn    = aws_iam_role.eks_csi_driver_role.arn
+  cluster_name             = aws_eks_cluster.cluster.name
+  addon_name               = "aws-ebs-csi-driver"
+  service_account_role_arn = aws_iam_role.eks_csi_driver_role.arn
 
   depends_on = [aws_eks_node_group.node_group]
 }

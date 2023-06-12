@@ -48,6 +48,11 @@ variable "private_subnet_ids" {
 # EKS
 #########
 
+variable "k8s_public_access" {
+  default = true
+  description = "Whether we can connect to the k8s control plane through the internet"
+}
+
 variable "kubernetes_version" {
   default     = "1.27"
   description = "EKS version of the control plane"

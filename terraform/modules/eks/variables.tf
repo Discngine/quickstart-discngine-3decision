@@ -11,6 +11,7 @@
 variable "region" {}
 variable "account_id" {}
 variable "vpc_id" {}
+variable "k8s_public_access" {}
 variable "kubernetes_version" {}
 variable "custom_ami" {}
 variable "instance_type" {}
