@@ -195,7 +195,8 @@ module "kubernetes" {
   region                  = var.region
   availability_zone_names = local.availability_zone_names
   account_id              = local.account_id
-  tdecision_namespace     = var.tdecision_namespace
+  tdecision_chart         = var.tdecision_chart
+  choral_chart            = var.choral_chart
   redis_sentinel_chart    = var.redis_sentinel_chart
   cert_manager_chart      = var.cert_manager_chart
   external_secrets_chart  = var.external_secrets_chart

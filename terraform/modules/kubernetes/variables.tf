@@ -12,7 +12,8 @@ variable "region" {}
 variable "availability_zone_names" {}
 variable "account_id" {}
 variable "vpc_id" {}
-variable "tdecision_namespace" {}
+variable "tdecision_chart" {}
+variable "choral_chart" {}
 variable "redis_sentinel_chart" {}
 variable "cert_manager_chart" {}
 variable "external_secrets_chart" {}

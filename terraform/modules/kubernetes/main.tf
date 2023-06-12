@@ -42,7 +42,7 @@ resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
 
 resource "kubernetes_namespace" "tdecision_namespace" {
   metadata {
-    name = var.tdecision_namespace
+    name = var.tdecision_chart.namespace
   }
 }
 
@@ -67,7 +67,7 @@ resource "kubernetes_namespace" "tools_namespace" {
 resource "kubernetes_secret" "jwt_secret" {
   metadata {
     name      = "3decision-jwt-secret"
-    namespace = var.tdecision_namespace
+    namespace = var.tdecision_chart.namespace
   }
 
   data = {
@@ -105,7 +105,7 @@ spec:
   externalSecretName: database-secrets
   namespaceSelector:
     matchExpressions:
-      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_namespace}, choral]}
+      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, choral]}
   refreshTime: 1m
   externalSecretSpec:
     refreshInterval: 1m
@@ -147,7 +147,7 @@ spec:
 resource "kubernetes_secret" "nest_authentication_secrets" {
   metadata {
     name      = "nest-authentication-secrets"
-    namespace = var.tdecision_namespace
+    namespace = var.tdecision_chart.namespace
   }
   data = {
     AZURE_TENANT   = var.azure_oidc.tenant
@@ -161,7 +161,7 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
 }
 
 resource "kubectl_manifest" "sentinel_configmap_redis" {
-  for_each = toset([var.tdecision_namespace, "redis-cluster"])
+  for_each = toset([var.tdecision_chart.namespace, "redis-cluster"])
 
   yaml_body = <<YAML
 ---
@@ -289,15 +289,15 @@ resource "helm_release" "reloader_chart" {
 ##############
 
 locals {
-  connection_string = "${var.db_endpoint}/${var.db_name}"  
+  connection_string = "${var.db_endpoint}/${var.db_name}"
 }
 
 resource "helm_release" "tdecision_chart" {
-  name       = "tdecision"
-  repository = "oci://fra.ocir.io/discngine1/3decision_kube"
-  chart      = "3decision-helm"
-  version    = "2.2.2"
-  namespace  = var.tdecision_namespace
+  name       = var.tdecision_chart.name
+  repository = var.tdecision_chart.repository
+  chart      = var.tdecision_chart.chart
+  version    = var.tdecision_chart.version
+  namespace  = var.tdecision_chart.namespace
   timeout    = 1200
   values = [<<YAML
 oracle:
@@ -375,11 +375,11 @@ YAML
 }
 
 resource "helm_release" "choral_chart" {
-  name       = "choral"
-  repository = "oci://fra.ocir.io/discngine1/3decision_kube"
-  chart      = "choral-helm"
-  version    = "1.1.6"
-  namespace  = "choral"
+  name       = var.choral_chart.name
+  repository = var.choral_chart.repository
+  chart      = var.choral_chart.chart
+  version    = var.choral_chart.version
+  namespace  = var.choral_chart.namespace
   values = [<<YAML
     oracle:
       connectionString: ${local.connection_string}
@@ -387,7 +387,7 @@ resource "helm_release" "choral_chart" {
       storageClassName: gp2-encrypted
   YAML
   ]
-  timeout    = 1200
+  timeout = 1200
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubectl_manifest.ClusterExternalSecret,
@@ -705,5 +705,5 @@ resource "helm_release" "aws_load_balancer_controller" {
     vpcId: ${var.vpc_id}
   YAML
   ]
-  depends_on = [ helm_release.cert_manager_release ]
+  depends_on = [helm_release.cert_manager_release]
 }

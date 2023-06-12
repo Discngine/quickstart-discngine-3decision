@@ -142,9 +142,32 @@ variable "hosted_zone_id" {
 # KUBERNETES
 ###############
 
-variable "tdecision_namespace" {
-  default = "tdecision"
-  description = "namespace in which to deploy the main 3decision application"
+variable "tdecision_chart" {
+  description = "A map with information about the cert manager helm chart"
+
+  type = object({
+    name             = optional(string, "tdecision")
+    repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
+    chart            = optional(string, "3decision-helm")
+    namespace        = optional(string, "tdecision")
+    version          = optional(string, "2.2.2")
+    create_namespace = optional(bool, true)
+  })
+  default = {}
+}
+
+variable "choral_chart" {
+  description = "A map with information about the cert manager helm chart"
+
+  type = object({
+    name             = optional(string, "choral")
+    repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
+    chart            = optional(string, "choral-helm")
+    namespace        = optional(string, "choral")
+    version          = optional(string, "1.1.6")
+    create_namespace = optional(bool, true)
+  })
+  default = {}
 }
 
 variable "cert_manager_chart" {
