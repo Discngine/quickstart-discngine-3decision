@@ -58,11 +58,11 @@ resource "aws_s3_object" "object" {
 resource "aws_lambda_function" "secret_rotator_lambda" {
   function_name = "tdec-rotator-lambda"
 
-  role   = aws_iam_role.secret_rotator_lambda_role.arn
+  role = aws_iam_role.secret_rotator_lambda_role.arn
 
   handler          = "lambda_function.lambda_handler"
-  s3_bucket = aws_s3_bucket.lambda_sources.id
-  s3_key    = aws_s3_object.object.id
+  s3_bucket        = aws_s3_bucket.lambda_sources.id
+  s3_key           = aws_s3_object.object.id
   source_code_hash = filebase64sha256("${path.root}/function/package.zip")
 
   runtime = "python3.9"
@@ -71,7 +71,7 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   environment {
     variables = {
       SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.${var.region}.amazonaws.com",
-      EXCLUDE_CHARACTERS = "' ! \" # $ % & ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ ` { | } ~"
+      EXCLUDE_CHARACTERS       = "' ! \" # $ % & ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ ` { | } ~"
     }
   }
 
@@ -81,7 +81,8 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
+    aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment,
+    aws_security_group.lambda_security_group
   ]
 }
 
@@ -175,7 +176,7 @@ resource "aws_iam_role_policy_attachment" "secret_rotator_lambda_role_policy_att
 resource "aws_secretsmanager_secret" "db_passwords" {
   for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29", "CHORAL_OWNER"])
 
-  name = "3dec-${lower(each.key)}-db"
+  name                    = "3dec-${lower(each.key)}-db"
   recovery_window_in_days = 0
 }
 
@@ -212,20 +213,20 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
   rotation_rules {
     automatically_after_days = 30
   }
-  depends_on = [ aws_secretsmanager_secret_version.db_passwords_version ]
+  depends_on = [aws_secretsmanager_secret_version.db_passwords_version]
 }
 
 resource "aws_iam_role" "secrets_access_role" {
   name_prefix = "tdec-database-secrets"
   assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": ["${var.node_group_role_arn}"]
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : ["${var.node_group_role_arn}"]
         },
-        "Action": ["sts:AssumeRole"]
+        "Action" : ["sts:AssumeRole"]
       }
     ]
   })
@@ -234,19 +235,19 @@ resource "aws_iam_role" "secrets_access_role" {
 }
 
 resource "aws_iam_policy" "secrets_access_policy" {
-  name_prefix   = "tdec-database-secrets"
+  name_prefix = "tdec-database-secrets"
   policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Effect": "Allow",
-        "Action": [
+        "Effect" : "Allow",
+        "Action" : [
           "secretsmanager:GetResourcePolicy",
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret",
           "secretsmanager:ListSecretVersionIds"
         ],
-        "Resource": [
+        "Resource" : [
           for secret in aws_secretsmanager_secret.db_passwords : secret.arn
         ]
       }
