@@ -8,6 +8,10 @@ region = "eu-central-1"
 # Set to true will force destroy RDS database & S3 buckets on stack destruction
 force_destroy = false
 
+# Whether to create snapshots of public & private volumes when deleting them (can take up to 1h)
+public_final_snapshot = true
+private_final_snapshot = true
+
 # If set to false, give vpc_id and private_subnet_ids. Otherwise leave those blank
 create_network = false
 vpc_id = ""
@@ -57,13 +61,14 @@ google_oidc = {
   secret    = ""
 }
 
+# Used for disaster recovery, ids of the public & private volumes to recreate from
+public_volume_snapshot = null
+private_volume_snapshot = null
+
 # Can generally be left as is
 
 kubernetes_version = "1.27"
-public_volume_snapshot = null
 db_instance_type = "db.t3.xlarge"
 license_type = "license-included"
 eks_instance_type = "t3.2xlarge"
 boot_volume_size = "50"
-public_final_snapshot = true
-private_final_snapshot = true
