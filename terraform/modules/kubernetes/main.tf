@@ -296,7 +296,7 @@ resource "helm_release" "tdecision_chart" {
   name       = "tdecision"
   repository = "oci://fra.ocir.io/discngine1/3decision_kube"
   chart      = "3decision-helm"
-  version    = "2.2.1-test"
+  version    = "2.2.2"
   namespace  = var.tdecision_namespace
   timeout    = 1200
   values = [<<YAML
