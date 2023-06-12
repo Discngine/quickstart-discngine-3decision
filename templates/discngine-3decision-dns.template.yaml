@@ -14,8 +14,6 @@ Parameters:
     Type: String
   ApiSubdomain:
     Type: String
-  HelpSubdomain:
-    Type: String
 Mappings:
   Config:
     Prefix: { Value: 'eks-quickstart' }
@@ -51,14 +49,4 @@ Resources:
         HostedZoneId: !Ref CanonicalHostedZoneId
       HostedZoneId: !Ref HostedZoneId
       Name: !Sub "${ApiSubdomain}.${DomainName}"
-      Type: A
-  wikiRecord:
-    Type: "AWS::Route53::RecordSet"
-    Properties:
-      AliasTarget:
-        DNSName: !Ref DNSName
-        EvaluateTargetHealth: true
-        HostedZoneId: !Ref CanonicalHostedZoneId
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Sub "${HelpSubdomain}.${DomainName}"
       Type: A
