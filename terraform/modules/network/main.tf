@@ -1,12 +1,4 @@
 # network Module - Main file for the network module
-#
-# Ionel Panaitescu (ionel.panaitescu@oracle.com)
-# Andrei Pirjol (andrei.pirjol@oracle.com)
-#       Oracle Cloud Infrastructure
-#
-# Release (Date): 1.0 (July 2018)
-#
-# Copyright Oracle, Inc.  All rights reserved.
 
 data "aws_availability_zones" "available" {
   state = "available"
@@ -77,7 +69,7 @@ resource "aws_route_table" "private_route_table" {
   vpc_id = aws_vpc.my_vpc.id
 
   route {
-    cidr_block = "0.0.0.0/0"
+    cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat_gateway[count.index].id
   }
 }

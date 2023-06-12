@@ -1,12 +1,4 @@
 # storage Module - Main file for the storage module
-#
-# Ionel Panaitescu (ionel.panaitescu@oracle.com)
-# Andrei Pirjol (andrei.pirjol@oracle.com)
-#       Oracle Cloud Infrastructure
-#
-# Release (Date): 1.0 (July 2018)
-#
-# Copyright Oracle, Inc.  All rights reserved.
 
 locals {
   oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)
@@ -53,7 +45,7 @@ resource "aws_iam_role" "redis_role" {
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
           "StringLike" : {
-            "${local.oidc_issuer}:sub": ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis"]
+            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis"]
           }
         }
       }

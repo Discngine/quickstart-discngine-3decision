@@ -1,12 +1,4 @@
 # security Module - Main file for the vault module
-#
-# Ionel Panaitescu (ionel.panaitescu@oracle.com)
-# Andrei Pirjol (andrei.pirjol@oracle.com)
-#       Oracle Cloud Infrastructure
-#
-# Release (Date): 1.0 (July 2018)
-#
-# Copyright Oracle, Inc.  All rights reserved.
 
 resource "aws_security_group_rule" "open_rds_access_from_eks" {
   type                     = "ingress"

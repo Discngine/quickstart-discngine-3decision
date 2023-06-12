@@ -1,12 +1,4 @@
 # database Module - Output file for the database module
-#
-# Ionel Panaitescu (ionel.panaitescu@oracle.com)
-# Andrei Pirjol (andrei.pirjol@oracle.com)
-#       Oracle Cloud Infrastructure
-#
-# Release (Date): 1.0 (July 2018)
-#
-# Copyright Oracle, Inc.  All rights reserved.
 
 output "db_security_group_id" {
   value = aws_security_group.db_security_group.id
