@@ -175,6 +175,8 @@ module "volumes" {
   availability_zone_names = local.availability_zone_names
   public_volume_snapshot  = var.public_volume_snapshot
   private_volume_snapshot = var.private_volume_snapshot
+  private_final_snapshot  = var.private_final_snapshot
+  public_final_snapshot   = var.public_final_snapshot
 }
 
 module "storage" {

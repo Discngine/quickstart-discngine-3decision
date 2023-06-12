@@ -5,7 +5,7 @@
 # Replace by us-east-1 to deploy in NA
 region = "eu-central-1"
 
-# Set to true will force destroy RDS database S3 buckets and volumes on stack destruction
+# Set to true will force destroy RDS database & S3 buckets on stack destruction
 force_destroy = false
 
 # If set to false, give vpc_id and private_subnet_ids. Otherwise leave those blank
@@ -65,3 +65,5 @@ db_instance_type = "db.t3.xlarge"
 license_type = "license-included"
 eks_instance_type = "t3.2xlarge"
 boot_volume_size = "50"
+public_final_snapshot = true
+private_final_snapshot = true

@@ -6,7 +6,7 @@
 #################
 
 variable "region" {
-  default = "eu-central-1"
+  default     = "eu-central-1"
   description = "region into which to deploy the stack"
   validation {
     condition = anytrue([
@@ -18,8 +18,8 @@ variable "region" {
 }
 
 variable "force_destroy" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Setting this to true will allow full deletion and delete the database / volumes / s3 buckets"
 }
 
@@ -28,19 +28,19 @@ variable "force_destroy" {
 ###########
 
 variable "create_network" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Whether to create network. Leave to false to deploy in your own network."
 }
 
 variable "vpc_id" {
-  default = ""
+  default     = ""
   description = "Id of your VPC. Required when create_network is set to false"
 }
 
 variable "private_subnet_ids" {
-  type = set(string)
-  default = []
+  type        = set(string)
+  default     = []
   description = "List of ids of your private subnets"
 }
 
@@ -49,7 +49,7 @@ variable "private_subnet_ids" {
 #########
 
 variable "k8s_public_access" {
-  default = true
+  default     = true
   description = "Whether we can connect to the k8s control plane through the internet"
 }
 
@@ -59,17 +59,17 @@ variable "kubernetes_version" {
 }
 
 variable "custom_ami" {
-  default = null
+  default     = null
   description = "Arn of an ami to use for the EKS nodegroup"
 }
 
 variable "eks_instance_type" {
-  default = "t3.2xlarge"
+  default     = "t3.2xlarge"
   description = "Instance type of the EKS nodes"
 }
 
 variable "boot_volume_size" {
-  default = "50"
+  default     = "50"
   description = "default size of the eks boot volumes"
 }
 
@@ -78,33 +78,33 @@ variable "boot_volume_size" {
 ###############
 
 variable "db_snapshot_identifier" {
-  default = null
+  default     = null
   description = "Arn of a database snapshot. If left empty the public unencrypted snapshot will be used."
 }
 
 variable "db_high_availability" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Whether to activate high availability for the database"
 }
 
 variable "db_instance_type" {
-  default = "db.t3.xlarge"
+  default     = "db.t3.xlarge"
   description = "Instance type of the RDS database"
 }
 
 variable "initial_db_passwords" {
-  default = "Ch4ng3m3f0rs3cur3p4ss"
+  default     = "Ch4ng3m3f0rs3cur3p4ss"
   description = "The passwords of the schemas present in the snapshot"
 }
 
 variable "db_backup_retention_period" {
-  default = 7
+  default     = 7
   description = "Number of days to keep database backups"
 }
 
 variable "license_type" {
-  default = "license-included"
+  default     = "license-included"
   description = "Whether the oracle license is BYOL or included"
   validation {
     condition = anytrue([
@@ -120,7 +120,7 @@ variable "license_type" {
 #################
 
 variable "certificate_arn" {
-  default = ""
+  default     = ""
   description = "Arn of the certificate to add to the loadbalancer"
 }
 
@@ -129,17 +129,17 @@ variable "domain" {
 }
 
 variable "main_subdomain" {
-  default = "3decision"
+  default     = "3decision"
   description = "Name used for the main app subdomain"
 }
 
 variable "api_subdomain" {
-  default = "3decision-api"
+  default     = "3decision-api"
   description = "Name used for the api subdomain"
 }
 
 variable "hosted_zone_id" {
-  default = null
+  default     = null
   description = "Route53 HostedZone id. If left null, create DNS records manually after apply."
 }
 
@@ -263,11 +263,21 @@ variable "google_oidc" {
 ###########
 
 variable "public_volume_snapshot" {
-  default = null
+  default     = null
   description = "Snapshot id of the public data volume. If left empty the public snapshot will be used."
 }
 
 variable "private_volume_snapshot" {
-  default = null
+  default     = null
   description = "Used to recreate volume from snapshot in case of DR. Otherwise the volume will be empty"
+}
+
+variable "public_final_snapshot" {
+  default     = true
+  description = "Whether to create a snapshot of the public volume when deleting it"
+}
+
+variable "private_final_snapshot" {
+  default     = true
+  description = "Whether to create a snapshot of the public volume when deleting it"
 }
