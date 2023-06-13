@@ -8,6 +8,9 @@ region = "eu-central-1"
 # Set to true will force destroy RDS database & S3 buckets on stack destruction
 force_destroy = false
 
+# Set a name to add a key to nodes
+keypair_name = null
+
 # Whether to create snapshots of public & private volumes when deleting them (can take up to 1h)
 public_final_snapshot = true
 private_final_snapshot = true

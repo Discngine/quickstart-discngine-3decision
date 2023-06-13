@@ -48,6 +48,11 @@ variable "private_subnet_ids" {
 # EKS
 #########
 
+variable "keypair_name" {
+  default     = null
+  description = "Name of keypair to add to EKS nodes"
+}
+
 variable "k8s_public_access" {
   default     = true
   description = "Whether we can connect to the k8s control plane through the internet"
@@ -120,7 +125,7 @@ variable "license_type" {
 #################
 
 variable "load_balancer_type" {
-  default = "internal"
+  default     = "internal"
   description = "Whether to create an internal or internet-facing load balancer"
 }
 

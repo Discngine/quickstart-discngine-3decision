@@ -121,6 +121,7 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
   instance_type           = var.instance_type
   disable_api_termination = true
 
+  key_name = var.keypair_name
   block_device_mappings {
     device_name = "/dev/xvda"
 

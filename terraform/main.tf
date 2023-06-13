@@ -106,6 +106,7 @@ module "eks" {
   # Input
   region             = var.region
   account_id         = local.account_id
+  keypair_name       = var.keypair_name
   k8s_public_access  = var.k8s_public_access
   kubernetes_version = var.kubernetes_version
   custom_ami         = var.custom_ami

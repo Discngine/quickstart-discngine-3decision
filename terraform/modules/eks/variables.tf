@@ -2,6 +2,7 @@
 
 variable "region" {}
 variable "account_id" {}
+variable "keypair_name" {}
 variable "vpc_id" {}
 variable "k8s_public_access" {}
 variable "kubernetes_version" {}
