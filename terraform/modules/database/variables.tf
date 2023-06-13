@@ -11,3 +11,4 @@ variable "vpc_id" {}
 variable "private_subnet_ids" {}
 variable "backup_retention_period" {}
 variable "license_type" {}
+variable "skip_final_snapshot" {}

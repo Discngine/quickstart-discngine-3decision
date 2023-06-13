@@ -120,6 +120,11 @@ variable "license_type" {
   }
 }
 
+variable "skip_db_final_snapshot" {
+  default = false
+  description = "Whether to skip the creation of a db snpashot when deleting it"
+}
+
 #################
 # Load Balancing
 #################
@@ -127,6 +132,13 @@ variable "license_type" {
 variable "load_balancer_type" {
   default     = "internal"
   description = "Whether to create an internal or internet-facing load balancer"
+  validation {
+    condition = anytrue([
+      var.load_balancer_type == "internal",
+      var.load_balancer_type == "internet-facing",
+    ])
+    error_message = "Load balancer type can either be internal or internet-facing."
+  }
 }
 
 variable "certificate_arn" {

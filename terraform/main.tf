@@ -130,6 +130,7 @@ module "database" {
   instance_type           = var.db_instance_type
   backup_retention_period = var.db_backup_retention_period
   license_type            = var.license_type
+  skip_final_snapshot     = var.skip_db_final_snapshot
   # Output
   node_security_group_id = module.eks.node_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id

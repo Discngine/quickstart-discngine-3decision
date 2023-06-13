@@ -1,7 +1,3 @@
-## Copyright © 2020, Oracle and/or its affiliates.
-## All rights reserved. The Universal Permissive License (UPL), Version 1.0 as shown at http://oss.oracle.com/licenses/upl
-
-
 # Replace by us-east-1 to deploy in NA
 region = "eu-central-1"
 

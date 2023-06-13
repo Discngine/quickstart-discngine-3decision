@@ -94,7 +94,7 @@ resource "aws_db_instance" "db_instance" {
   snapshot_identifier       = var.snapshot_identifier != null ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
   publicly_accessible       = false
   deletion_protection       = !var.force_destroy
-  skip_final_snapshot       = false
+  skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = "db3dec-final-snapshot"
   backup_retention_period   = var.backup_retention_period
   lifecycle {
