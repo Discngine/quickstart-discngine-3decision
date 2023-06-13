@@ -19,6 +19,7 @@ variable "certificate_arn" {}
 variable "domain" {}
 variable "main_subdomain" {}
 variable "api_subdomain" {}
+variable "load_balancer_type" {}
 variable "secrets_access_role_arn" {}
 variable "bucket_name" {}
 variable "public_volume_id" {}

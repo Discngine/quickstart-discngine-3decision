@@ -313,7 +313,7 @@ volumes:
 ingress:
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}
-  visibility: internet-facing
+  visibility: ${var.load_balancer_type}
   ui:
     host: ${var.main_subdomain}
   api:

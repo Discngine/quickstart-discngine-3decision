@@ -119,6 +119,11 @@ variable "license_type" {
 # Load Balancing
 #################
 
+variable "load_balancer_type" {
+  default = "internal"
+  description = "Whether to create an internal or internet-facing load balancer"
+}
+
 variable "certificate_arn" {
   default     = ""
   description = "Arn of the certificate to add to the loadbalancer"

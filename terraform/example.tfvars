@@ -29,6 +29,9 @@ db_high_availability = false
 # Number of days to keep database backups
 db_backup_retention_period = 7
 
+# Whether to create internal or internet-facing loadbalancer
+load_balancer_type = "internal"
+
 # ARN of a certificate to add to the loadbalancer
 certificate_arn = ""
 
