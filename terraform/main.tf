@@ -201,7 +201,7 @@ module "kubernetes" {
   domain                  = var.domain
   main_subdomain          = var.main_subdomain
   api_subdomain           = var.api_subdomain
-  load_balancer_type = var.load_balancer_type
+  load_balancer_type      = var.load_balancer_type
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key
