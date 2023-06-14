@@ -475,7 +475,8 @@ Resources:
                   unzip terraform_1.4.6_linux_amd64.zip
                   sudo mv terraform /usr/local/bin
 
-                  git clone https://github.com/Discngine/quickstart-discngine-3decision.git
+                  ####CHANGE THIS
+                  git clone -b CLEXT-103 https://github.com/Discngine/quickstart-discngine-3decision.git
     Properties:
       ImageId: !Ref LatestAmiId
       InstanceType: t2.micro
@@ -524,14 +525,15 @@ Resources:
         - !Ref BootNode
       Parameters:
         commands:
-        - !Sub |
+        - !Sub 
+          - |
             #!/bin/bash
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
 
             cat > backend.conf << EOF
-            region = ${AWS::Region}
-            bucket = "${!If [CreateBucket, !Ref StateBucket, !Ref BucketName]}"
+            region = "${AWS::Region}"
+            bucket = "${Bucket}"
             EOF
 
             cat > vars.tfvars << EOF
@@ -554,12 +556,12 @@ Resources:
             api_subdomain = "${ApiSubdomain}"
             hosted_zone_id = "${HostedZoneId}"
             azure_oidc = {
-              client_id = "${!If [ AzureUnused, "none", !Ref AzureClientId ]}"
+              client_id = "${AzureClient}"
               tenant    = "${AzureTenant}"
               secret    = "${AzureSecret}"
             }
             okta_oidc = {
-              client_id = "${!If [ OktaUnused, "none", !Ref OktaClientId ]}"
+              client_id = "${OktaClient}"
               domain    = "${OktaDomain}"
               server_id = "${OktaServerId}"
               secret    = "${OktaSecret}"
@@ -578,9 +580,12 @@ Resources:
             boot_volume_size = "${NodeVolumeSize}"
             EOF
 
-            terraform init -backend-config=backend.conf -upgrade
-            terraform ${StackOperation} -var-file=test.tfvars -auto-approve
-
+            terraform init -backend-config=backend.conf -reconfigure -upgrade
+            terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
+          - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
+            AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
+            Bucket: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
+            
         workingDirectory:
         - "/opt/dng"
       WaitForSuccessTimeoutSeconds: 3600
