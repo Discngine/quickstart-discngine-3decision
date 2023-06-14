@@ -46,7 +46,7 @@ variable "private_subnet_ids" {
 #########
 
 variable "keypair_name" {
-  default     = null
+  default     = ""
   description = "Name of keypair to add to EKS nodes"
 }
 
@@ -61,7 +61,7 @@ variable "kubernetes_version" {
 }
 
 variable "custom_ami" {
-  default     = null
+  default     = ""
   description = "Arn of an ami to use for the EKS nodegroup"
 }
 
@@ -80,7 +80,7 @@ variable "boot_volume_size" {
 ###############
 
 variable "db_snapshot_identifier" {
-  default     = null
+  default     = ""
   description = "Arn of a database snapshot. If left empty the public unencrypted snapshot will be used."
 }
 
@@ -158,8 +158,8 @@ variable "api_subdomain" {
 }
 
 variable "hosted_zone_id" {
-  default     = null
-  description = "Route53 HostedZone id. If left null, create DNS records manually after apply."
+  default     = ""
+  description = "Route53 HostedZone id. If left empty, create DNS records manually after apply."
 }
 
 ###############
@@ -282,12 +282,12 @@ variable "google_oidc" {
 ###########
 
 variable "public_volume_snapshot" {
-  default     = null
+  default     = ""
   description = "Snapshot id of the public data volume. If left empty the public snapshot will be used."
 }
 
 variable "private_volume_snapshot" {
-  default     = null
+  default     = ""
   description = "Used to recreate volume from snapshot in case of DR. Otherwise the volume will be empty"
 }
 

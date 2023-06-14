@@ -223,7 +223,7 @@ module "kubernetes" {
 }
 
 module "dns" {
-  count  = var.hosted_zone_id != null ? 1 : 0
+  count  = var.hosted_zone_id != "" ? 1 : 0
   source = "./modules/dns"
   # Input
   domain         = var.domain

@@ -91,7 +91,7 @@ resource "aws_db_instance" "db_instance" {
   db_subnet_group_name      = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids    = [aws_security_group.db_security_group.id]
   storage_type              = "gp2"
-  snapshot_identifier       = var.snapshot_identifier != null ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
+  snapshot_identifier       = var.snapshot_identifier != "" ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
   publicly_accessible       = false
   deletion_protection       = !var.force_destroy
   skip_final_snapshot       = var.skip_final_snapshot

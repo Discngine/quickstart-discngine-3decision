@@ -117,7 +117,7 @@ set -o xtrace
 }
 
 resource "aws_launch_template" "EKSLaunchTemplate" {
-  image_id                = var.custom_ami != null ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
   instance_type           = var.instance_type
   disable_api_termination = true
 

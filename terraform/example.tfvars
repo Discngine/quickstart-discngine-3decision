@@ -39,17 +39,17 @@ domain =
 main_subdomain = "3decision"
 api_subdomain = "3decision-api"
 
-## ROUTE 53 Hosted zone id
+# ROUTE 53 Hosted zone id
 hosted_zone_id = null
 
-## Azure AD Information
+# Azure AD Information
 azure_oidc = {
   client_id = "none"
   tenant    = ""
   secret    = ""
 }
 
-## OKTA AD Information
+# OKTA AD Information
 okta_oidc = {
   client_id = "none"
   domain    = ""
@@ -57,7 +57,7 @@ okta_oidc = {
   secret    = ""
 }
 
-## Google AD Information
+# Google AD Information
 google_oidc = {
   client_id = "none"
   secret    = ""
