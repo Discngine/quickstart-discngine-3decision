@@ -570,8 +570,8 @@ Resources:
               client_id = "none"
               secret    = ""
             }
-            public_volume_snapshot = null
-            private_volume_snapshot = null
+            public_volume_snapshot = ""
+            private_volume_snapshot = ""
 
             kubernetes_version = "${KubernetesVersion}"
             db_instance_type = "${DBInstanceClass}"
