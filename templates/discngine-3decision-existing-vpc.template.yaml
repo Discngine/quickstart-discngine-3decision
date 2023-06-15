@@ -448,6 +448,7 @@ Resources:
                   - kms:DescribeKey
                   - kms:CreateKey
                   - kms:GetKeyPolicy
+                  - kms:GetKeyRotationStatus
                 Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
