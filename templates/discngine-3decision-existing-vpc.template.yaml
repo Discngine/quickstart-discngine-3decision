@@ -523,6 +523,10 @@ Resources:
                   - "lambda:GetFunctionCodeSigningConfig"
                   - "lambda:AddPermission"
                   - "lambda:GetPolicy"
+                  - "lambda:PublishVersion"
+                  - "lambda:ListFunctions"
+                  - "lambda:TagResource"
+                  - "lambda:RemovePermission"
                 Resource:
                   - !Sub "arn:aws:lambda:*:*:function:3decision-rotator-lambda"
 
