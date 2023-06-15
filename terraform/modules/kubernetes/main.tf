@@ -447,7 +447,7 @@ locals {
 }
 
 resource "aws_iam_role" "load_balancer_controller" {
-  name = "load_balancer_controller"
+  name_prefix = "3decision-load-balancer-controller"
 
   assume_role_policy = <<EOF
 {

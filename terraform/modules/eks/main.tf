@@ -181,6 +181,8 @@ locals {
 
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_csi_driver_role" {
+  name_prefix = "3decision-csi-driver"
+
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
   ]
