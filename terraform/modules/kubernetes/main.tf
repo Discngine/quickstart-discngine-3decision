@@ -19,7 +19,7 @@ terraform {
 }
 
 resource "kubernetes_config_map_v1_data" "aws_auth" {
-  count = length(additional_eks_roles_arn) > 0 || length(additional_eks_users_arn) > 0 ? 1 : 0
+  count = length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0 ? 1 : 0
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
