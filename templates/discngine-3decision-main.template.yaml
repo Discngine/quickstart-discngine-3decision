@@ -37,7 +37,6 @@ Metadata:
           - KubernetesVersion
           - NodeVolumeSize
           - NodeInstanceType
-          - NumberOfNodes
           - AdditionalEKSAdminUserArn
           - AdditionalEKSAdminRoleArn
           - CustomAmiId
@@ -56,10 +55,6 @@ Metadata:
           - DBSnapshotIdentifier
           - DBInstanceClass
           - DBMultiZone
-      - Label:
-          default: Discngine 3decision kube configuration
-        Parameters:
-          - TNamespace
       - Label:
           default: Discngine 3decision authentication configuration
         Parameters:
@@ -107,14 +102,8 @@ Metadata:
         default: Quick Start S3 key prefix
       VPCCIDR:
         default: VPC CIDR
-      PerAccountSharedResources:
-        default: Per account shared resources
-      PerRegionSharedResources:
-        default: Per region shared resources
       NodeInstanceType:
         default: Node instance type
-      NumberOfNodes:
-        default: Number of nodes
       AdditionalEKSAdminUserArn:
         default: Additional EKS admin ARN (IAM user)
       AdditionalEKSAdminRoleArn:
@@ -131,8 +120,6 @@ Metadata:
         default: Instance type of the database
       DBMultiZone:
         default: Whether the DB is highly available
-      TNamespace:
-        default: 3decision Helm chart namespace
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -307,10 +294,6 @@ Parameters:
     Type: String
     Default: ""
     Description: "Optional: If an AMI ID is specified, it is used instead of the default EKS images for cluster nodes."
-  NumberOfNodes:
-    Default: 3
-    Description: The number of Amazon EKS node instances. The default is one for each of the three Availability Zones.
-    Type: Number
   DBSnapshotIdentifier:
     Default: ""
     Description: "Optionnal: the snapshot arn used for the database.
@@ -337,12 +320,6 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'false'
-  TNamespace:
-    Default: tdecision
-    Description: "Required: The name of the kubernetes namespace in which the 3decision helm chart will be deployed.
-                  This will default to tdecision if not given.
-                  The namespace will be created if it doesn't already exists."
-    Type: String
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: "Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
@@ -473,12 +450,10 @@ Resources:
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
         DBInstanceClass: !Ref DBInstanceClass
         DBMultiZone: !Ref DBMultiZone
-        TNamespace: !Ref TNamespace
         HostedZoneId: !Ref HostedZoneId
         DomainName: !Ref DomainName
         CertificateArn: !Ref CertificateArn
         KeyPairName: !Ref KeyPairName
-        NumberOfNodes: !Ref NumberOfNodes
         KubernetesVersion: !Ref KubernetesVersion
         NodeInstanceType: !Ref NodeInstanceType
         AdditionalEKSAdminUserArn: !Ref AdditionalEKSAdminUserArn

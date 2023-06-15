@@ -35,7 +35,6 @@ Metadata:
           - KubernetesVersion
           - NodeVolumeSize
           - NodeInstanceType
-          - NumberOfNodes
           - AdditionalEKSAdminUserArn
           - AdditionalEKSAdminRoleArn
           - CustomAmiId
@@ -54,10 +53,6 @@ Metadata:
           - DBSnapshotIdentifier
           - DBInstanceClass
           - DBMultiZone
-      - Label:
-          default: Discngine 3decision kube configuration
-        Parameters:
-          - TNamespace
       - Label:
           default: Discngine 3decision authentication configuration
         Parameters:
@@ -89,8 +84,6 @@ Metadata:
         default: Private subnet 3 ID
       NodeInstanceType:
         default: Node instance type
-      NumberOfNodes:
-        default: Number of nodes
       AdditionalEKSAdminUserArn:
         default: Additional EKS admin ARN (IAM user)
       AdditionalEKSAdminRoleArn:
@@ -107,8 +100,6 @@ Metadata:
         default: Instance type of the database
       DBMultiZone:
         default: Whether the DB is highly available
-      TNamespace:
-        default: 3decision Helm chart namespace
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -234,10 +225,6 @@ Parameters:
     Type: String
     Default: ""
     Description: "Optional: If an AMI ID is specified, it is used instead of the default EKS images for cluster nodes."
-  NumberOfNodes:
-    Default: 3
-    Description: The number of Amazon EKS node instances. The default is one for each of the three Availability Zones.
-    Type: Number
   DBSnapshotIdentifier:
     Default: ""
     Description: "Optionnal: the snapshot arn used for the database.
@@ -264,12 +251,6 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'false'
-  TNamespace:
-    Default: tdecision
-    Description: "Required: The name of the kubernetes namespace in which the 3decision helm chart will be deployed.
-                  This will default to tdecision if not given.
-                  The namespace will be created if it doesn't already exists."
-    Type: String
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: "Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
@@ -535,7 +516,7 @@ Resources:
                   - "lambda:TagResource"
                   - "lambda:RemovePermission"
                 Resource:
-                  - !Sub "arn:aws:lambda:*:*:function:3decision-rotator-lambda"
+                  - "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
 
   StateBucket:
     Type: AWS::S3::Bucket
@@ -591,7 +572,7 @@ Resources:
 
                   git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
     Properties:
-      ImageId: !If [UseLatestAMI, !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
+      ImageId: !If [UseLatestAMI, '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
       InstanceType: t2.micro
       IamInstanceProfile: !Ref BootNodeProfile
       SubnetId: !Ref PrivateSubnet1ID
