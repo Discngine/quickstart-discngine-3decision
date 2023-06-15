@@ -1,57 +1,5 @@
 # database Module - Main file for the database module
 
-resource "aws_kms_key" "encryption_key" {
-  enable_key_rotation = true
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Id": "${terraform.workspace}",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "${var.account_id}"
-      },
-      "Action": "kms:*",
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "*"
-      },
-      "Action": [
-        "kms:Encrypt",
-        "kms:Decrypt",
-        "kms:ReEncryptTo",
-        "kms:ReEncryptFrom",
-        "kms:GenerateDataKeyWithoutPlaintext",
-        "kms:GenerateDataKey",
-        "kms:GenerateDataKeyPairWithoutPlaintext",
-        "kms:GenerateDataKeyPair",
-        "kms:CreateGrant",
-        "kms:ListGrants",
-        "kms:DescribeKey"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringEquals": {
-          "kms:CallerAccount": "${var.account_id}",
-          "kms:ViaService": "rds.${var.region}.amazonaws.com"
-        }
-      }
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_kms_alias" "encryption_key_alias" {
-  name_prefix   = "alias/tdec"
-  target_key_id = aws_kms_key.encryption_key.key_id
-}
-
 resource "aws_db_subnet_group" "subnet_group" {
   name_prefix = "private-subnets-group"
   description = "private subnets group"
@@ -87,7 +35,6 @@ resource "aws_db_instance" "db_instance" {
   option_group_name         = "default:oracle-se2-cdb-19"
   port                      = "1521"
   multi_az                  = var.high_availability
-  kms_key_id                = aws_kms_key.encryption_key.arn
   db_subnet_group_name      = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids    = [aws_security_group.db_security_group.id]
   storage_type              = "gp2"
@@ -98,7 +45,7 @@ resource "aws_db_instance" "db_instance" {
   final_snapshot_identifier = "db3dec-final-snapshot"
   backup_retention_period   = var.backup_retention_period
   lifecycle {
-    ignore_changes = [kms_key_id, snapshot_identifier]
+    ignore_changes = [snapshot_identifier]
   }
 }
 

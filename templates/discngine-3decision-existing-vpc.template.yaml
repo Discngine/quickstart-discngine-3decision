@@ -447,6 +447,7 @@ Resources:
                   - kms:CreateGrant
                   - kms:DescribeKey
                   - kms:CreateKey
+                  - kms:GetKeyPolicy
                 Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
