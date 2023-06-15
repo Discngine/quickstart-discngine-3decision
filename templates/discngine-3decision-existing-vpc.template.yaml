@@ -510,7 +510,7 @@ Resources:
                   - "s3:GetObject"
                   - "s3:PutObject"
                 Resource:
-                  - !If [CreateBucket, !GetAtt StateBucket.Arn', !Sub 'arn:aws:s3:::${BucketName}' ]
+                  - !If [CreateBucket, !GetAtt StateBucket.Arn, !Sub 'arn:aws:s3:::${BucketName}' ]
                   - !If [CreateBucket, !Sub '${StateBucket.Arn}/*', !Sub 'arn:aws:s3:::${BucketName}/*' ]
         - PolicyName: FullAccess
           PolicyDocument:
