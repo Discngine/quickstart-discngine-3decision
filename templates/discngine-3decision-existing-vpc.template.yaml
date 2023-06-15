@@ -519,6 +519,7 @@ Resources:
                   - "lambda:UpdateFunctionCode"
                   - "lambda:UpdateFunctionConfiguration"
                   - "lambda:GetFunction"
+                  - "lambda:ListVersionsByFunction"
                 Resource:
                   - !Sub "arn:aws:lambda:*:*:function:3decision-rotator-lambda"
 
