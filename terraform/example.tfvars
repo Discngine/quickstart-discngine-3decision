@@ -1,8 +1,9 @@
 # Replace by us-east-1 to deploy in NA
 region = "eu-central-1"
 
-# Set to true will force destroy RDS database & S3 buckets on stack destruction
-force_destroy = false
+# Set to false will prevent destruction of RDS database & S3 buckets on stack destruction
+# This will result in errors if you try to destroy the environment without reapplying after changing this
+force_destroy = true
 
 # Set a name to add a key to nodes
 keypair_name = null
@@ -39,17 +40,17 @@ domain =
 main_subdomain = "3decision"
 api_subdomain = "3decision-api"
 
-## ROUTE 53 Hosted zone id
+# ROUTE 53 Hosted zone id
 hosted_zone_id = null
 
-## Azure AD Information
+# Azure AD Information
 azure_oidc = {
   client_id = "none"
   tenant    = ""
   secret    = ""
 }
 
-## OKTA AD Information
+# OKTA AD Information
 okta_oidc = {
   client_id = "none"
   domain    = ""
@@ -57,7 +58,7 @@ okta_oidc = {
   secret    = ""
 }
 
-## Google AD Information
+# Google AD Information
 google_oidc = {
   client_id = "none"
   secret    = ""
