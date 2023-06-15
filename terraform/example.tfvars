@@ -1,8 +1,9 @@
 # Replace by us-east-1 to deploy in NA
 region = "eu-central-1"
 
-# Set to true will force destroy RDS database & S3 buckets on stack destruction
-force_destroy = false
+# Set to false will prevent destruction of RDS database & S3 buckets on stack destruction
+# This will result in errors if you try to destroy the environment without reapplying after changing this
+force_destroy = true
 
 # Set a name to add a key to nodes
 keypair_name = null

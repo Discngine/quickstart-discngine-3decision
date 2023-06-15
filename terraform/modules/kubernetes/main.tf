@@ -63,30 +63,40 @@ resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
   storage_provisioner = "ebs.csi.aws.com"
   reclaim_policy      = "Delete"
   volume_binding_mode = "WaitForFirstConsumer"
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubernetes_namespace" "tdecision_namespace" {
   metadata {
     name = var.tdecision_chart.namespace
   }
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubernetes_namespace" "redis_namespace" {
   metadata {
     name = "redis-cluster"
   }
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubernetes_namespace" "choral_namespace" {
   metadata {
     name = "choral"
   }
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubernetes_namespace" "tools_namespace" {
   metadata {
     name = "tools"
   }
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubernetes_secret" "jwt_secret" {
@@ -99,7 +109,7 @@ resource "kubernetes_secret" "jwt_secret" {
     "id_rsa"     = var.jwt_ssh_private
     "id_rsa.pub" = var.jwt_ssh_public
   }
-  depends_on = [kubernetes_namespace.tdecision_namespace]
+  depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubectl_manifest" "secretstore" {
@@ -116,7 +126,7 @@ spec:
       region: ${var.region}
       role: ${var.secrets_access_role_arn}
   YAML
-  depends_on = [helm_release.external_secrets_chart]
+  depends_on = [helm_release.external_secrets_chart, kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubectl_manifest" "ClusterExternalSecret" {
@@ -165,7 +175,8 @@ spec:
   depends_on = [
     kubectl_manifest.secretstore,
     kubernetes_namespace.tdecision_namespace,
-    kubernetes_namespace.choral_namespace
+    kubernetes_namespace.choral_namespace,
+    kubernetes_config_map_v1_data.aws_auth
   ]
 }
 
@@ -182,7 +193,7 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
     OKTA_SERVER_ID = var.okta_oidc.server_id
     OKTA_SECRET    = var.okta_oidc.secret
   }
-  depends_on = [kubernetes_namespace.tdecision_namespace]
+  depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "kubectl_manifest" "sentinel_configmap_redis" {
@@ -201,7 +212,8 @@ data:
 YAML
   depends_on = [
     kubernetes_namespace.redis_namespace,
-    kubernetes_namespace.tdecision_namespace
+    kubernetes_namespace.tdecision_namespace,
+    kubernetes_config_map_v1_data.aws_auth
   ]
 }
 
@@ -261,6 +273,7 @@ replica:
         name: redis-data
 YAML
 }
+
 resource "helm_release" "cert_manager_release" {
   name             = var.cert_manager_chart.name
   chart            = var.cert_manager_chart.chart
@@ -274,6 +287,8 @@ resource "helm_release" "cert_manager_release" {
     name  = "installCRDs"
     value = "true"
   }
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "helm_release" "sentinel_release" {
@@ -286,7 +301,8 @@ resource "helm_release" "sentinel_release" {
   values           = [local.values_config]
   depends_on = [
     kubectl_manifest.sentinel_configmap_redis,
-    kubernetes_storage_class_v1.encrypted_storage_class
+    kubernetes_storage_class_v1.encrypted_storage_class,
+    kubernetes_config_map_v1_data.aws_auth
   ]
 }
 
@@ -297,6 +313,8 @@ resource "helm_release" "external_secrets_chart" {
   namespace        = var.external_secrets_chart.namespace
   create_namespace = var.external_secrets_chart.create_namespace
   timeout          = 1200
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 resource "helm_release" "reloader_chart" {
@@ -306,6 +324,8 @@ resource "helm_release" "reloader_chart" {
   namespace        = var.reloader_chart.namespace
   create_namespace = var.reloader_chart.create_namespace
   timeout          = 1200
+
+  depends_on = [kubernetes_config_map_v1_data.aws_auth]
 }
 
 
@@ -395,7 +415,8 @@ YAML
     helm_release.cert_manager_release,
     kubectl_manifest.ClusterExternalSecret,
     kubernetes_secret.nest_authentication_secrets,
-    helm_release.aws_load_balancer_controller
+    helm_release.aws_load_balancer_controller,
+    kubernetes_config_map_v1_data.aws_auth
   ]
 }
 
@@ -416,7 +437,8 @@ resource "helm_release" "choral_chart" {
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubectl_manifest.ClusterExternalSecret,
-    helm_release.aws_load_balancer_controller
+    helm_release.aws_load_balancer_controller,
+    kubernetes_config_map_v1_data.aws_auth
   ]
 }
 
@@ -731,5 +753,5 @@ resource "helm_release" "aws_load_balancer_controller" {
     vpcId: ${var.vpc_id}
   YAML
   ]
-  depends_on = [helm_release.cert_manager_release]
+  depends_on = [helm_release.cert_manager_release, kubernetes_config_map_v1_data.aws_auth]
 }

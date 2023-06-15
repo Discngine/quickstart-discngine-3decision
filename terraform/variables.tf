@@ -16,8 +16,8 @@ variable "region" {
 
 variable "force_destroy" {
   type        = bool
-  default     = false
-  description = "Setting this to true will allow full deletion and delete the database / volumes / s3 buckets"
+  default     = true
+  description = "Setting this to false will not allow deletion of the database / non empty s3 buckets"
 }
 
 ###########

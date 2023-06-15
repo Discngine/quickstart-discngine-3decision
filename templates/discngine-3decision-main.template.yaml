@@ -343,11 +343,11 @@ Parameters:
                   The namespace will be created if it doesn't already exists."
     Type: String
   AdditionalEKSAdminUserArn:
-    Default: []
+    Default: ""
     Description: "Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster."
     Type: CommaDelimitedList
   AdditionalEKSAdminRoleArn:
-    Default: []
+    Default: ""
     Description: "Optional: IAM role Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster."
     Type: CommaDelimitedList
   HostedZoneId:
