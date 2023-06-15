@@ -507,15 +507,7 @@ Resources:
                 Resource:
                   - !If [CreateBucket, !GetAtt StateBucket.Arn, !Sub 'arn:aws:s3:::${BucketName}' ]
                   - !If [CreateBucket, !Sub '${StateBucket.Arn}/*', !Sub 'arn:aws:s3:::${BucketName}/*' ]
-        - PolicyName: FullAccess
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "*"
-                Resource:
-                  - "*"
+
 
   StateBucket:
     Type: AWS::S3::Bucket
