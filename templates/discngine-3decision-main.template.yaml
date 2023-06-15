@@ -16,6 +16,7 @@ Metadata:
           - StackOperation
           - ExecutionAmiId
           - BucketName
+          - GitBranch
       - Label:
           default: "Network configuration"
         Parameters:
@@ -82,6 +83,8 @@ Metadata:
         default: Whether to create or destroy the ressources
       BucketName:
         default: Name of the S3 bucket containing the terraform state
+      GitBranch:
+        default: The branch to use to deploy the architecture
       KeyPairName:
         default: SSH key name
       PrivateSubnet1CIDR:
@@ -172,6 +175,10 @@ Parameters:
     Type: String
     Description: "Optional: Name of an S3 bucket in which to store the terraform state. If not given, a bucket will be created by the stack."
     Default: ""
+  GitBranch:
+    Type: String
+    Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
+    Default: "main"
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName
@@ -492,3 +499,4 @@ Resources:
         ExecutionAmiId: !Ref ExecutionAmiId
         StackOperation: !Ref StackOperation
         BucketName: !Ref BucketName
+        GitBranch: !Ref GitBranch

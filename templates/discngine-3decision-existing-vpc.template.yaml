@@ -17,6 +17,7 @@ Metadata:
           - ExecutionAmiId
           - ExecutionRoleName
           - BucketName
+          - GitBranch
       - Label:
           default: "Network configuration"
         Parameters:
@@ -76,6 +77,8 @@ Metadata:
         default: Whether to create or destroy the ressources
       BucketName:
         default: Name of the S3 bucket containing the terraform state
+      GitBranch:
+        default: The branch to use to deploy the architecture
       KeyPairName:
         default: SSH key name
       PrivateSubnet1ID:
@@ -152,6 +155,10 @@ Parameters:
     Type: String
     Description: "Optional: Name of an S3 bucket in which to store the terraform state. If not given, a bucket will be created by the stack."
     Default: ""
+  GitBranch:
+    Type: String
+    Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
+    Default: "main"
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName
@@ -582,13 +589,12 @@ Resources:
                   unzip terraform_1.4.6_linux_amd64.zip
                   sudo mv terraform /usr/local/bin
 
-                  ####CHANGE THIS
-                  git clone -b CLEXT-103 https://github.com/Discngine/quickstart-discngine-3decision.git
+                  git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
     Properties:
       ImageId: !If [UseLatestAMI, !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
       InstanceType: t2.micro
       IamInstanceProfile: !Ref BootNodeProfile
-      SubnetId: 'subnet-220cc56e' #!Ref PrivateSubnet1ID
+      SubnetId: !Ref PrivateSubnet1ID
       KeyName: 'awssshkey'
       Tags:
         - Key: "Name"
