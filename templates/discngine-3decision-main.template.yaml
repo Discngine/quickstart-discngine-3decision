@@ -505,3 +505,6 @@ Resources:
         OktaRedirectUri: !Ref OktaRedirectUri
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
+        ExecutionAmiId: !Ref ExecutionAmiId
+        StackOperation: !Ref StackOperation
+        BucketName: !Ref BucketName
