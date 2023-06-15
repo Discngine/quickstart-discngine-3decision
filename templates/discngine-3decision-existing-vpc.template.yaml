@@ -447,7 +447,7 @@ Resources:
                   - kms:CreateGrant
                   - kms:DescribeKey
                   - kms:CreateKey
-                Resource: !Sub arn:${AWS::Partition}:kms:*:${AWS::AccountId}:key/*
+                Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
                 Resource: !Sub arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*
@@ -483,6 +483,8 @@ Resources:
                   - iam:CreatePolicy
                   - iam:DeletePolicy
                   - iam:ListPolicyVersions
+                  - iam:ListRolePolicies
+                  - iam:GetPolicyVersion
                 Resource: '*'
               - Effect: Allow
                 Action:
