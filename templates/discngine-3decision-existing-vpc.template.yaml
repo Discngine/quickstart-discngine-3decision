@@ -516,7 +516,7 @@ Resources:
                   - "lambda:TagResource"
                   - "lambda:RemovePermission"
                 Resource:
-                  - "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
+                  - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
 
   StateBucket:
     Type: AWS::S3::Bucket
