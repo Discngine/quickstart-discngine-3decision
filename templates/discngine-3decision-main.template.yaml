@@ -65,12 +65,10 @@ Metadata:
           - AzureClientId
           - AzureTenant
           - AzureSecret
-          - AzureRedirectUri
           - OktaClientId
           - OktaSecret
           - OktaDomain
           - OktaServerId
-          - OktaRedirectUri
       - Label:
           default: AWS Quick Start configuration
         Parameters:
@@ -150,8 +148,6 @@ Metadata:
         default: Azure app secret
       AzureTenant:
         default: Azure tenant
-      AzureRedirectUri:
-        default: Azure app redirect uri
       OktaClientId:
         default: Okta app client id
       OktaSecret:
@@ -160,8 +156,6 @@ Metadata:
         default: Okta domain
       OktaServerId:
         default: Okta server id
-      OktaRedirectUri:
-        default: Okta app redirect uri
 Parameters:
   ExecutionAmiId:
     Description: "Optional: AMI to use for the ec2 doing the infrastructure updates. If left alone, the latest amazon2-linux ami will be used"
@@ -393,11 +387,6 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if azure client id variable is set.
                   Secret of the azure app"
-  AzureRedirectUri:
-    Type: String
-    Default: ""
-    Description: "Conditional: Should be given if azure client id variable is set.
-                  This is the redirect_uri set in the azure app, by default should be https://<ApiSubdomain>.<DomainName>/auth/azure/callback"
   OktaClientId:
     Type: String
     Default: ""
@@ -418,11 +407,6 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if okta client id variable is set.
                   Server Id of the okta environment"
-  OktaRedirectUri:
-    Type: String
-    Default: ""
-    Description: "Conditional: Should be given if okta client id variable is set.
-                  This is the redirect_uri set in the okta app, by default should be https://<ApiSubdomain>.<DomainName>/auth/okta/callback"
 Rules:
   DiscngineSupportedRegionRule:
     Assertions:
@@ -497,12 +481,10 @@ Resources:
         AzureClientId: !Ref AzureClientId
         AzureTenant: !Ref AzureTenant
         AzureSecret: !Ref AzureSecret
-        AzureRedirectUri: !Ref AzureRedirectUri
         OktaClientId: !Ref OktaClientId
         OktaSecret: !Ref OktaSecret
         OktaDomain: !Ref OktaDomain
         OktaServerId: !Ref OktaServerId
-        OktaRedirectUri: !Ref OktaRedirectUri
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         ExecutionAmiId: !Ref ExecutionAmiId

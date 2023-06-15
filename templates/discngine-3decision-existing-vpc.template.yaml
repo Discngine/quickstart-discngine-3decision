@@ -63,12 +63,10 @@ Metadata:
           - AzureClientId
           - AzureTenant
           - AzureSecret
-          - AzureRedirectUri
           - OktaClientId
           - OktaSecret
           - OktaDomain
           - OktaServerId
-          - OktaRedirectUri
     ParameterLabels:
       ExecutionAmiId:
         default: AMI for infrastructure updates
@@ -126,8 +124,6 @@ Metadata:
         default: Azure app secret
       AzureTenant:
         default: Azure tenant
-      AzureRedirectUri:
-        default: Azure app redirect uri
       OktaClientId:
         default: Okta app client id
       OktaSecret:
@@ -136,8 +132,6 @@ Metadata:
         default: Okta domain
       OktaServerId:
         default: Okta server id
-      OktaRedirectUri:
-        default: Okta app redirect uri
 Parameters:
   StackOperation:
     Description: "Whether to create or destroy the ressources"
@@ -320,11 +314,6 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if azure client id variable is set.
                   Secret of the azure app"
-  AzureRedirectUri:
-    Type: String
-    Default: ""
-    Description: "Conditional: Should be given if azure client id variable is set.
-                  This is the redirect_uri set in the azure app, by default should be https://<ApiSubdomain>.<DomainName>/auth/azure/callback"
   OktaClientId:
     Type: String
     Default: ""
@@ -345,11 +334,6 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if okta client id variable is set.
                   Server Id of the okta environment"
-  OktaRedirectUri:
-    Type: String
-    Default: ""
-    Description: "Conditional: Should be given if okta client id variable is set.
-                  This is the redirect_uri set in the okta app, by default should be https://<ApiSubdomain>.<DomainName>/auth/okta/callback"
 
 Rules:
   DiscngineSupportedRegionRule:
@@ -693,8 +677,8 @@ Resources:
             eks_instance_type = "${NodeInstanceType}"
             boot_volume_size = "${NodeVolumeSize}"
 
-            additional_eks_users_arn = ${AdditionalEKSAdminUser}
-            additional_eks_roles_arn = ${AdditionalEKSAdminRole}
+            additional_eks_users_arn = [${AdditionalEKSAdminUser}]
+            additional_eks_roles_arn = [${AdditionalEKSAdminRole}]
             EOF
 
             terraform init -backend-config=backend.conf -reconfigure -upgrade
@@ -702,8 +686,8 @@ Resources:
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
             AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
             Bucket: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
-            AdditionalEKSAdminUser: !If [AddAdditionalEKSAdminUser, !Ref AdditionalEKSAdminUserArn, '[]']
-            AdditionalEKSAdminRole: !If [AddAdditionalEKSAdminRole, !Ref AdditionalEKSAdminRoleArn, '[]']
+            AdditionalEKSAdminUser: !Join [", ", !Ref AdditionalEKSAdminUserArn]
+            AdditionalEKSAdminRole: !Join [", ", !Ref AdditionalEKSAdminRoleArn]
             
         workingDirectory:
         - "/opt/dng"
