@@ -488,6 +488,7 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/3decision-*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/3decision-*
 
               - Effect: Allow
                 Action:
