@@ -521,6 +521,7 @@ Resources:
                   - "lambda:GetFunction"
                   - "lambda:ListVersionsByFunction"
                   - "lambda:GetFunctionCodeSigningConfig"
+                  - "lambda:AddPermission"
                 Resource:
                   - !Sub "arn:aws:lambda:*:*:function:3decision-rotator-lambda"
 
