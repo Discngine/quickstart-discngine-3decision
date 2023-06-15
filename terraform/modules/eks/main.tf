@@ -27,7 +27,7 @@ resource "aws_eks_cluster" "cluster" {
 
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_cluster_role" {
-  name_prefix = "tdec-eks-controlplane"
+  name_prefix = "3decision-eks-controlplane"
 
   managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"]
   assume_role_policy  = <<EOF
@@ -75,7 +75,7 @@ resource "aws_security_group_rule" "eks_cluster_egress" {
 
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_node_role" {
-  name_prefix = "tdec-eks-nodegroup"
+  name_prefix = "3decision-eks-nodegroup"
 
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",

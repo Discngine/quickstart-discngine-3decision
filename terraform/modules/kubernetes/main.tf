@@ -18,6 +18,39 @@ terraform {
   }
 }
 
+resource "kubernetes_config_map_v1_data" "aws_auth" {
+  count = length(additional_eks_roles_arn) > 0 || length(additional_eks_users_arn) > 0 ? 1 : 0
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    "mapRoles" = <<YAML
+- rolearn: ${var.node_group_role_arn}
+  username: system:node:{{EC2PrivateDNSName}}
+  groups:
+    - system:bootstrappers
+    - system:nodes
+%{for arn in var.additional_eks_roles_arn}
+- rolearn: ${arn}
+  username: quickstart-user
+  groups:
+    - system:masters
+%{endfor}
+YAML
+    "mapUsers" = <<YAML
+%{for arn in var.additional_eks_users_arn}
+- userarn: ${arn}
+  username: quickstart-user
+  groups:
+    - system:masters
+%{endfor}
+YAML
+  }
+  force = true
+}
+
 resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
   metadata {
     name = "gp2-encrypted"
@@ -383,6 +416,7 @@ resource "helm_release" "choral_chart" {
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubectl_manifest.ClusterExternalSecret,
+    helm_release.aws_load_balancer_controller
   ]
 }
 

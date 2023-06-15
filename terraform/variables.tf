@@ -75,6 +75,18 @@ variable "boot_volume_size" {
   description = "default size of the eks boot volumes"
 }
 
+variable "additional_eks_roles_arn" {
+  type        = list(string)
+  description = "Arn of roles to add as administrators to the eks cluster. If the role is a path (containing several /) remove what is between the first and last ones"
+  default     = []
+}
+
+variable "additional_eks_users_arn" {
+  type        = list(string)
+  description = "Arn of users to add as administrators to the eks cluster."
+  default     = []
+}
+
 ###############
 # DATABASE
 ###############
@@ -118,7 +130,7 @@ variable "license_type" {
 }
 
 variable "skip_db_final_snapshot" {
-  default = false
+  default     = false
   description = "Whether to skip the creation of a db snpashot when deleting it"
 }
 

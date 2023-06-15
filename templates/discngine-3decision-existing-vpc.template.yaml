@@ -15,6 +15,7 @@ Metadata:
         Parameters:
           - StackOperation
           - ExecutionAmiId
+          - ExecutionRoleName
           - BucketName
       - Label:
           default: "Network configuration"
@@ -71,6 +72,8 @@ Metadata:
     ParameterLabels:
       ExecutionAmiId:
         default: AMI for infrastructure updates
+      ExecutionRoleName:
+        default: Name of role creating the infrastructure
       StackOperation:
         default: Whether to create or destroy the ressources
       BucketName:
@@ -136,10 +139,6 @@ Metadata:
       OktaRedirectUri:
         default: Okta app redirect uri
 Parameters:
-  ExecutionAmiId:
-    Description: "Optional: AMI to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
-    Type: String
-    Default: ''
   StackOperation:
     Description: "Whether to create or destroy the ressources"
     Type: String
@@ -147,6 +146,14 @@ Parameters:
     AllowedValues:
       - apply
       - destroy
+  ExecutionAmiId:
+    Description: "Optional: AMI to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
+    Type: String
+    Default: ''
+  ExecutionRoleName:
+    Type: String
+    Description: "Optional: Name of a role that will run the infrastructure creation. If left empty, the role will be created with all needed permissions"
+    Default: ''
   BucketName:
     Type: String
     Description: "Optional: Name of an S3 bucket in which to store the terraform state. If not given, a bucket will be created by the stack."
@@ -263,13 +270,13 @@ Parameters:
                   The namespace will be created if it doesn't already exists."
     Type: String
   AdditionalEKSAdminUserArn:
-    Default: ""
+    Default: []
     Description: "Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster."
-    Type: String
+    Type: CommaDelimitedList
   AdditionalEKSAdminRoleArn:
-    Default: ""
+    Default: []
     Description: "Optional: IAM role Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster."
-    Type: String
+    Type: CommaDelimitedList
   HostedZoneId:
     Default: ""
     Description: "Optional: Creates dns records for the given route 53 hosted zone if given."
@@ -354,6 +361,7 @@ Rules:
             - !Ref AWS::Region
         AssertDescription: The Quick Start is supported only in us-east-1 and eu-central-1 AWS Regions. Please contact Discngine to request support for other Regions.
 Conditions:
+  CreateExecutionRole: !Equals [!Ref ExecutionRoleName, ""]
   CreateBucket: !Equals [!Ref BucketName, ""]
   UseLatestAMI: !Equals [!Ref ExecutionAmiId, ""]
   AzureUnused: !Equals [!Ref AzureClientId, ""]
@@ -361,6 +369,7 @@ Conditions:
 Resources:
   Role:
     Type: AWS::IAM::Role
+    Condition: CreateExecutionRole
     Metadata:
       cfn-lint:
         config:
@@ -449,6 +458,8 @@ Resources:
                   - kms:CreateKey
                   - kms:GetKeyPolicy
                   - kms:GetKeyRotationStatus
+                  - kms:ListResourceTags
+                  - kms:ScheduleKeyDeletion
                 Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
@@ -487,16 +498,16 @@ Resources:
                   - iam:ListPolicyVersions
                   - iam:ListRolePolicies
                   - iam:GetPolicyVersion
-                Resource: '*'
+                  - iam:CreateServiceLinkedRole
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/3decision-*
+
               - Effect: Allow
                 Action:
                   - iam:GetRole
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*
-              - Effect: Allow
-                Action:
-                  - iam:CreateServiceLinkedRole
-                Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*
         - PolicyName: AccessStateBucket
           PolicyDocument:
             Version: 2012-10-17
@@ -509,7 +520,19 @@ Resources:
                 Resource:
                   - !If [CreateBucket, !GetAtt StateBucket.Arn, !Sub 'arn:aws:s3:::${BucketName}' ]
                   - !If [CreateBucket, !Sub '${StateBucket.Arn}/*', !Sub 'arn:aws:s3:::${BucketName}/*' ]
-
+        - PolicyName: AccessLambdaFunctions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:CreateFunction"
+                  - "lambda:DeleteFunction"
+                  - "lambda:InvokeFunction"
+                  - "lambda:UpdateFunctionCode"
+                  - "lambda:UpdateFunctionConfiguration"
+                Resource:
+                  - !Sub "arn:aws:lambda:*:*:function:3decision-rotator-lambda"
 
   StateBucket:
     Type: AWS::S3::Bucket
@@ -529,7 +552,7 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - !Ref Role
+        - !If [CreateExecutionRole, !Ref Role, !Ref ExecutionRoleName]
       Path: /
   BootNode:
     Type: AWS::EC2::Instance
@@ -666,6 +689,9 @@ Resources:
             license_type = "license-included"
             eks_instance_type = "${NodeInstanceType}"
             boot_volume_size = "${NodeVolumeSize}"
+
+            additional_eks_users_arn = ${AdditionalEKSAdminUserArn}
+            additional_eks_roles_arn = ${AdditionalEKSAdminRoleArn}
             EOF
 
             terraform init -backend-config=backend.conf -reconfigure -upgrade
