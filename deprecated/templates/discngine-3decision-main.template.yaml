@@ -11,12 +11,6 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: Infrastructure deployment configuration
-        Parameters:
-          - StackOperation
-          - ExecutionAmiId
-          - BucketName
-      - Label:
           default: "Network configuration"
         Parameters:
           - VPCCIDR
@@ -46,19 +40,24 @@ Metadata:
           - DomainName
           - MainSubdomain
           - ApiSubdomain
+          - HelpSubdomain
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
+          - LoadBalancerClass
       - Label:
           default : Discngine 3decision database configuration
         Parameters:
           - DBSnapshotIdentifier
+          - DBInstanceIdentifier
+          - DBName
           - DBInstanceClass
           - DBMultiZone
       - Label:
           default: Discngine 3decision kube configuration
         Parameters:
           - TNamespace
+          - JWTSecretName
       - Label:
           default: Discngine 3decision authentication configuration
         Parameters:
@@ -77,13 +76,9 @@ Metadata:
           - QSS3BucketName
           - QSS3BucketRegion
           - QSS3KeyPrefix
+          - PerAccountSharedResources
+          - PerRegionSharedResources
     ParameterLabels:
-      ExecutionAmiId:
-        default: AMI for infrastructure updates
-      StackOperation:
-        default: Whether to create or destroy the ressources
-      BucketName:
-        default: Name of the S3 bucket containing the terraform state
       KeyPairName:
         default: SSH key name
       PrivateSubnet1CIDR:
@@ -126,12 +121,18 @@ Metadata:
         default: Size of worker nodes volumes
       DBSnapshotIdentifier:
         default: Identifier of the database snapshot
+      DBInstanceIdentifier:
+        default: Identifier of the database
+      DBName:
+        default: Name of the database
       DBInstanceClass:
         default: Instance type of the database
       DBMultiZone:
         default: Whether the DB is highly available
       TNamespace:
         default: 3decision Helm chart namespace
+      JWTSecretName:
+        default: Secret Name
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -140,10 +141,14 @@ Metadata:
         default: Subdomain name for app landing page
       ApiSubdomain:
         default: Subdomain of the api
+      HelpSubdomain:
+        default: Subdomain of the help page
       CertificateArn:
         default: Arn of a certificate
       LoadBalancerType:
         default: Type of loadbalancer created
+      LoadBalancerClass:
+        default: Loadbalancer class
       AzureClientId:
         default: Azure app client id
       AzureSecret:
@@ -163,30 +168,17 @@ Metadata:
       OktaRedirectUri:
         default: Okta app redirect uri
 Parameters:
-  ExecutionAmiId:
-    Description: "Optional: AMI to use for the ec2 doing the infrastructure updates. If left alone, the latest amazon2-linux ami will be used"
-    Type: String
-    Default: ''
-  StackOperation:
-    Description: "Whether to create or destroy the ressources"
-    Type: String
-    Default: "apply"
-    AllowedValues:
-      - apply
-      - destroy
-  BucketName:
-    Type: String
-    Description: "Optional: Name of an S3 bucket in which to store the terraform state. If not given, a bucket will be created by the stack."
-    Default: ""
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: Must be the name of an existing Keyname
   NodeInstanceType:
     Type: String
-    Default: t3.2xlarge
-    Description: EKS node instance type. We recommend using t3.2xlarge.
+    Default: t3.xlarge
+    Description: EKS node instance type.
+                 We recommend using t3.xlarge as this is the minimal required node shape, but scaling is not noticeable by scaling this up.
     AllowedValues:
+      - t3.xlarge
       - t3.2xlarge
       - m5.xlarge
       - m5.2xlarge
@@ -296,16 +288,26 @@ Parameters:
     Type: String
     Description: Kubernetes control plane version.
     AllowedValues: ['1.23', '1.24', '1.25', '1.26', '1.27']
-    Default: '1.27'
+    Default: '1.26'
   NodeVolumeSize:
     Type: String
-    Default: 50
+    Default: 100
     Description: "Required: Size of EBS volumes attached to worker nodes.
                   Increase this size if your pods are getting evicted with a disk pressure annotation."
   CustomAmiId:
     Type: String
     Default: ""
     Description: "Optional: If an AMI ID is specified, it is used instead of the default EKS images for cluster nodes."
+  PerAccountSharedResources:
+    Type: String
+    AllowedValues: ['Yes', 'No']
+    Default: 'Yes'
+    Description: You can set "Yes" or "No" according to whether another EKS quickstart has been deployed in your account.
+  PerRegionSharedResources:
+    Type: String
+    AllowedValues: ['Yes', 'No']
+    Default: 'Yes'
+    Description: You can set "Yes" or "No" according to whether another EKS quickstart has been deployed in your region.
   NumberOfNodes:
     Default: 3
     Description: The number of Amazon EKS node instances. The default is one for each of the three Availability Zones.
@@ -316,6 +318,24 @@ Parameters:
                   If left empty, the default snapshot will be used. 
                   But if you wish to have an encrypted database, you will have to copy the public snapshot locally and select encryption and use that arn"
     Type: String
+  DBInstanceIdentifier:
+    Default: db3dec
+    Description: "Required: The database instance name.
+                  This defaults to db3dec."
+    Type: String
+    MinLength: '1'
+    MaxLength: '8'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBName:
+    Default: ORCL
+    Description: "Required: The name given to the RDS Oracle database.
+                  This defaults to ORCL."
+    Type: String
+    MinLength: '1'
+    MaxLength: '8'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
   DBInstanceClass:
     AllowedValues:
       - db.t3.medium
@@ -342,6 +362,10 @@ Parameters:
                   This will default to tdecision if not given.
                   The namespace will be created if it doesn't already exists."
     Type: String
+  JWTSecretName:
+    Default: "3dec-JWT-ssh"
+    Description: "Name of the secret created in secrets manager that will contain an ssh key fed to the application."
+    Type: String
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: "Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster."
@@ -366,6 +390,10 @@ Parameters:
     Default: "3decision-api"
     Description: "Required: Name used for the api subdomain"
     Type: String
+  HelpSubdomain:
+    Default: "3decision-help"
+    Description: "Required: Name used for the help subdomain"
+    Type: String
   CertificateArn:
     Default: ""
     Description: "Optional: Arn of a certificate of the associated domain you want added to the load balancer"
@@ -377,6 +405,15 @@ Parameters:
     Default: "internet-facing"
     Description: "Type of loadbalancer created.
                   This can either be equal to internet-facing for public loadbalancer or internal for private loadbalancers"
+    Type: String
+  LoadBalancerClass:
+    AllowedValues:
+      - alb
+      - nginx
+    Default: "alb"
+    Description: "Type of loadbalancer created.
+                  This will create an application loadBalancer by default and should generally not be changed.
+                  By selecting nginx you will have a classic load balancer with a self signed certificate."
     Type: String
   AzureClientId:
     Type: String
@@ -464,7 +501,7 @@ Resources:
         PublicSubnet3CIDR: !Ref PublicSubnet3CIDR
         PrivateSubnetATag2: "kubernetes.io/role/internal-elb="
         PublicSubnetTag2: "kubernetes.io/role/elb="
-  3decisionStack:
+  3decisionEKSStack:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
@@ -474,13 +511,19 @@ Resources:
         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
       Parameters:
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3BucketRegion: !Ref QSS3BucketRegion
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
         VPCID: !GetAtt VPCStack.Outputs.VPCID
         PrivateSubnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
+        DBInstanceIdentifier: !Ref DBInstanceIdentifier
+        DBName: !Ref DBName
         DBInstanceClass: !Ref DBInstanceClass
         DBMultiZone: !Ref DBMultiZone
         TNamespace: !Ref TNamespace
+        JWTSecretName: !Ref JWTSecretName
         HostedZoneId: !Ref HostedZoneId
         DomainName: !Ref DomainName
         CertificateArn: !Ref CertificateArn
@@ -488,10 +531,13 @@ Resources:
         NumberOfNodes: !Ref NumberOfNodes
         KubernetesVersion: !Ref KubernetesVersion
         NodeInstanceType: !Ref NodeInstanceType
+        PerAccountSharedResources: !Ref PerAccountSharedResources
+        PerRegionSharedResources: !Ref PerRegionSharedResources
         AdditionalEKSAdminUserArn: !Ref AdditionalEKSAdminUserArn
         AdditionalEKSAdminRoleArn: !Ref AdditionalEKSAdminRoleArn
         NodeVolumeSize: !Ref NodeVolumeSize
         LoadBalancerType: !Ref LoadBalancerType
+        LoadBalancerClass: !Ref LoadBalancerClass
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
         CustomAmiId: !Ref CustomAmiId
         AzureClientId: !Ref AzureClientId
@@ -505,3 +551,4 @@ Resources:
         OktaRedirectUri: !Ref OktaRedirectUri
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
+        HelpSubdomain: !Ref HelpSubdomain
