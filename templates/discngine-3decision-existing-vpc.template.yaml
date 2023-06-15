@@ -702,8 +702,8 @@ Resources:
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
             AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
             Bucket: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
-            AdditionalEKSAdminUser: !If [AddAdditionalEKSAdminUser, !Ref AdditionalEKSAdminUserArn, '""']
-            AdditionalEKSAdminRole: !If [AddAdditionalEKSAdminRole, !Ref AdditionalEKSAdminRoleArn, '""']
+            AdditionalEKSAdminUser: !If [AddAdditionalEKSAdminUser, !Ref AdditionalEKSAdminUserArn, '[]']
+            AdditionalEKSAdminRole: !If [AddAdditionalEKSAdminRole, !Ref AdditionalEKSAdminRoleArn, '[]']
             
         workingDirectory:
         - "/opt/dng"
