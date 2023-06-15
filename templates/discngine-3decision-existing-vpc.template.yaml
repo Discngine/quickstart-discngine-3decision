@@ -518,6 +518,7 @@ Resources:
                   - "lambda:InvokeFunction"
                   - "lambda:UpdateFunctionCode"
                   - "lambda:UpdateFunctionConfiguration"
+                  - "lambda:GetFunction"
                 Resource:
                   - !Sub "arn:aws:lambda:*:*:function:3decision-rotator-lambda"
 
@@ -690,4 +691,9 @@ Resources:
             
         workingDirectory:
         - "/opt/dng"
+      OutputLocation:
+        S3Location: 
+          OutputS3BucketName: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
+          OutputS3KeyPrefix: 'logs/'
+          OutputS3Region: !Ref AWS::Region
       WaitForSuccessTimeoutSeconds: 3600
