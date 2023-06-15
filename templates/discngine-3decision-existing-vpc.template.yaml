@@ -484,7 +484,7 @@ Resources:
                   - iam:DeletePolicy
                   - iam:ListPolicyVersions
                 Resource:
-                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:*/*
+                  - '*'
               - Effect: Allow
                 Action:
                   - iam:GetRole
