@@ -520,6 +520,7 @@ Resources:
                   - "lambda:UpdateFunctionConfiguration"
                   - "lambda:GetFunction"
                   - "lambda:ListVersionsByFunction"
+                  - "lambda:GetFunctionCodeSigningConfig"
                 Resource:
                   - !Sub "arn:aws:lambda:*:*:function:3decision-rotator-lambda"
 
