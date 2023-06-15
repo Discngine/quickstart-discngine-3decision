@@ -483,8 +483,7 @@ Resources:
                   - iam:CreatePolicy
                   - iam:DeletePolicy
                   - iam:ListPolicyVersions
-                Resource:
-                  - '*'
+                Resource: '*'
               - Effect: Allow
                 Action:
                   - iam:GetRole
