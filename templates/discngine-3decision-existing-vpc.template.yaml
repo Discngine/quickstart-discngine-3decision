@@ -575,7 +575,7 @@ Resources:
       ImageId: !If [UseLatestAMI, !Sub '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
       InstanceType: t2.micro
       IamInstanceProfile: !Ref BootNodeProfile
-      SubnetId: 'subnet-220cc56e' #!Ref PrivateSubnet1ID
+      SubnetId: !Ref PrivateSubnet1ID
       KeyName: 'awssshkey'
       Tags:
         - Key: "Name"
