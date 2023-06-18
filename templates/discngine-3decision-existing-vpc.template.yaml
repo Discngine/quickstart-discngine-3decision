@@ -149,7 +149,7 @@ Parameters:
   GitBranch:
     Type: String
     Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
-    Default: "main"
+    Default: "CLEXT-103"
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName
@@ -473,6 +473,7 @@ Resources:
                   - iam:ListRolePolicies
                   - iam:GetPolicyVersion
                   - iam:CreateServiceLinkedRole
+                  - iam:UpdateAssumeRolePolicy
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/3decision-*
