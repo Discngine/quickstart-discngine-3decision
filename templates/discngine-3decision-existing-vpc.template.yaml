@@ -478,8 +478,9 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/3decision-*
-                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/3decision-*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
 
               - Effect: Allow
                 Action:
