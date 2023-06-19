@@ -20,6 +20,8 @@ variable "domain" {}
 variable "main_subdomain" {}
 variable "api_subdomain" {}
 variable "load_balancer_type" {}
+variable "additional_eks_roles_arn" {}
+variable "additional_eks_users_arn" {}
 variable "secrets_access_role_arn" {}
 variable "bucket_name" {}
 variable "public_volume_id" {}
@@ -30,3 +32,4 @@ variable "db_name" {}
 variable "db_endpoint" {}
 variable "cluster_name" {}
 variable "eks_oidc_issuer" {}
+variable "node_group_role_arn" {}
