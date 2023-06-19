@@ -18,7 +18,7 @@ terraform {
   }
 }
 
-local {
+locals {
   cm_data = {
     "mapRoles" = <<YAML
 - rolearn: ${var.node_group_role_arn}
