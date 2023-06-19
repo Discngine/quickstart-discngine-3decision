@@ -73,9 +73,9 @@ Metadata:
           - QSS3KeyPrefix
     ParameterLabels:
       ExecutionAmiId:
-        default: AMI for infrastructure updates
+        default: AMI id for infrastructure updates
       StackOperation:
-        default: Whether to create or destroy the ressources
+        default: Whether to apply (create/update) or destroy the ressources
       BucketName:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
@@ -148,11 +148,11 @@ Metadata:
         default: Okta server id
 Parameters:
   ExecutionAmiId:
-    Description: "Optional: AMI to use for the ec2 doing the infrastructure updates. If left alone, the latest amazon2-linux ami will be used"
+    Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left alone, the latest amazon2-linux ami will be used"
     Type: String
-    Default: ''
+    Default: ""
   StackOperation:
-    Description: "Whether to create or destroy the ressources"
+    Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
     Default: "apply"
     AllowedValues:
@@ -165,7 +165,7 @@ Parameters:
   GitBranch:
     Type: String
     Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
-    Default: "CLEXT-103"
+    Default: "main"
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName

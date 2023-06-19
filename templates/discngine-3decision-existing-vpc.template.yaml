@@ -65,11 +65,11 @@ Metadata:
           - OktaServerId
     ParameterLabels:
       ExecutionAmiId:
-        default: AMI for infrastructure updates
+        default: AMI id for infrastructure updates
       ExecutionRoleName:
         default: Name of role creating the infrastructure
       StackOperation:
-        default: Whether to create or destroy the ressources
+        default: Whether to apply (create/update) or destroy the ressources
       BucketName:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
@@ -128,20 +128,20 @@ Metadata:
         default: Okta server id
 Parameters:
   StackOperation:
-    Description: "Whether to create or destroy the ressources"
+    Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
     Default: "apply"
     AllowedValues:
       - apply
       - destroy
   ExecutionAmiId:
-    Description: "Optional: AMI to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
+    Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left alone, the latest amazon2-linux ami will be used"
     Type: String
-    Default: ''
+    Default: ""
   ExecutionRoleName:
     Type: String
     Description: "Optional: Name of a role that will run the infrastructure creation. If left empty, the role will be created with all needed permissions"
-    Default: ''
+    Default: ""
   BucketName:
     Type: String
     Description: "Optional: Name of an S3 bucket in which to store the terraform state. If not given, a bucket will be created by the stack."
@@ -149,7 +149,7 @@ Parameters:
   GitBranch:
     Type: String
     Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
-    Default: "CLEXT-103"
+    Default: "main"
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName
