@@ -206,6 +206,7 @@ module "kubernetes" {
   load_balancer_type       = var.load_balancer_type
   additional_eks_roles_arn = var.additional_eks_roles_arn
   additional_eks_users_arn = var.additional_eks_users_arn
+  custom_ami               = var.custom_ami
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key

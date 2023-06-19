@@ -536,12 +536,23 @@ Resources:
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
 
+  BootNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Security group for the Boot node
+      SecurityGroupEgress: 
+        - Description: Allow boot node to access the internet
+          CidrIp: 0.0.0.0/0
+          IpProtocol: -1
+      VpcId: !Ref VPCID
+
   BootNodeProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - !If [CreateExecutionRole, !Ref Role, !Ref ExecutionRoleName]
       Path: /
+
   BootNode:
     Type: AWS::EC2::Instance
     Metadata:
@@ -581,6 +592,8 @@ Resources:
       IamInstanceProfile: !Ref BootNodeProfile
       SubnetId: !Ref PrivateSubnet1ID
       KeyName: !Ref KeyPairName
+      SecurityGroupIds: 
+        - !Ref BootNodeSecurityGroup
       UserData:
         Fn::Base64:
           !Sub |
