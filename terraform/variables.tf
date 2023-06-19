@@ -16,8 +16,8 @@ variable "region" {
 
 variable "force_destroy" {
   type        = bool
-  default     = false
-  description = "Setting this to true will allow full deletion and delete the database / volumes / s3 buckets"
+  default     = true
+  description = "Setting this to false will not allow deletion of the database / non empty s3 buckets"
 }
 
 ###########
@@ -46,7 +46,7 @@ variable "private_subnet_ids" {
 #########
 
 variable "keypair_name" {
-  default     = null
+  default     = ""
   description = "Name of keypair to add to EKS nodes"
 }
 
@@ -61,7 +61,7 @@ variable "kubernetes_version" {
 }
 
 variable "custom_ami" {
-  default     = null
+  default     = ""
   description = "Arn of an ami to use for the EKS nodegroup"
 }
 
@@ -75,12 +75,24 @@ variable "boot_volume_size" {
   description = "default size of the eks boot volumes"
 }
 
+variable "additional_eks_roles_arn" {
+  type        = list(string)
+  description = "Arn of roles to add as administrators to the eks cluster. If the role is a path (containing several /) remove what is between the first and last ones"
+  default     = []
+}
+
+variable "additional_eks_users_arn" {
+  type        = list(string)
+  description = "Arn of users to add as administrators to the eks cluster."
+  default     = []
+}
+
 ###############
 # DATABASE
 ###############
 
 variable "db_snapshot_identifier" {
-  default     = null
+  default     = ""
   description = "Arn of a database snapshot. If left empty the public unencrypted snapshot will be used."
 }
 
@@ -118,7 +130,7 @@ variable "license_type" {
 }
 
 variable "skip_db_final_snapshot" {
-  default = false
+  default     = false
   description = "Whether to skip the creation of a db snpashot when deleting it"
 }
 
@@ -158,8 +170,8 @@ variable "api_subdomain" {
 }
 
 variable "hosted_zone_id" {
-  default     = null
-  description = "Route53 HostedZone id. If left null, create DNS records manually after apply."
+  default     = ""
+  description = "Route53 HostedZone id. If left empty, create DNS records manually after apply."
 }
 
 ###############
@@ -282,12 +294,12 @@ variable "google_oidc" {
 ###########
 
 variable "public_volume_snapshot" {
-  default     = null
+  default     = ""
   description = "Snapshot id of the public data volume. If left empty the public snapshot will be used."
 }
 
 variable "private_volume_snapshot" {
-  default     = null
+  default     = ""
   description = "Used to recreate volume from snapshot in case of DR. Otherwise the volume will be empty"
 }
 

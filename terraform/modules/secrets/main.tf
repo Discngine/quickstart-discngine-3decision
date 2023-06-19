@@ -48,7 +48,7 @@ resource "aws_s3_object" "object" {
 }
 
 resource "aws_lambda_function" "secret_rotator_lambda" {
-  function_name = "tdec-rotator-lambda"
+  function_name = "3decision-rotator-lambda"
 
   role = aws_iam_role.secret_rotator_lambda_role.arn
 
@@ -86,7 +86,7 @@ resource "aws_lambda_permission" "allow_secret_manager_call_lambda" {
 }
 
 resource "aws_iam_role" "secret_rotator_lambda_role" {
-  name_prefix = "tdec-rotator-lambda"
+  name_prefix = "3decision-rotator-lambda"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -104,7 +104,7 @@ resource "aws_iam_role" "secret_rotator_lambda_role" {
 }
 
 resource "aws_iam_policy" "secret_rotator_lambda_policy" {
-  name = "tdec-rotator-lambda-policy"
+  name = "3decision-rotator-lambda-policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -151,7 +151,7 @@ resource "aws_iam_policy" "secret_rotator_lambda_policy" {
           "logs:PutLogEvents"
         ],
         Resource = [
-          "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/tdec-rotator-lambda:*"
+          "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/3decision-rotator-lambda:*"
         ]
       }
     ]
@@ -208,7 +208,7 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
 }
 
 resource "aws_iam_role" "secrets_access_role" {
-  name_prefix = "tdec-database-secrets"
+  name_prefix = "3decision-database-secrets"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -226,7 +226,7 @@ resource "aws_iam_role" "secrets_access_role" {
 }
 
 resource "aws_iam_policy" "secrets_access_policy" {
-  name_prefix = "tdec-database-secrets"
+  name_prefix = "3decision-database-secrets"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
