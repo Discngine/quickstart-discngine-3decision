@@ -322,14 +322,16 @@ Parameters:
     Default: 'false'
   AdditionalEKSAdminUserArn:
     Default: ""
-    Description: "Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
-                  Write this as: \"arn\", \"arn\""
+    Description: >
+      Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
+      Write this as: "arn", "arn".
     Type: String
   AdditionalEKSAdminRoleArn:
     Default: ""
-    Description: "Optional: IAM role Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
-                  Write this as: \"arn\", \"arn\"
-                  This value can't include a path. Eg if the arn is arn:aws:iam::111122223333:role/my-team/developers/role-name write arn:aws:iam::111122223333:role/role-name instead."
+    Description: >
+      Optional: IAM role Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
+      Write this as: "arn", "arn".
+      This value can't include a path. Eg if the arn is arn:aws:iam::111122223333:role/my-team/developers/role-name write arn:aws:iam::111122223333:role/role-name instead."
     Type: String
   HostedZoneId:
     Default: ""
