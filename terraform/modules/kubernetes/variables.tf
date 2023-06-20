@@ -22,6 +22,7 @@ variable "api_subdomain" {}
 variable "load_balancer_type" {}
 variable "additional_eks_roles_arn" {}
 variable "additional_eks_users_arn" {}
+variable "custom_ami" {}
 variable "secrets_access_role_arn" {}
 variable "bucket_name" {}
 variable "public_volume_id" {}

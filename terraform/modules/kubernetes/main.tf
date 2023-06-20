@@ -18,14 +18,8 @@ terraform {
   }
 }
 
-resource "kubernetes_config_map_v1_data" "aws_auth" {
-  count = length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0 ? 1 : 0
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-
-  data = {
+locals {
+  cm_data = {
     "mapRoles" = <<YAML
 - rolearn: ${var.node_group_role_arn}
   username: system:node:{{EC2PrivateDNSName}}
@@ -48,6 +42,26 @@ YAML
 %{endfor}
 YAML
   }
+}
+
+resource "kubernetes_config_map_v1" "aws_auth" {
+  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) && var.custom_ami != "" ? 1 : 0
+
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+  data = local.cm_data
+}
+
+resource "kubernetes_config_map_v1_data" "aws_auth" {
+  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) && var.custom_ami == "" ? 1 : 0
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = local.cm_data
   force = true
 }
 

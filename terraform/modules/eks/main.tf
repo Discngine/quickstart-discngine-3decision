@@ -61,7 +61,7 @@ resource "aws_security_group_rule" "eks_cluster_ingress" {
   from_port         = 0
   to_port           = 65535
   protocol          = "tcp"
-  cidr_blocks       = ["10.0.0.0/16"]
+  cidr_blocks       = [var.vpc_cidr]
 }
 
 resource "aws_security_group_rule" "eks_cluster_egress" {
