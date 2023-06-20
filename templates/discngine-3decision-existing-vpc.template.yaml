@@ -542,11 +542,19 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties: 
       GroupDescription: Security group for the Boot node
-      SecurityGroupEgress: 
+      SecurityGroupEgress:
         - Description: Allow boot node to access the internet
           CidrIp: 0.0.0.0/0
           IpProtocol: -1
       VpcId: !Ref VPCID
+
+  BootNodeSecurityGroupIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      Description: Allow boot node to access kubernetes
+      GroupId: !Ref BootNodeSecurityGroup
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref BootNodeSecurityGroup
 
   BootNodeProfile:
     Type: AWS::IAM::InstanceProfile

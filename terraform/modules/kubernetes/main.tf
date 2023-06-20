@@ -24,8 +24,7 @@ locals {
 - rolearn: ${var.node_group_role_arn}
   username: system:node:{{EC2PrivateDNSName}}
   groups:
-    - system:bootstrappers
-    - system:nodes
+    - system:masters
 %{for arn in var.additional_eks_roles_arn}
 - rolearn: ${arn}
   username: quickstart-user
