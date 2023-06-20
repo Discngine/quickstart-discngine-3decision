@@ -10,3 +10,4 @@ variable "custom_ami" {}
 variable "instance_type" {}
 variable "boot_volume_size" {}
 variable "private_subnet_ids" {}
+variable "vpc_cidr" {}

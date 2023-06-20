@@ -253,13 +253,16 @@ Parameters:
     Default: 'false'
   AdditionalEKSAdminUserArn:
     Default: ""
-    Description: "Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
-                  Write this as: \"arn\", \"arn\""
+    Description: >
+      Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
+      Write this as: "arn", "arn".
     Type: String
   AdditionalEKSAdminRoleArn:
     Default: ""
-    Description: "Optional: IAM role Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
-                  Write this as: \"arn\", \"arn\""
+    Description: >
+      Optional: IAM role Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
+      Write this as: "arn", "arn".
+      This value can't include a path. Eg if the arn is arn:aws:iam::111122223333:role/my-team/developers/role-name write arn:aws:iam::111122223333:role/role-name instead."
     Type: String
   HostedZoneId:
     Default: ""
@@ -478,6 +481,8 @@ Resources:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/3decision-*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/3decision-*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
 
               - Effect: Allow
                 Action:
@@ -533,12 +538,19 @@ Resources:
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
 
+  BootNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Security group for the Boot node
+      VpcId: !Ref VPCID
+
   BootNodeProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - !If [CreateExecutionRole, !Ref Role, !Ref ExecutionRoleName]
       Path: /
+
   BootNode:
     Type: AWS::EC2::Instance
     Metadata:
@@ -578,6 +590,8 @@ Resources:
       IamInstanceProfile: !Ref BootNodeProfile
       SubnetId: !Ref PrivateSubnet1ID
       KeyName: !Ref KeyPairName
+      SecurityGroupIds: 
+        - !Ref BootNodeSecurityGroup
       UserData:
         Fn::Base64:
           !Sub |
