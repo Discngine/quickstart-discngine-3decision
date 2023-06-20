@@ -86,6 +86,10 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_vpc" "vpc" {
+  id = var.vpc_id
+}
+
 locals {
   account_id              = data.aws_caller_identity.current.account_id
   availability_zone_names = data.aws_availability_zones.available.names
@@ -113,6 +117,7 @@ module "eks" {
   instance_type      = var.eks_instance_type
   boot_volume_size   = var.boot_volume_size
   # Output
+  vpc_cidr           = data.aws_vpc.vpc.cidr_block
   vpc_id             = var.create_network ? module.network[0].vpc_id : var.vpc_id
   private_subnet_ids = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
 
