@@ -45,7 +45,7 @@ resource "aws_db_instance" "db_instance" {
   final_snapshot_identifier = "db3dec-final-snapshot"
   backup_retention_period   = var.backup_retention_period
   lifecycle {
-    ignore_changes = [snapshot_identifier]
+    ignore_changes = [snapshot_identifier, storage_encrypted]
   }
 }
 
