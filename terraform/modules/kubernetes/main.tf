@@ -393,19 +393,19 @@ nest:
       value: ${var.okta_oidc.client_id}
     okta_redirect_uri:
       name: OKTA_REDIRECT_URI
-      value: "https://${var.api_subdomain}.discngine.io/auth/okta/callback"
+      value: "https://${var.api_subdomain}.${var.domain}/auth/okta/callback"
     azure_client_id:
       name: AZURE_CLIENT_ID
       value: ${var.azure_oidc.client_id}
     azure_redirect_uri:
       name: AZURE_REDIRECT_URI
-      value: https://${var.api_subdomain}.discngine.io/auth/azure/callback
+      value: https://${var.api_subdomain}.${var.domain}/auth/azure/callback
     google_client_id:
       name: GOOGLE_CLIENT_ID
       value: ${var.google_oidc.client_id}
     google_redirect_uri:
       name: GOOGLE_REDIRECT_URI
-      value: https://${var.api_subdomain}.discngine.io/auth/google/callback
+      value: https://${var.api_subdomain}.${var.domain}/auth/google/callback
 nfs:
   public:
     serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
