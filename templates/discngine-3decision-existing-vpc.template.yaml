@@ -584,7 +584,7 @@ Resources:
                   sudo mv terraform /usr/local/bin
 
                   git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
-                  chown -R ec2-user:ec2-user quickstart-discngine-3decision
+                  sudo chown -R ec2-user:ec2-user /opt/dng
     Properties:
       ImageId: !If [UseLatestAMI, '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
       InstanceType: t2.micro
