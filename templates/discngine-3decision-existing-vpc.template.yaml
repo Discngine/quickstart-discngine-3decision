@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "This sets up the Discngine 3decision infrastructure. (qs-1snm79fes)."
+Description: "This sets up the Discngine 3decision infrastructure. (qs-1snm79fed)."
 Metadata:
   QuickStartDocumentation:
     EntrypointName: "Launch into an existing VPC"
