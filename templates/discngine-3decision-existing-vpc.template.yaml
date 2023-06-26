@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "This sets up the Discngine 3decision infrastructure. (qs-1snm79fes)."
+Description: "This sets up the Discngine 3decision infrastructure. (qs-1snm79fed)."
 Metadata:
   QuickStartDocumentation:
     EntrypointName: "Launch into an existing VPC"
@@ -584,6 +584,7 @@ Resources:
                   sudo mv terraform /usr/local/bin
 
                   git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
+                  sudo chown -R ec2-user:ec2-user /opt/dng
     Properties:
       ImageId: !If [UseLatestAMI, '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
       InstanceType: t2.micro
