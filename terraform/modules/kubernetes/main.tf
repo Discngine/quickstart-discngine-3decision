@@ -61,7 +61,7 @@ resource "kubernetes_config_map_v1_data" "aws_auth" {
     namespace = "kube-system"
   }
 
-  data = local.cm_data
+  data  = local.cm_data
   force = true
 }
 
@@ -349,16 +349,7 @@ resource "helm_release" "reloader_chart" {
 
 locals {
   connection_string = "${var.db_endpoint}/${var.db_name}"
-}
-
-resource "helm_release" "tdecision_chart" {
-  name       = var.tdecision_chart.name
-  repository = var.tdecision_chart.repository
-  chart      = var.tdecision_chart.chart
-  version    = var.tdecision_chart.version
-  namespace  = var.tdecision_chart.namespace
-  timeout    = 1200
-  values = [<<YAML
+  values            = <<YAML
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${var.db_endpoint}/
@@ -423,15 +414,62 @@ pocket_features:
 scientific_monolith:
   nodeSelector: null
 YAML
-  ]
+}
+
+resource "helm_release" "tdecision_chart" {
+  name       = var.tdecision_chart.name
+  repository = var.tdecision_chart.repository
+  chart      = var.tdecision_chart.chart
+  version    = var.tdecision_chart.version
+  namespace  = var.tdecision_chart.namespace
+  timeout    = 1200
+  values     = [local.values]
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     helm_release.cert_manager_release,
     kubectl_manifest.ClusterExternalSecret,
     kubernetes_secret.nest_authentication_secrets,
     helm_release.aws_load_balancer_controller,
-    kubernetes_config_map_v1_data.aws_auth
+    kubernetes_config_map_v1_data.aws_auth,
+    null_resource.delete_resources
   ]
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision
+      kubectl delete -n ${self.namespace} job oracle-schema-update --force
+      kubectl delete deployments -n ${self.namespace} --all --force
+    EOT
+  }
+}
+
+resource "null_resource" "delete_resources" {
+  triggers = {
+    name       = var.tdecision_chart.name
+    repository = var.tdecision_chart.repository
+    chart      = var.tdecision_chart.chart
+    version    = var.tdecision_chart.version
+    namespace  = var.tdecision_chart.namespace
+    values     = local.values
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision
+      COMPLETED=$(kubectl get -n ${var.tdecision_chart.namespace} job oracle-schema-update --output=jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
+      if [ "$${COMPLETED}" = "True" ]; then
+        kubectl delete -n ${var.tdecision_chart.namespace} job oracle-schema-update --force
+      else
+        echo "not deleting oracle schema update job as it is still underway"
+      fi
+      kubectl delete deployments -n ${var.tdecision_chart.namespace} --all --force
+    EOT
+  }
 }
 
 resource "helm_release" "choral_chart" {
