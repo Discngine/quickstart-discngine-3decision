@@ -413,7 +413,6 @@ pocket_features:
   nodeSelector: null
 scientific_monolith:
   nodeSelector: null
-quickstart_uuid: ${null_resource.delete_resources.id}
 YAML
 }
 
