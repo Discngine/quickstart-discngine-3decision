@@ -15,6 +15,7 @@ Metadata:
         Parameters:
           - StackOperation
           - ExecutionAmiId
+          - ExecutionRoleName
           - BucketName
           - GitBranch
       - Label:
@@ -79,6 +80,8 @@ Metadata:
     ParameterLabels:
       ExecutionAmiId:
         default: AMI id for infrastructure updates
+      ExecutionRoleName:
+        default: Name of role creating the infrastructure
       StackOperation:
         default: Whether to apply (create/update) or destroy the ressources
       BucketName:
