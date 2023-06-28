@@ -413,6 +413,7 @@ pocket_features:
   nodeSelector: null
 scientific_monolith:
   nodeSelector: null
+quickstart_uuid: ${null_resource.delete_resources.id}
 YAML
 }
 
@@ -439,7 +440,8 @@ resource "helm_release" "tdecision_chart" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
       kubectl delete -n ${self.namespace} job oracle-schema-update --force
       kubectl delete deployments -n ${self.namespace} --all --force
     EOT
@@ -460,7 +462,8 @@ resource "null_resource" "delete_resources" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
       COMPLETED=$(kubectl get -n ${var.tdecision_chart.namespace} job oracle-schema-update --output=jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
       if [ "$${COMPLETED}" = "True" ]; then
         kubectl delete -n ${var.tdecision_chart.namespace} job oracle-schema-update --force
