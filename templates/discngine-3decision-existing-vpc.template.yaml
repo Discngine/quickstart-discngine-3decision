@@ -59,11 +59,14 @@ Metadata:
           - DBInstanceClass
           - DBMultiZone
       - Label:
-          default: Discngine 3decision authentication configuration
+          default: Discngine 3decision azure authentication configuration
         Parameters:
           - AzureClientId
           - AzureTenant
           - AzureSecret
+      - Label:
+          default: Discngine 3decision okta authentication configuration
+        Parameters:
           - OktaClientId
           - OktaSecret
           - OktaDomain
