@@ -15,8 +15,14 @@ Metadata:
         Parameters:
           - StackOperation
           - ExecutionAmiId
+          - ExecutionRoleName
           - BucketName
           - GitBranch
+      - Label:
+          default: 3decision app configuration
+        Parameters:
+          - TdecisionVersion
+          - TdecisionNamespace
       - Label:
           default: "Network configuration"
         Parameters:
@@ -56,11 +62,14 @@ Metadata:
           - DBInstanceClass
           - DBMultiZone
       - Label:
-          default: Discngine 3decision authentication configuration
+          default: Discngine 3decision azure authentication configuration
         Parameters:
           - AzureClientId
           - AzureTenant
           - AzureSecret
+      - Label:
+          default: Discngine 3decision okta authentication configuration
+        Parameters:
           - OktaClientId
           - OktaSecret
           - OktaDomain
@@ -74,12 +83,18 @@ Metadata:
     ParameterLabels:
       ExecutionAmiId:
         default: AMI id for infrastructure updates
+      ExecutionRoleName:
+        default: Name of role creating the infrastructure
       StackOperation:
         default: Whether to apply (create/update) or destroy the ressources
       BucketName:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
         default: The branch to use to deploy the architecture
+      TdecisionVersion:
+        default: The version of the 3decision helm chart
+      TdecisionNamespace:
+        default: The namespace to deploy the 3decision helm chart in
       KeyPairName:
         default: SSH key name
       PrivateSubnet1CIDR:
@@ -147,10 +162,6 @@ Metadata:
       OktaServerId:
         default: Okta server id
 Parameters:
-  ExecutionAmiId:
-    Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left alone, the latest amazon2-linux ami will be used"
-    Type: String
-    Default: ""
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
@@ -158,14 +169,30 @@ Parameters:
     AllowedValues:
       - apply
       - destroy
+  ExecutionAmiId:
+    Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
+    Type: String
+    Default: ""
+  ExecutionRoleName:
+    Type: String
+    Description: "Optional: Name of a role that will run the infrastructure creation. If left empty, the role will be created with all needed permissions"
+    Default: ""
   BucketName:
     Type: String
-    Description: "Optional: Name of an S3 bucket in which to store the terraform state. If not given, a bucket will be created by the stack."
+    Description: "Optional: Name of an S3 bucket in which to store the terraform state. If left empty, a bucket will be created by the stack."
     Default: ""
   GitBranch:
     Type: String
     Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
     Default: "main"
+  TdecisionVersion:
+    Type: String
+    Description: "Optional: If set, will deploy that version of the 3decision helm chart. If left empty the latest version will be deployed."
+    Default: ""
+  TdecisionNamespace:
+    Type: String
+    Description: "Required: The kubernetes namespace into which to deploy the 3decision helm chart"
+    Default: "tdecision"
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName
@@ -475,6 +502,9 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         ExecutionAmiId: !Ref ExecutionAmiId
+        ExecutionRoleName: !Ref ExecutionRoleName
         StackOperation: !Ref StackOperation
         BucketName: !Ref BucketName
         GitBranch: !Ref GitBranch
+        TdecisionVersion: !Ref TdecisionVersion
+        TdecisionNamespace: !Ref TdecisionNamespace

@@ -19,7 +19,12 @@ Metadata:
           - BucketName
           - GitBranch
       - Label:
-          default: "Network configuration"
+          default: 3decision app configuration
+        Parameters:
+          - TdecisionVersion
+          - TdecisionNamespace
+      - Label:
+          default: Network configuration
         Parameters:
           - VPCID
           - PrivateSubnet1ID
@@ -54,11 +59,14 @@ Metadata:
           - DBInstanceClass
           - DBMultiZone
       - Label:
-          default: Discngine 3decision authentication configuration
+          default: Discngine 3decision azure authentication configuration
         Parameters:
           - AzureClientId
           - AzureTenant
           - AzureSecret
+      - Label:
+          default: Discngine 3decision okta authentication configuration
+        Parameters:
           - OktaClientId
           - OktaSecret
           - OktaDomain
@@ -74,6 +82,10 @@ Metadata:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
         default: The branch to use to deploy the architecture
+      TdecisionVersion:
+        default: The version of the 3decision helm chart
+      TdecisionNamespace:
+        default: The namespace to deploy the 3decision helm chart in
       KeyPairName:
         default: SSH key name
       PrivateSubnet1ID:
@@ -135,7 +147,7 @@ Parameters:
       - apply
       - destroy
   ExecutionAmiId:
-    Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left alone, the latest amazon2-linux ami will be used"
+    Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
     Type: String
     Default: ""
   ExecutionRoleName:
@@ -144,12 +156,20 @@ Parameters:
     Default: ""
   BucketName:
     Type: String
-    Description: "Optional: Name of an S3 bucket in which to store the terraform state. If not given, a bucket will be created by the stack."
+    Description: "Optional: Name of an S3 bucket in which to store the terraform state. If left empty, a bucket will be created by the stack."
     Default: ""
   GitBranch:
     Type: String
     Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
     Default: "main"
+  TdecisionVersion:
+    Type: String
+    Description: "Optional: If set, will deploy that version of the 3decision helm chart. If left empty the latest version will be deployed."
+    Default: ""
+  TdecisionNamespace:
+    Type: String
+    Description: "Required: The kubernetes namespace into which to deploy the 3decision helm chart"
+    Default: "tdecision"
   KeyPairName:
     Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
     Type: AWS::EC2::KeyPair::KeyName
@@ -343,6 +363,7 @@ Conditions:
   UseLatestAMI: !Equals [!Ref ExecutionAmiId, ""]
   AzureUnused: !Equals [!Ref AzureClientId, ""]
   OktaUnused: !Equals [!Ref OktaClientId, ""]
+  LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -584,7 +605,7 @@ Resources:
                   sudo mv terraform /usr/local/bin
 
                   git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
-                  sudo chown -R ec2-user:ec2-user /opt/dng
+                  git config --global --add safe.directory /opt/dng/quickstart-discngine-3decision
     Properties:
       ImageId: !If [UseLatestAMI, '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
       InstanceType: t2.micro
@@ -637,6 +658,7 @@ Resources:
             #!/bin/bash
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
+            git checkout ${GitBranch}
 
             cat > backend.conf << EOF
             region = "${AWS::Region}"
@@ -689,13 +711,19 @@ Resources:
 
             additional_eks_users_arn = [${AdditionalEKSAdminUserArn}]
             additional_eks_roles_arn = [${AdditionalEKSAdminRoleArn}]
+
+            tdecision_chart = {
+              version = ${TdecisionVersion}
+              namespace = "${TdecisionNamespace}"
+            }
             EOF
 
             terraform init -backend-config=backend.conf -reconfigure -upgrade
             terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
             AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
-            Bucket: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
+            Bucket: !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
+            TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
             
         workingDirectory:
         - "/opt/dng"
