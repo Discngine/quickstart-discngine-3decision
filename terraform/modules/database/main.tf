@@ -52,7 +52,12 @@ resource "aws_db_instance" "db_instance" {
       max_allocated_storage,
       identifier,
       identifier_prefix,
-      nchar_character_set_name
+      nchar_character_set_name,
+      character_set_name,
+      performance_insights_kms_key_id,
+      identifier_prefix,
+      identifier,
+      restore_to_point_in_time
     ]
   }
 }
