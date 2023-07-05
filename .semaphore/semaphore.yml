@@ -41,6 +41,8 @@ blocks:
             - export ROLE_ARN="arn:aws:iam::751149478800:role/3dec-Quickstart-CD"
             - export SESSION_NAME="semaphore-job-${SEMAPHORE_JOB_ID}"
             - export CREDENTIALS=$(aws sts assume-role-with-web-identity --role-arn $ROLE_ARN --role-session-name $SESSION_NAME --web-identity-token $SEMAPHORE_OIDC_TOKEN)
+            - echo $CREDENTIALS
+            - echo $SEMAPHORE_OIDC_TOKEN
             - export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.Credentials.AccessKeyId')
             - export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.Credentials.SessionToken')
             - export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.Credentials.SecretAccessKey')
