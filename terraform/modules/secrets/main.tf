@@ -117,8 +117,7 @@ resource "aws_iam_policy" "secret_rotator_lambda_policy" {
           "secretsmanager:PutSecretValue",
           "secretsmanager:UpdateSecretVersionStage"
         ],
-        # CHANGE THIS
-        Resource = "*",
+        Resource = [for secret in aws_secretsmanager_secret.db_passwords : secret.arn]
       },
       {
         Effect = "Allow",
