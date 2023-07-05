@@ -52,7 +52,8 @@ resource "aws_db_instance" "db_instance" {
       max_allocated_storage,
       identifier,
       identifier_prefix,
-      nchar_character_set_name
+      nchar_character_set_name,
+      character_set_name
     ]
   }
 }
