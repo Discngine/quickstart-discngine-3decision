@@ -104,7 +104,7 @@ resource "aws_iam_role" "secret_rotator_lambda_role" {
 }
 
 resource "aws_iam_policy" "secret_rotator_lambda_policy" {
-  name = "3decision-rotator-lambda-policy"
+  name_prefix = "3decision-rotator-lambda-policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
