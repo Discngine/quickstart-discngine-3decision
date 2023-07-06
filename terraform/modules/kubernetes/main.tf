@@ -349,8 +349,13 @@ resource "helm_release" "reloader_chart" {
 
 resource "null_resource" "get_chart_version" {
   provisioner "local-exec" {
-    command     = "helm list -n ${var.tdecision_chart.namespace} --filter sentinel -o json | jq -r '.[0].chart | sub(\".*-\"; \"\")' 2>/dev/null > chart_version.txt"
-    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      helm list -n ${var.tdecision_chart.namespace} --filter ${var.tdecision_chart.name} -o json | jq -r '.[0].chart | sub(\".*-\"; \"\")' 2>/dev/null > chart_version.txt
+    EOT
   }
 }
 
