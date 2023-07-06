@@ -645,6 +645,8 @@ Resources:
 
   LaunchTerraform:
     Type: AWS::SSM::Association
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
     Properties:
       Name: AWS-RunShellScript
       Targets:
@@ -656,10 +658,12 @@ Resources:
         - !Sub 
           - |
             #!/bin/bash
+            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+            chmod 700 get_helm.sh
+            ./get_helm.sh
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
             git checkout ${GitBranch}
-
             cat > backend.conf << EOF
             region = "${AWS::Region}"
             bucket = "${Bucket}"
