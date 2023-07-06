@@ -476,6 +476,7 @@ Resources:
                   - iam:CreateRole
                   - iam:DeleteRole
                   - iam:AttachRolePolicy
+                  - iam:CreatePolicyVersion
                   - iam:PutRolePolicy
                   - iam:ListInstanceProfiles
                   - iam:AddRoleToInstanceProfile
