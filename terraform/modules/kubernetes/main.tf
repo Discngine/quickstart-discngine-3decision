@@ -359,7 +359,7 @@ data "local_file" "chart_version" {
 }
 
 locals {
-  version_has_changed = trim(data.local_file.chart_version.content) != var.tdecision_chart.version
+  version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
   connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
 ${local.version_has_changed ? format("nest.ReprocessingEnv.public_interaction_registration_reprocessing_timestamp.value: %s", formatdate("YYYY-MM-DDTHH:MI:SS", timeadd(timestamp(), "12h"))) : ""}
