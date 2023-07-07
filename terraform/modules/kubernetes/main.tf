@@ -370,7 +370,7 @@ locals {
   version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
   connection_string   = "${var.db_endpoint}/${var.db_name}"
   values              = <<YAML
-${local.version_has_changed ? format("nest.ReprocessingEnv.public_interaction_registration_reprocessing_timestamp.value: %s", formatdate("YYYY-MM-DD'T'HH:MI:SS", timeadd(timestamp(), "1h"))) : ""}
+${local.version_has_changed ? format("nest.ReprocessingEnv.public_interaction_registration_reprocessing_timestamp.value: %s", formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "1h"))) : ""}
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${var.db_endpoint}/
