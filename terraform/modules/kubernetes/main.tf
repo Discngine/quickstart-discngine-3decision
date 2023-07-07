@@ -382,7 +382,7 @@ resource "null_resource" "get_redis_release_timestamp" {
       if [[ $revision -eq 1 ]]; then
           timestamp=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].updated')
       else
-          timestamp="3000-01-01T00:00:00Z"
+          timestamp="2000-01-01T00:00:00Z"
       fi
       echo $timestamp > redis_release_date.txt
     EOT
@@ -451,7 +451,7 @@ nest:
     redis_synchro_timestamp:
       value: ${local.redis_reprocessing_timestamp}
     private_structures_reprocessing_event_types:
-      value: '${timecmp(local.redis_reprocessing_timestamp, timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
+      value: '${timecmp(local.redis_reprocessing_timestamp, timestamp()) > -1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : format("%s", "null")}'
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
