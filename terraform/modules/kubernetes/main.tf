@@ -360,8 +360,13 @@ resource "null_resource" "get_tdecision_current_version_timestamp" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      helm history ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} --output=json | jq -r --arg version "2.3.2" 'map(select(.chart | contains($version))) | sort_by(.updated) | .[0].updated' > tdecision_release_date.txt
-      cat chart_version.txt
+      current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      DATE=$(helm history ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} --output=json | jq -r --arg version "${var.tdecision_chart.version}" 'map(select(.chart | contains($version))) | sort_by(.updated) | .[0].updated')
+      if [ -z "$DATE" ]; then
+        echo "$current_date" > tdecision_release_date.txt
+      else
+        echo "$DATE" > tdecision_release_date.txt
+      cat tdecision_release_date.txt
     EOT
   }
 }
