@@ -370,10 +370,6 @@ locals {
   version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
   connection_string   = "${var.db_endpoint}/${var.db_name}"
   values              = <<YAML
-nest:
-  ReprocessingEnv:
-    public_interaction_registration_reprocessing_timestamp:
-      value: ${local.version_has_changed ? formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "1h")) : "null"}
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${var.db_endpoint}/
@@ -402,6 +398,9 @@ ingress:
     host: ${var.api_subdomain}
   class: alb
 nest:
+  ReprocessingEnv:
+    public_interaction_registration_reprocessing_timestamp:
+      value: ${local.version_has_changed ? formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "1h")) : "null"}
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
