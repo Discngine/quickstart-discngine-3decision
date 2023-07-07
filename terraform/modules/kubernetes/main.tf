@@ -349,12 +349,13 @@ resource "helm_release" "reloader_chart" {
 
 resource "null_resource" "get_chart_version" {
   provisioner "local-exec" {
-    command     = <<-EOT
+    command = <<-EOT
       #!/bin/bash
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       helm list -n ${var.tdecision_chart.namespace} --filter ${var.tdecision_chart.name} -o json | jq -r '.[0].chart | sub(\".*-\"; \"\")' 2>/dev/null > chart_version.txt
+      cat chart_version.txt
     EOT
   }
 }
@@ -362,13 +363,13 @@ resource "null_resource" "get_chart_version" {
 data "local_file" "chart_version" {
   filename = "chart_version.txt"
 
-  depends_on = [ null_resource.get_chart_version ]
+  depends_on = [null_resource.get_chart_version]
 }
 
 locals {
   version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
-  connection_string = "${var.db_endpoint}/${var.db_name}"
-  values            = <<YAML
+  connection_string   = "${var.db_endpoint}/${var.db_name}"
+  values              = <<YAML
 ${local.version_has_changed ? format("nest.ReprocessingEnv.public_interaction_registration_reprocessing_timestamp.value: %s", formatdate("YYYY-MM-DDTHH:MI:SS", timeadd(timestamp(), "1h"))) : ""}
 oracle:
   connectionString: ${local.connection_string}
