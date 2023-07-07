@@ -442,12 +442,12 @@ locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp       = chomp(local_file.reprocessing_date) != "" ? chomp(local_file.reprocessing_date) : timeadd(timestamp(), "24h")
+  reprocessing_timestamp       = chomp(data.local_file.reprocessing_date) != "" ? chomp(data.local_file.reprocessing_date) : timeadd(timestamp(), "24h")
   redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.redis_release_timestamp.content), "6h"))
 
   version_has_changed = chomp(data.local_file.chart_version.content) != var.tdecision_chart.version
 
-  launch_public_interaction_registration_reprocessing = chomp(local_file.reprocessing_date) != "" || (local.version_has_changed && contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version))
+  launch_public_interaction_registration_reprocessing = chomp(data.local_file.reprocessing_date) != "" || (local.version_has_changed && contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version))
 }
 
 locals {
