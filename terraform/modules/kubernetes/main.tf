@@ -382,7 +382,7 @@ resource "null_resource" "get_redis_release_timestamp" {
       if [[ $revision -eq 1 ]]; then
           timestamp=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].updated')
       else
-          timestamp="2000-01-01T00:00:00Z"
+          timestamp="3000-01-01T00:00:00Z"
       fi
       echo $timestamp > redis_release_date.txt
     EOT
@@ -406,7 +406,7 @@ locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(timestamp(), "24h"))
+  reprocessing_timestamp       = timeadd(timestamp(), "24h")
   redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.redis_release_timestamp.content), "6h"))
 
   version_has_changed = chomp(data.local_file.chart_version.content) != var.tdecision_chart.version
@@ -451,7 +451,7 @@ nest:
     redis_synchro_timestamp:
       value: ${local.redis_reprocessing_timestamp}
     private_structures_reprocessing_event_types:
-      value: '${timecmp(format("%s", local.redis_reprocessing_timestamp), timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
+      value: '${timecmp(local.redis_reprocessing_timestamp, timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
