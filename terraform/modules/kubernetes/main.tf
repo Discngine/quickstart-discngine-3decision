@@ -318,6 +318,11 @@ resource "helm_release" "sentinel_release" {
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubernetes_config_map_v1_data.aws_auth
   ]
+  provisioner "local-exec" {
+    command     = "echo ${formatdate("YYYY-MM-DD'T22:00:00'", timeadd(timestamp(), "24h"))} > redis_timestamp.txt"
+    interpreter = ["bash", "-c"]
+    when        = "create"
+  }
 }
 
 resource "helm_release" "external_secrets_chart" {
@@ -369,15 +374,18 @@ data "local_file" "chart_version" {
   depends_on = [null_resource.get_chart_version]
 }
 
-locals {
-  # Update this list for any version of the 3decision helm chart needing reprocessing
-  public_interaction_registration_reprocessing_version_list = [
-    "2.3.1", "2.3.2"
-  ]
+data "local_file" "redis_release_timestamp" {
+  filename = "redis_timestamp.txt"
+
+  depends_on = [helm_release.sentinel_release]
 }
 
 locals {
-  version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
+  # Update this list for any version of the 3decision helm chart needing reprocessing
+  public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
+
+  reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "48h"))
+  version_has_changed    = data.local_file.chart_version.content != var.tdecision_chart.version
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
 }
@@ -415,9 +423,10 @@ ingress:
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
-      value: ${local.launch_public_interaction_registration_reprocessing ? formatdate("YYYY-MM-DD'T00:00:00'", timeadd(timestamp(), "24h")) : null}
+      value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp_long : "null"}
+    redis_synchro_timestamp:
+      value: ${data.local_file.redis_release_timestamp.content}
     test: ${format("%s", "null")}
-    test2: ${local.launch_public_interaction_registration_reprocessing ? null : null}
     test3: null
     test4: "null"
   env:
