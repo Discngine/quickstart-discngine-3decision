@@ -64,7 +64,7 @@ resource "kubernetes_config_map_v1" "aws_auth" {
     name      = "aws-auth"
     namespace = "kube-system"
   }
-  data = local.cm_data
+  data       = local.cm_data
   depends_on = [null_resource.delete_aws_auth]
 }
 
@@ -377,11 +377,12 @@ resource "null_resource" "get_redis_release_timestamp" {
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       revision=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].revision')
+      echo $revision
 
       if [[ $revision -eq 1 ]]; then
           timestamp=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].updated')
       else
-          timestamp="2000-01-01T00:00:00"
+          timestamp="2000-01-01T00:00:00Z"
       fi
       echo $timestamp > redis_release_date.txt
     EOT
@@ -404,10 +405,10 @@ locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp = timeadd(formatdate("YYYY-MM-DD'T'hh:mm:ss", timestamp()), "24h")
-  redis_reprocessing_timestamp = timeadd(formatdate("YYYY-MM-DD'T'hh:mm:ss", chomp(data.local_file.redis_release_timestamp.content)), "6h")
+  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "24h"))
+  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(chomp(data.local_file.redis_release_timestamp.content), "6h"))
 
-  version_has_changed    = chomp(data.local_file.chart_version.content) != var.tdecision_chart.version
+  version_has_changed = chomp(data.local_file.chart_version.content) != var.tdecision_chart.version
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
 }
