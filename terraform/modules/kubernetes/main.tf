@@ -417,6 +417,9 @@ nest:
     public_interaction_registration_reprocessing_timestamp:
       value: ${local.launch_public_interaction_registration_reprocessing ? formatdate("YYYY-MM-DD'T00:00:00'", timeadd(timestamp(), "24h")) : null}
     test: ${format("%s", "null")}
+    test2: ${local.launch_public_interaction_registration_reprocessing ? null : null}
+    test3: null
+    test4: "null"
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
