@@ -361,13 +361,15 @@ resource "null_resource" "get_chart_version" {
 
 data "local_file" "chart_version" {
   filename = "chart_version.txt"
+
+  depends_on = [ null_resource.get_chart_version ]
 }
 
 locals {
   version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
   connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
-${local.version_has_changed ? format("nest.ReprocessingEnv.public_interaction_registration_reprocessing_timestamp.value: %s", formatdate("YYYY-MM-DDTHH:MI:SS", timeadd(timestamp(), "12h"))) : ""}
+${local.version_has_changed ? format("nest.ReprocessingEnv.public_interaction_registration_reprocessing_timestamp.value: %s", formatdate("YYYY-MM-DDTHH:MI:SS", timeadd(timestamp(), "1h"))) : ""}
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${var.db_endpoint}/
