@@ -44,16 +44,8 @@ YAML
   }
 }
 
-resource "kubernetes_config_map_v1" "aws_auth" {
-  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) ? 1 : 0
-
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-  data = local.cm_data
+resource "null_resource" "delete_aws_auth" {
   provisioner "local-exec" {
-    when = create
     command = <<-EOT
       #!/bin/bash
       
@@ -62,6 +54,17 @@ resource "kubernetes_config_map_v1" "aws_auth" {
       kubectl -n kube-system delete configmap aws-auth --force
     EOT
   }
+}
+
+resource "kubernetes_config_map_v1" "aws_auth" {
+  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) ? 1 : 0
+
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+  data = local.cm_data
+  depends_on = [null_resource.delete_aws_auth]
 }
 
 resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
