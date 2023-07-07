@@ -420,15 +420,15 @@ ingress:
   api:
     host: ${var.api_subdomain}
   class: alb
+test: ${format("%s", "null")}
+test3: null
+test4: "null"
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
-      value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp : "null"}
+      value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
     redis_synchro_timestamp:
       value: ${data.local_file.redis_release_timestamp.content}
-    test: ${format("%s", "null")}
-    test3: null
-    test4: "null"
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
