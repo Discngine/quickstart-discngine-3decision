@@ -45,24 +45,23 @@ YAML
 }
 
 resource "kubernetes_config_map_v1" "aws_auth" {
-  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) && var.custom_ami != "" ? 1 : 0
+  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) ? 1 : 0
 
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
   }
   data = local.cm_data
-}
-
-resource "kubernetes_config_map_v1_data" "aws_auth" {
-  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) && var.custom_ami == "" ? 1 : 0
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
+  provisioner "local-exec" {
+    when = create
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      kubectl -n kube-system delete configmap aws-auth --force
+    EOT
   }
-
-  data  = local.cm_data
-  force = true
 }
 
 resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
@@ -446,7 +445,7 @@ nest:
     redis_synchro_timestamp:
       value: ${local.redis_reprocessing_timestamp}
     private_structures_reprocessing_event_types:
-      value: '${timecmp(redis_reprocessing_timestamp, timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
+      value: '${timecmp(local.redis_reprocessing_timestamp, timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
