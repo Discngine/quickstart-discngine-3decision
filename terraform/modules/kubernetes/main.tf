@@ -45,6 +45,7 @@ YAML
 }
 
 resource "null_resource" "delete_aws_auth" {
+  count = (length(var.additional_eks_roles_arn) > 0 || length(var.additional_eks_users_arn) > 0) ? 1 : 0
   provisioner "local-exec" {
     command = <<-EOT
       #!/bin/bash
