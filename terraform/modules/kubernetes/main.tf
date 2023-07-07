@@ -423,7 +423,7 @@ ingress:
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
-      value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp_long : "null"}
+      value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp : "null"}
     redis_synchro_timestamp:
       value: ${data.local_file.redis_release_timestamp.content}
     test: ${format("%s", "null")}
