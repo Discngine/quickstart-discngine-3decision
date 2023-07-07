@@ -308,7 +308,7 @@ resource "helm_release" "cert_manager_release" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
-resource "helm_release" "sentinel_release_tmp" {
+resource "helm_release" "sentinel_release" {
   name             = var.redis_sentinel_chart.name
   chart            = var.redis_sentinel_chart.chart
   namespace        = var.redis_sentinel_chart.namespace
@@ -368,7 +368,7 @@ resource "null_resource" "get_chart_version" {
 
 resource "null_resource" "get_redis_release_timestamp" {
   triggers = {
-    id = helm_release.sentinel_release_tmp.id
+    id = helm_release.sentinel_release.id
   }
   provisioner "local-exec" {
     command = <<-EOT
@@ -387,7 +387,7 @@ resource "null_resource" "get_redis_release_timestamp" {
       echo $timestamp > redis_release_date.txt
     EOT
   }
-  depends_on = [helm_release.sentinel_release_tmp]
+  depends_on = [helm_release.sentinel_release]
 }
 
 data "local_file" "chart_version" {
@@ -406,8 +406,8 @@ locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "24h"))
-  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(chomp(data.local_file.redis_release_timestamp.content), "6h"))
+  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(timestamp(), "24h"))
+  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.redis_release_timestamp.content), "6h"))
 
   version_has_changed = chomp(data.local_file.chart_version.content) != var.tdecision_chart.version
 
@@ -451,7 +451,7 @@ nest:
     redis_synchro_timestamp:
       value: ${local.redis_reprocessing_timestamp}
     private_structures_reprocessing_event_types:
-      value: '${timecmp(local.redis_reprocessing_timestamp, timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
+      value: '${timecmp(format("%s", local.redis_reprocessing_timestamp), timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
