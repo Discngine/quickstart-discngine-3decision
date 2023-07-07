@@ -367,7 +367,19 @@ data "local_file" "chart_version" {
 }
 
 locals {
+  # Update this list for any version of the 3decision helm chart needing reprocessing
+  public_interaction_registration_reprocessing_version_list = [
+    "2.3.1", "2.3.2"
+  ]
+}
+
+locals {
   version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
+
+  launch_public_interaction_registration_reprocessing = local.version_has_changed && contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
+}
+
+locals {
   connection_string   = "${var.db_endpoint}/${var.db_name}"
   values              = <<YAML
 oracle:
@@ -400,7 +412,7 @@ ingress:
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
-      value: ${local.version_has_changed ? formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "1h")) : "null"}
+      value: ${local.launch_public_interaction_registration_reprocessing ? formatdate("YYYY-MM-DD'T00:00:00'", timeadd(timestamp(), "24h")) : "null"}
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
