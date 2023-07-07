@@ -366,6 +366,36 @@ resource "null_resource" "get_chart_version" {
   }
 }
 
+resource "null_resource" "reuse_reprocessing_date" {
+  triggers = {
+    name       = var.tdecision_chart.name
+    repository = var.tdecision_chart.repository
+    chart      = var.tdecision_chart.chart
+    version    = var.tdecision_chart.version
+    namespace  = var.tdecision_chart.namespace
+    values     = local.values
+  }
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      datetime=$(helm get values -n ${var.tdecision_chart.namespace} ${var.tdecision_chart.name} | grep -A 1 public_interaction_registration_reprocessing_timestamp | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z')
+      current_timestamp=$(date -u +%s)
+      given_timestamp=$(date -u -d "$datetime" +%s)
+
+      if [ $given_timestamp -gt $current_timestamp ]; then
+        echo "The given date is in the future."
+        echo $datetime > public_interaction_registration_reprocessing_timestamp.txt
+      else
+        echo "The given date is not in the future."
+        echo "" > public_interaction_registration_reprocessing_timestamp.txt
+      fi
+    EOT
+  }
+}
+
 resource "null_resource" "get_redis_release_timestamp" {
   triggers = {
     id = helm_release.sentinel_release.id
@@ -402,16 +432,22 @@ data "local_file" "redis_release_timestamp" {
   depends_on = [null_resource.get_redis_release_timestamp]
 }
 
+data "local_file" "reprocessing_date" {
+  filename = "public_interaction_registration_reprocessing_timestamp.txt"
+
+  depends_on = [null_resource.reuse_reprocessing_date]
+}
+
 locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp       = timeadd(timestamp(), "24h")
+  reprocessing_timestamp       = chomp(local_file.reprocessing_date) != "" ? chomp(local_file.reprocessing_date) : timeadd(timestamp(), "24h")
   redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.redis_release_timestamp.content), "6h"))
 
   version_has_changed = chomp(data.local_file.chart_version.content) != var.tdecision_chart.version
 
-  launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
+  launch_public_interaction_registration_reprocessing = chomp(local_file.reprocessing_date) != "" || (local.version_has_changed && contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version))
 }
 
 locals {
