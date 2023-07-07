@@ -441,7 +441,7 @@ ingress:
   visibility: ${var.load_balancer_type}
   ui:
     host: ${var.main_subdomain}
-    additionalHosts: ${var.additional_main_subdomains}
+    additionalHosts: [${join(", ", var.additional_main_subdomains)}]
   api:
     host: ${var.api_subdomain}
   class: alb
