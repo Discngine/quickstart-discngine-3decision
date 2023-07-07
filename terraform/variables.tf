@@ -164,6 +164,11 @@ variable "main_subdomain" {
   description = "Name used for the main app subdomain"
 }
 
+variable "additional_main_subdomains" {
+  default = []
+  description = "Additional main subdomains that will redirect to the main_subdomain"
+}
+
 variable "api_subdomain" {
   default     = "3decision-api"
   description = "Name used for the api subdomain"

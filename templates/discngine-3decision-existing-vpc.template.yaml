@@ -49,6 +49,7 @@ Metadata:
           - DomainName
           - MainSubdomain
           - ApiSubdomain
+          - AdditionalMainSubdomains
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
@@ -120,6 +121,8 @@ Metadata:
         default: Subdomain name for app landing page
       ApiSubdomain:
         default: Subdomain of the api
+      AdditionalMainSubdomains:
+        default: Additional subdomains that will redirect to the landing page
       CertificateArn:
         default: Arn of a certificate
       LoadBalancerType:
@@ -300,6 +303,11 @@ Parameters:
     Default: "3decision-api"
     Description: "Required: Name used for the api subdomain"
     Type: String
+  AdditionalMainSubdomains:
+    Default: ""
+    Description: >
+      Optional: Additional subdomains that will redirect to the landing page.
+      Write this as: "subdomain", "subdomain".
   CertificateArn:
     Default: ""
     Description: "Optional: Arn of a certificate of the associated domain you want added to the load balancer"
@@ -688,6 +696,7 @@ Resources:
             certificate_arn = "${CertificateArn}"
             domain = "${DomainName}"
             main_subdomain = "${MainSubdomain}"
+            additional_main_subdomains = [${AdditionalMainSubdomains}]
             api_subdomain = "${ApiSubdomain}"
             hosted_zone_id = "${HostedZoneId}"
             azure_oidc = {
