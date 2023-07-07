@@ -308,6 +308,7 @@ Parameters:
     Description: >
       Optional: Additional subdomains that will redirect to the landing page.
       Write this as: "subdomain", "subdomain".
+    Type: String
   CertificateArn:
     Default: ""
     Description: "Optional: Arn of a certificate of the associated domain you want added to the load balancer"
