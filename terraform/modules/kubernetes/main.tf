@@ -405,9 +405,9 @@ locals {
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
   reprocessing_timestamp = timeadd(formatdate("YYYY-MM-DD'T'hh:mm:ss", timestamp()), "24h")
-  redis_reprocessing_timestamp = timeadd(formatdate("YYYY-MM-DD'T'hh:mm:ss", data.local_file.redis_release_timestamp.content), "6h")
+  redis_reprocessing_timestamp = timeadd(formatdate("YYYY-MM-DD'T'hh:mm:ss", chomp(data.local_file.redis_release_timestamp.content)), "6h")
 
-  version_has_changed    = data.local_file.chart_version.content != var.tdecision_chart.version
+  version_has_changed    = chomp(data.local_file.chart_version.content) != var.tdecision_chart.version
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
 }
