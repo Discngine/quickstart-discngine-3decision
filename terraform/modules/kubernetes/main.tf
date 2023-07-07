@@ -348,6 +348,9 @@ resource "helm_release" "reloader_chart" {
 ##############
 
 resource "null_resource" "get_chart_version" {
+  triggers = {
+    version = var.tdecision_chart.version
+  }
   provisioner "local-exec" {
     command = <<-EOT
       #!/bin/bash
@@ -376,12 +379,12 @@ locals {
 locals {
   version_has_changed = data.local_file.chart_version.content != var.tdecision_chart.version
 
-  launch_public_interaction_registration_reprocessing = local.version_has_changed && contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
+  launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
 }
 
 locals {
-  connection_string   = "${var.db_endpoint}/${var.db_name}"
-  values              = <<YAML
+  connection_string = "${var.db_endpoint}/${var.db_name}"
+  values            = <<YAML
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${var.db_endpoint}/
@@ -412,7 +415,8 @@ ingress:
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
-      value: ${local.launch_public_interaction_registration_reprocessing ? formatdate("YYYY-MM-DD'T00:00:00'", timeadd(timestamp(), "24h")) : "null"}
+      value: ${local.launch_public_interaction_registration_reprocessing ? formatdate("YYYY-MM-DD'T00:00:00'", timeadd(timestamp(), "24h")) : null}
+    test: ${format("%s", "null")}
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
