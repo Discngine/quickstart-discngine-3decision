@@ -318,11 +318,6 @@ resource "helm_release" "sentinel_release" {
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubernetes_config_map_v1_data.aws_auth
   ]
-  provisioner "local-exec" {
-    command     = "echo ${formatdate("YYYY-MM-DD'T22:00:00'", timeadd(timestamp(), "24h"))} > redis_timestamp.txt"
-    interpreter = ["bash", "-c"]
-    when        = "create"
-  }
 }
 
 resource "helm_release" "external_secrets_chart" {
@@ -368,6 +363,28 @@ resource "null_resource" "get_chart_version" {
   }
 }
 
+resource "null_resource" "get_redis_release_timestamp" {
+  triggers = {
+    id = helm_release.sentinel_release
+  }
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      revision=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].revision')
+
+      if [[ $revision -eq 1 ]]; then
+          timestamp=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].updated')
+      else
+          timestamp="2000-01-01T00:00:00"
+      fi
+      echo $timestamp > redis_release_date.txt
+    EOT
+  }
+}
+
 data "local_file" "chart_version" {
   filename = "chart_version.txt"
 
@@ -375,16 +392,18 @@ data "local_file" "chart_version" {
 }
 
 data "local_file" "redis_release_timestamp" {
-  filename = "redis_timestamp.txt"
+  filename = "redis_release_date.txt"
 
-  depends_on = [helm_release.sentinel_release]
+  depends_on = [null_resource.get_redis_release_timestamp]
 }
 
 locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "48h"))
+  reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(timestamp(), "24h"))
+  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ss", timeadd(data.local_file.redis_release_timestamp.content, "6h"))
+
   version_has_changed    = data.local_file.chart_version.content != var.tdecision_chart.version
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
@@ -420,15 +439,14 @@ ingress:
   api:
     host: ${var.api_subdomain}
   class: alb
-test: ${format("%s", "null")}
-test3: null
-test4: "null"
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
       value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
     redis_synchro_timestamp:
-      value: ${data.local_file.redis_release_timestamp.content}
+      value: ${local.redis_reprocessing_timestamp}
+    private_structures_reprocessing_event_types:
+      value: '${timecmp(redis_reprocessing_timestamp, timestamp()) < 1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : "null"}'
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
