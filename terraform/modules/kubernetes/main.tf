@@ -364,7 +364,7 @@ resource "null_resource" "get_chart_version" {
 
 resource "null_resource" "get_redis_release_timestamp" {
   triggers = {
-    id = helm_release.sentinel_release
+    id = helm_release.sentinel_release.id
   }
   provisioner "local-exec" {
     command = <<-EOT
