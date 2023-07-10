@@ -209,6 +209,7 @@ module "kubernetes" {
   certificate_arn          = var.certificate_arn
   domain                   = var.domain
   main_subdomain           = var.main_subdomain
+  additional_main_subdomains = var.additional_main_subdomains
   api_subdomain            = var.api_subdomain
   load_balancer_type       = var.load_balancer_type
   additional_eks_roles_arn = var.additional_eks_roles_arn

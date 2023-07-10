@@ -18,6 +18,7 @@ variable "google_oidc" {}
 variable "certificate_arn" {}
 variable "domain" {}
 variable "main_subdomain" {}
+variable "additional_main_subdomains" {}
 variable "api_subdomain" {}
 variable "load_balancer_type" {}
 variable "additional_eks_roles_arn" {}
