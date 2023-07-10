@@ -360,7 +360,7 @@ resource "time_static" "redis_timestamp" {}
 
 locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
-  public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
+  public_interaction_registration_reprocessing_version_list = ["2.3.2"]
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
