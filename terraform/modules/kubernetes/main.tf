@@ -372,48 +372,20 @@ resource "null_resource" "get_tdecision_current_version_timestamp" {
   }
 }
 
-resource "null_resource" "get_redis_release_timestamp" {
-  triggers = {
-    id = helm_release.redis_release.id
-  }
-  provisioner "local-exec" {
-    command = <<-EOT
-      #!/bin/bash
-      
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-      export KUBECONFIG=$HOME/.kube/config
-      revision=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].revision')
-      echo $revision
-
-      if [[ $revision -eq 1 ]]; then
-          timestamp=$(helm history ${var.redis_sentinel_chart.name} -n ${var.redis_sentinel_chart.namespace} --output=json | jq -r '.[0].updated')
-      else
-          timestamp="2000-01-01T00:00:00Z"
-      fi
-      echo $timestamp > redis_release_date.txt
-    EOT
-  }
-  depends_on = [helm_release.redis_release]
-}
-
 data "local_file" "tdecision_version_timestamp" {
   filename = "tdecision_release_date.txt"
 
   depends_on = [null_resource.get_tdecision_current_version_timestamp]
 }
 
-data "local_file" "redis_release_timestamp" {
-  filename = "redis_release_date.txt"
-
-  depends_on = [null_resource.get_redis_release_timestamp]
-}
+resource "time_static" "redis_timestamp" {}
 
 locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.tdecision_version_timestamp.content), "24h"))
-  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.redis_release_timestamp.content), "6h"))
+  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.tdecision_version_timestamp.content), "3h"))
+  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(time_static.redis_timestamp.rfc3339, "10m"))
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
 }
