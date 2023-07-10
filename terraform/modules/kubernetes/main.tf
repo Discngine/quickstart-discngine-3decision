@@ -366,6 +366,7 @@ resource "null_resource" "get_tdecision_current_version_timestamp" {
         echo "$current_date" > tdecision_release_date.txt
       else
         echo "$DATE" > tdecision_release_date.txt
+      fi
       cat tdecision_release_date.txt
     EOT
   }
