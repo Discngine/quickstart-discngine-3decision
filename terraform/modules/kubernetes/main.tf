@@ -308,7 +308,7 @@ resource "helm_release" "cert_manager_release" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
-resource "helm_release" "sentinel_release" {
+resource "helm_release" "redis_release" {
   name             = var.redis_sentinel_chart.name
   chart            = var.redis_sentinel_chart.chart
   namespace        = var.redis_sentinel_chart.namespace
@@ -374,7 +374,7 @@ resource "null_resource" "get_tdecision_current_version_timestamp" {
 
 resource "null_resource" "get_redis_release_timestamp" {
   triggers = {
-    id = helm_release.sentinel_release.id
+    id = helm_release.redis_release.id
   }
   provisioner "local-exec" {
     command = <<-EOT
@@ -393,7 +393,7 @@ resource "null_resource" "get_redis_release_timestamp" {
       echo $timestamp > redis_release_date.txt
     EOT
   }
-  depends_on = [helm_release.sentinel_release]
+  depends_on = [helm_release.redis_release]
 }
 
 data "local_file" "tdecision_version_timestamp" {
