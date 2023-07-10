@@ -308,7 +308,7 @@ resource "helm_release" "cert_manager_release" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
-resource "helm_release" "redis_release" {
+resource "helm_release" "sentinel_release" {
   name             = var.redis_sentinel_chart.name
   chart            = var.redis_sentinel_chart.chart
   namespace        = var.redis_sentinel_chart.namespace
@@ -350,32 +350,10 @@ resource "helm_release" "reloader_chart" {
 # APP CHARTS
 ##############
 
-resource "null_resource" "get_tdecision_current_version_timestamp" {
+resource "time_static" "tdecision_version_timestamp" {
   triggers = {
     version = var.tdecision_chart.version
   }
-  provisioner "local-exec" {
-    command = <<-EOT
-      #!/bin/bash
-      
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-      export KUBECONFIG=$HOME/.kube/config
-      current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-      DATE=$(helm history ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} --output=json | jq -r --arg version "${var.tdecision_chart.version}" 'map(select(.chart | contains($version))) | sort_by(.updated) | .[0].updated')
-      if [ -z "$DATE" ]; then
-        echo "$current_date" > tdecision_release_date.txt
-      else
-        echo "$DATE" > tdecision_release_date.txt
-      fi
-      cat tdecision_release_date.txt
-    EOT
-  }
-}
-
-data "local_file" "tdecision_version_timestamp" {
-  filename = "tdecision_release_date.txt"
-
-  depends_on = [null_resource.get_tdecision_current_version_timestamp]
 }
 
 resource "time_static" "redis_timestamp" {}
@@ -384,8 +362,8 @@ locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.1", "2.3.2"]
 
-  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(chomp(data.local_file.tdecision_version_timestamp.content), "3h"))
-  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(time_static.redis_timestamp.rfc3339, "10m"))
+  reprocessing_timestamp       = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h"))
+  redis_reprocessing_timestamp = formatdate("YYYY-MM-DD'T'hh:mm:ssZ", timeadd(time_static.redis_timestamp.rfc3339, "4h"))
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
 }
