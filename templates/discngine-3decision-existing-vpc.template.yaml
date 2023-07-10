@@ -673,7 +673,7 @@ Resources:
             sudo yum install jq -y
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
-            git checkout ${GitBranch}
+            git checkout ${GitBranch} && git pull
             cat > backend.conf << EOF
             region = "${AWS::Region}"
             bucket = "${Bucket}"
