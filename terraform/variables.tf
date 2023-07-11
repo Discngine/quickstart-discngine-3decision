@@ -164,6 +164,11 @@ variable "main_subdomain" {
   description = "Name used for the main app subdomain"
 }
 
+variable "additional_main_subdomains" {
+  default = []
+  description = "Additional main subdomains that will redirect to the main_subdomain"
+}
+
 variable "api_subdomain" {
   default     = "3decision-api"
   description = "Name used for the api subdomain"
@@ -186,7 +191,7 @@ variable "tdecision_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
     chart            = optional(string, "3decision-helm")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "2.3.0")
+    version          = optional(string, "2.3.2")
     create_namespace = optional(bool, true)
   })
   default = {}
