@@ -191,7 +191,7 @@ variable "tdecision_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
     chart            = optional(string, "3decision-helm")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "2.3.2")
+    version          = optional(string, "2.3.3")
     create_namespace = optional(bool, true)
   })
   default = {}
