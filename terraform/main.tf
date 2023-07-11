@@ -194,27 +194,27 @@ module "kubernetes" {
   source = "./modules/kubernetes"
 
   # Input
-  region                   = var.region
-  availability_zone_names  = local.availability_zone_names
-  account_id               = local.account_id
-  tdecision_chart          = var.tdecision_chart
-  choral_chart             = var.choral_chart
-  redis_sentinel_chart     = var.redis_sentinel_chart
-  cert_manager_chart       = var.cert_manager_chart
-  external_secrets_chart   = var.external_secrets_chart
-  reloader_chart           = var.reloader_chart
-  okta_oidc                = var.okta_oidc
-  azure_oidc               = var.azure_oidc
-  google_oidc              = var.google_oidc
-  certificate_arn          = var.certificate_arn
-  domain                   = var.domain
-  main_subdomain           = var.main_subdomain
+  region                     = var.region
+  availability_zone_names    = local.availability_zone_names
+  account_id                 = local.account_id
+  tdecision_chart            = var.tdecision_chart
+  choral_chart               = var.choral_chart
+  redis_sentinel_chart       = var.redis_sentinel_chart
+  cert_manager_chart         = var.cert_manager_chart
+  external_secrets_chart     = var.external_secrets_chart
+  reloader_chart             = var.reloader_chart
+  okta_oidc                  = var.okta_oidc
+  azure_oidc                 = var.azure_oidc
+  google_oidc                = var.google_oidc
+  certificate_arn            = var.certificate_arn
+  domain                     = var.domain
+  main_subdomain             = var.main_subdomain
   additional_main_subdomains = var.additional_main_subdomains
-  api_subdomain            = var.api_subdomain
-  load_balancer_type       = var.load_balancer_type
-  additional_eks_roles_arn = var.additional_eks_roles_arn
-  additional_eks_users_arn = var.additional_eks_users_arn
-  custom_ami               = var.custom_ami
+  api_subdomain              = var.api_subdomain
+  load_balancer_type         = var.load_balancer_type
+  additional_eks_roles_arn   = var.additional_eks_roles_arn
+  additional_eks_users_arn   = var.additional_eks_users_arn
+  custom_ami                 = var.custom_ami
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key
