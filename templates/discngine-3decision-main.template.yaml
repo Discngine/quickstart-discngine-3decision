@@ -529,6 +529,7 @@ Resources:
         OktaDomain: !Ref OktaDomain
         OktaServerId: !Ref OktaServerId
         GoogleClientId: !Ref GoogleClientId
+        GoogleSecret: !Ref GoogleSecret
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
