@@ -444,9 +444,10 @@ scientific_monolith:
   nodeSelector: null
 YAML
 
+  # This makes sure the helm chart is updated if we change the deletion script
   final_values = <<YAML
 ${local.values}
-aws_destroy_resources: ${null_resource.delete_resources}
+aws_destroy_resources: ${null_resource.delete_resources.id}
 YAML
 }
 
