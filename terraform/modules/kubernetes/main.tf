@@ -505,6 +505,7 @@ resource "null_resource" "delete_resources" {
         echo "not deleting oracle schema update job as it is still underway"
       fi
       kubectl delete deployments -n ${var.tdecision_chart.namespace} --all --force
+      echo "a"
     EOT
   }
 }
