@@ -76,6 +76,11 @@ Metadata:
           - OktaDomain
           - OktaServerId
       - Label:
+          default: Discngine 3decision google authentication configuration
+        Parameters:
+          - GoogleClientId
+          - GoogleSecret
+      - Label:
           default: AWS Quick Start configuration
         Parameters:
           - QSS3BucketName
@@ -164,6 +169,10 @@ Metadata:
         default: Okta domain
       OktaServerId:
         default: Okta server id
+      GoogleClientId:
+        default: Google app client id
+      GoogleSecret:
+        default: Google app secret
 Parameters:
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
@@ -432,6 +441,17 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if okta client id variable is set.
                   Server Id of the okta environment"
+  GoogleClientId:
+    Type: String
+    Default: ""
+    Description: "Optional: Will enable google authentication if set.
+                  Client ID of the google app"
+  GoogleSecret:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if google client id variable is set.
+                  Secret of the google app"
+
 Rules:
   DiscngineSupportedRegionRule:
     Assertions:
@@ -508,6 +528,7 @@ Resources:
         OktaSecret: !Ref OktaSecret
         OktaDomain: !Ref OktaDomain
         OktaServerId: !Ref OktaServerId
+        GoogleClientId: !Ref GoogleClientId
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
