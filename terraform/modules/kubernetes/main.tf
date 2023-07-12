@@ -383,12 +383,12 @@ volumes:
         awsElasticBlockStore:
           fsType: ext4
           volumeID: ${var.public_volume_id}
-          availabilityZone: eu-central-1a
+          availabilityZone: ${var.availability_zone_names[0]}
       privatedata:
         awsElasticBlockStore:
           fsType: ext4
           volumeID: ${var.private_volume_id}
-          availabilityZone: eu-central-1a
+          availabilityZone: ${var.availability_zone_names[0]}
 ingress:
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}
@@ -505,7 +505,6 @@ resource "null_resource" "delete_resources" {
         echo "not deleting oracle schema update job as it is still underway"
       fi
       kubectl delete deployments -n ${var.tdecision_chart.namespace} --all --force
-      echo "a"
     EOT
   }
 }
