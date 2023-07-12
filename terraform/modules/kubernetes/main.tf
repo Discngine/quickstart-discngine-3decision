@@ -406,7 +406,7 @@ nest:
     redis_synchro_timestamp:
       value: ${local.redis_reprocessing_timestamp}
     private_structures_reprocessing_event_types:
-      value: ${timecmp(local.redis_reprocessing_timestamp, timestamp()) > -1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : format("%s", "null")}
+      value: rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
