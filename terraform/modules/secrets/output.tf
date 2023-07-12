@@ -6,7 +6,6 @@ output "jwt_public_key" {
 
 output "jwt_private_key" {
   value     = tls_private_key.jwt_key.private_key_pem
-  sensitive = true
 }
 
 output "secrets_lambda_security_group_id" {

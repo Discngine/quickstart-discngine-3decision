@@ -272,7 +272,6 @@ variable "okta_oidc" {
     secret    = ""
   }
   description = "Okta Client ID for OKTA integration"
-  sensitive   = true
 }
 
 variable "azure_oidc" {
@@ -282,7 +281,6 @@ variable "azure_oidc" {
     tenant    = ""
     secret    = ""
   }
-  sensitive = true
 }
 
 variable "google_oidc" {
@@ -291,7 +289,6 @@ variable "google_oidc" {
     client_id = "none"
     secret    = ""
   }
-  sensitive = true
 }
 
 ###########
