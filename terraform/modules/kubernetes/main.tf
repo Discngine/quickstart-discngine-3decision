@@ -443,6 +443,11 @@ pocket_features:
 scientific_monolith:
   nodeSelector: null
 YAML
+
+  final_values = <<YAML
+${local.values}
+aws_destroy_resources: ${null_resource.delete_resources}
+YAML
 }
 
 resource "helm_release" "tdecision_chart" {
@@ -452,7 +457,7 @@ resource "helm_release" "tdecision_chart" {
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
   timeout    = 1200
-  values     = [local.values]
+  values     = [local.final_values]
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     helm_release.cert_manager_release,
