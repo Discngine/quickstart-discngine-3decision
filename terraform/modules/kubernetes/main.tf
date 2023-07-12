@@ -484,7 +484,12 @@ resource "helm_release" "tdecision_chart" {
 
 resource "null_resource" "delete_resources" {
   triggers = {
+    name       = var.tdecision_chart.name
+    repository = var.tdecision_chart.repository
+    chart      = var.tdecision_chart.chart
     version    = var.tdecision_chart.version
+    namespace  = var.tdecision_chart.namespace
+    values     = local.values
   }
 
   provisioner "local-exec" {
