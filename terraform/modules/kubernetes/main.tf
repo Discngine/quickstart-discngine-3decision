@@ -370,7 +370,7 @@ locals {
 
 locals {
   connection_string = "${var.db_endpoint}/${var.db_name}"
-  values            = <<EOF
+  values            = <<YAML
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${var.db_endpoint}/
@@ -442,13 +442,13 @@ pocket_features:
   nodeSelector: null
 scientific_monolith:
   nodeSelector: null
-EOF
+YAML
 
   # This makes sure the helm chart is updated if we change the deletion script
-  final_values = <<EOF
+  final_values = <<YAML
 ${local.values}
 aws_destroy_resources: ${null_resource.delete_resources.id}
-EOF
+YAML
 }
 
 resource "helm_release" "tdecision_chart" {
