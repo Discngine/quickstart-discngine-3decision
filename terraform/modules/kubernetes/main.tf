@@ -406,14 +406,14 @@ nest:
     redis_synchro_timestamp:
       value: ${local.redis_reprocessing_timestamp}
     private_structures_reprocessing_event_types:
-      value: '${timecmp(local.redis_reprocessing_timestamp, timestamp()) > -1 ? "rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration" : format("%s", "null")}'
+      value: rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
       value: ${var.okta_oidc.client_id}
     okta_redirect_uri:
       name: OKTA_REDIRECT_URI
-      value: "https://${var.api_subdomain}.${var.domain}/auth/okta/callback"
+      value: https://${var.api_subdomain}.${var.domain}/auth/okta/callback
     azure_client_id:
       name: AZURE_CLIENT_ID
       value: ${var.azure_oidc.client_id}
@@ -443,6 +443,12 @@ pocket_features:
 scientific_monolith:
   nodeSelector: null
 YAML
+
+  # This makes sure the helm chart is updated if we change the deletion script
+  final_values = <<YAML
+${local.values}
+aws_destroy_resources: ${null_resource.delete_resources.id}
+YAML
 }
 
 resource "helm_release" "tdecision_chart" {
@@ -452,7 +458,7 @@ resource "helm_release" "tdecision_chart" {
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
   timeout    = 1200
-  values     = [local.values]
+  values     = [local.final_values]
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     helm_release.cert_manager_release,
