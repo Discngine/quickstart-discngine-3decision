@@ -72,6 +72,11 @@ Metadata:
           - OktaSecret
           - OktaDomain
           - OktaServerId
+      - Label:
+          default: Discngine 3decision google authentication configuration
+        Parameters:
+          - GoogleClientId
+          - GoogleSecret
     ParameterLabels:
       ExecutionAmiId:
         default: AMI id for infrastructure updates
@@ -141,6 +146,10 @@ Metadata:
         default: Okta domain
       OktaServerId:
         default: Okta server id
+      GoogleClientId:
+        default: Google app client id
+      GoogleSecret:
+        default: Google app secret
 Parameters:
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
@@ -356,6 +365,17 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if okta client id variable is set.
                   Server Id of the okta environment"
+  GoogleClientId:
+    Type: String
+    Default: ""
+    Description: "Optional: Will enable google authentication if set.
+                  Client ID of the google app"
+  GoogleSecret:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if google client id variable is set.
+                  Secret of the google app"
+
 
 Rules:
   DiscngineSupportedRegionRule:
@@ -372,6 +392,7 @@ Conditions:
   UseLatestAMI: !Equals [!Ref ExecutionAmiId, ""]
   AzureUnused: !Equals [!Ref AzureClientId, ""]
   OktaUnused: !Equals [!Ref OktaClientId, ""]
+  GoogleUnused: !Equals [!Ref GoogleClientId, ""]
   LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
 Resources:
   Role:
@@ -708,8 +729,8 @@ Resources:
               secret    = "${OktaSecret}"
             }
             google_oidc = {
-              client_id = "none"
-              secret    = ""
+              client_id = "${GoogleClient}"
+              secret    = "${GoogleSecret}"
             }
             public_volume_snapshot = ""
             private_volume_snapshot = ""
@@ -732,6 +753,7 @@ Resources:
             terraform init -backend-config=backend.conf -reconfigure -upgrade
             terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
+            GoogleClient: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
             AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
             Bucket: !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
             TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
