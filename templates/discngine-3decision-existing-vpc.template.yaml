@@ -418,6 +418,8 @@ Conditions:
   OktaUnused: !Equals [!Ref OktaClientId, ""]
   GoogleUnused: !Equals [!Ref GoogleClientId, ""]
   LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
+  CreateFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "true"]
+  PreventDestroy: !Equals [!Ref PreventDestroy, "true"]
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -724,7 +726,7 @@ Resources:
             cat > vars.tfvars << EOF
             region = "${AWS::Region}"
             keypair_name = "${KeyPairName}"
-            force_destroy = ${PreventDestroy}
+            force_destroy = ${ForceDestroy}
             public_final_snapshot = ${CreateFinalSnapshot}
             private_final_snapshot = ${CreateFinalSnapshot}
             skip_db_final_snapshot = ${SkipFinalSnapshot}
@@ -782,8 +784,8 @@ Resources:
             AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
             Bucket: !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
             TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
-            SkipFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "false"]
-            PreventDestroy: !Equals [!Ref PreventDestroy, "false"]
+            SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
+            ForceDestroy: !Equals [PreventDestroy, "false", "true"]
             
         workingDirectory:
         - "/opt/dng"
