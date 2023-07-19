@@ -785,7 +785,7 @@ Resources:
             Bucket: !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
             TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
             SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
-            ForceDestroy: !Equals [PreventDestroy, "false", "true"]
+            ForceDestroy: !If [PreventDestroy, "false", "true"]
             
         workingDirectory:
         - "/opt/dng"
