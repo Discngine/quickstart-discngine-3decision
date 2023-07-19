@@ -712,6 +712,7 @@ Resources:
         - !Sub 
           - |
             #!/bin/bash
+            chown -R root:root /opt/dng/
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
             git checkout ${GitBranch} && git pull
