@@ -777,8 +777,6 @@ Resources:
             }
             EOF
 
-            terraform init -backend-config=backend.conf -reconfigure -upgrade
-            terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
             GoogleClient: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
             AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
