@@ -714,7 +714,7 @@ Resources:
         - !Sub 
           - |
             #!/bin/bash
-            chown -R root:root /opt/dng/
+            sudo chown -R root:root /opt/dng/
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
             git checkout ${GitBranch} && git pull
@@ -776,6 +776,8 @@ Resources:
               namespace = "${TdecisionNamespace}"
             }
             EOF
+            terraform init -backend-config=backend.conf -reconfigure -upgrade
+            terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
 
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
             GoogleClient: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
