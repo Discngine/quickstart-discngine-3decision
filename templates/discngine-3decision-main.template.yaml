@@ -14,6 +14,8 @@ Metadata:
           default: Infrastructure deployment configuration
         Parameters:
           - StackOperation
+          - PreventDestroy
+          - CreateFinalSnapshot
           - ExecutionAmiId
           - ExecutionRoleName
           - BucketName
@@ -87,12 +89,16 @@ Metadata:
           - QSS3BucketRegion
           - QSS3KeyPrefix
     ParameterLabels:
+      StackOperation:
+        default: Whether to apply (create/update) or destroy the resources
+      PreventDestroy:
+        default: Whether to prevent destruction of terraform bucket and database
+      CreateFinalSnapshot:
+        default: Whether to create final snapshot when deleting the database and volumes
       ExecutionAmiId:
         default: AMI id for infrastructure updates
       ExecutionRoleName:
         default: Name of role creating the infrastructure
-      StackOperation:
-        default: Whether to apply (create/update) or destroy the ressources
       BucketName:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
@@ -181,6 +187,24 @@ Parameters:
     AllowedValues:
       - apply
       - destroy
+  PreventDestroy:
+    Description: >
+      Whether to prevent the deletion of the database and data bucket.
+      This has to be set to false and applied before deletion if you wish to destroy all ressources.
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  CreateFinalSnapshot:
+    Description: >
+      Whether to create a snapshot of the database and data sensitive volumes when deleting the stack.
+      Note this does slow down deletion considerably and will incur cost after deletion if not cleaned up afterwards.
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
   ExecutionAmiId:
     Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
     Type: String
@@ -507,6 +531,15 @@ Resources:
         PrivateSubnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
+        StackOperation: !Ref StackOperation
+        PreventDestroy: !Ref PreventDestroy
+        CreateFinalSnapshot: !Ref CreateFinalSnapshot
+        ExecutionAmiId: !Ref ExecutionAmiId
+        ExecutionRoleName: !Ref ExecutionRoleName
+        BucketName: !Ref BucketName
+        GitBranch: !Ref GitBranch
+        TdecisionVersion: !Ref TdecisionVersion
+        TdecisionNamespace: !Ref TdecisionNamespace
         DBInstanceClass: !Ref DBInstanceClass
         DBMultiZone: !Ref DBMultiZone
         HostedZoneId: !Ref HostedZoneId
@@ -533,10 +566,3 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
-        ExecutionAmiId: !Ref ExecutionAmiId
-        ExecutionRoleName: !Ref ExecutionRoleName
-        StackOperation: !Ref StackOperation
-        BucketName: !Ref BucketName
-        GitBranch: !Ref GitBranch
-        TdecisionVersion: !Ref TdecisionVersion
-        TdecisionNamespace: !Ref TdecisionNamespace

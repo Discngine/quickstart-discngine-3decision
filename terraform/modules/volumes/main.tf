@@ -19,6 +19,9 @@ resource "aws_ebs_volume" "public_data" {
   lifecycle {
     ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id]
   }
+  timeouts {
+    delete = "60m"
+  }
 }
 
 resource "aws_ebs_volume" "private_data" {
@@ -33,5 +36,8 @@ resource "aws_ebs_volume" "private_data" {
   }
   lifecycle {
     ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id]
+  }
+  timeouts {
+    delete = "60m"
   }
 }
