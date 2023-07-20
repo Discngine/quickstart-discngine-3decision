@@ -531,6 +531,15 @@ Resources:
         PrivateSubnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
+        StackOperation: !Ref StackOperation
+        PreventDestroy: !Ref PreventDestroy
+        CreateFinalSnapshot: !Ref CreateFinalSnapshot
+        ExecutionAmiId: !Ref ExecutionAmiId
+        ExecutionRoleName: !Ref ExecutionRoleName
+        BucketName: !Ref BucketName
+        GitBranch: !Ref GitBranch
+        TdecisionVersion: !Ref TdecisionVersion
+        TdecisionNamespace: !Ref TdecisionNamespace
         DBInstanceClass: !Ref DBInstanceClass
         DBMultiZone: !Ref DBMultiZone
         HostedZoneId: !Ref HostedZoneId
@@ -557,10 +566,3 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
-        ExecutionAmiId: !Ref ExecutionAmiId
-        ExecutionRoleName: !Ref ExecutionRoleName
-        StackOperation: !Ref StackOperation
-        BucketName: !Ref BucketName
-        GitBranch: !Ref GitBranch
-        TdecisionVersion: !Ref TdecisionVersion
-        TdecisionNamespace: !Ref TdecisionNamespace
