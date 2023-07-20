@@ -3,7 +3,7 @@ region = "eu-central-1"
 
 # Set to false will prevent destruction of RDS database & S3 buckets on stack destruction
 # This will result in errors if you try to destroy the environment without reapplying after changing this
-force_destroy = true
+force_destroy = false
 
 # Set a name to add a key to nodes
 keypair_name = null

@@ -14,6 +14,8 @@ Metadata:
           default: Infrastructure deployment configuration
         Parameters:
           - StackOperation
+          - PreventDestroy
+          - CreateFinalSnapshot
           - ExecutionAmiId
           - ExecutionRoleName
           - BucketName
@@ -78,12 +80,16 @@ Metadata:
           - GoogleClientId
           - GoogleSecret
     ParameterLabels:
+      StackOperation:
+        default: Whether to apply (create/update) or destroy the resources
+      PreventDestroy:
+        default: Whether to prevent destruction of terraform bucket and database
+      CreateFinalSnapshot:
+        default: Whether to create final snapshot when deleting the database and volumes
       ExecutionAmiId:
         default: AMI id for infrastructure updates
       ExecutionRoleName:
         default: Name of role creating the infrastructure
-      StackOperation:
-        default: Whether to apply (create/update) or destroy the ressources
       BucketName:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
@@ -158,6 +164,24 @@ Parameters:
     AllowedValues:
       - apply
       - destroy
+  PreventDestroy:
+    Description: >
+      Whether to prevent the deletion of the database and data bucket.
+      This has to be set to false and applied before deletion if you wish to destroy all ressources.
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  CreateFinalSnapshot:
+    Description: >
+      Whether to create a snapshot of the database and data sensitive volumes when deleting the stack.
+      Note this does slow down deletion considerably and will incur cost after deletion if not cleaned up afterwards.
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
   ExecutionAmiId:
     Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
     Type: String
@@ -394,6 +418,8 @@ Conditions:
   OktaUnused: !Equals [!Ref OktaClientId, ""]
   GoogleUnused: !Equals [!Ref GoogleClientId, ""]
   LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
+  CreateFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "true"]
+  PreventDestroy: !Equals [!Ref PreventDestroy, "true"]
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -688,6 +714,7 @@ Resources:
         - !Sub 
           - |
             #!/bin/bash
+            sudo chown -R root:root /opt/dng/
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
             git checkout ${GitBranch} && git pull
@@ -699,10 +726,10 @@ Resources:
             cat > vars.tfvars << EOF
             region = "${AWS::Region}"
             keypair_name = "${KeyPairName}"
-            force_destroy = true
-            public_final_snapshot = false
-            private_final_snapshot = false
-            skip_db_final_snapshot = true
+            force_destroy = ${ForceDestroy}
+            public_final_snapshot = ${CreateFinalSnapshot}
+            private_final_snapshot = ${CreateFinalSnapshot}
+            skip_db_final_snapshot = ${SkipFinalSnapshot}
             create_network = false
             vpc_id = "${VPCID}"
             private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
@@ -749,14 +776,16 @@ Resources:
               namespace = "${TdecisionNamespace}"
             }
             EOF
-
             terraform init -backend-config=backend.conf -reconfigure -upgrade
             terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
+
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
             GoogleClient: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
             AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
             Bucket: !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
             TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
+            SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
+            ForceDestroy: !If [PreventDestroy, "false", "true"]
             
         workingDirectory:
         - "/opt/dng"
