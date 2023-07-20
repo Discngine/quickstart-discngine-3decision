@@ -60,6 +60,9 @@ resource "aws_db_instance" "db_instance" {
       restore_to_point_in_time
     ]
   }
+  timeouts {
+    delete = "120m"
+  }
 }
 
 resource "aws_db_parameter_group" "db_param_group" {
