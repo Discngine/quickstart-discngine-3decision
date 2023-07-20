@@ -53,6 +53,7 @@ resource "null_resource" "delete_aws_auth" {
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl -n kube-system delete configmap aws-auth --force
+      exit 0
     EOT
   }
 }
