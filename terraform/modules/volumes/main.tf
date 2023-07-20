@@ -12,7 +12,7 @@ resource "aws_ebs_volume" "public_data" {
   snapshot_id       = var.public_volume_snapshot != "" ? var.public_volume_snapshot : lookup(local.public_snapshot, var.region)
   final_snapshot    = var.public_final_snapshot
   type              = "gp2"
-  encrypted         = false
+  encrypted         = true
   tags = {
     Name = "3decision-public-data"
   }
