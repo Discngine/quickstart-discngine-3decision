@@ -189,7 +189,7 @@ Parameters:
       - destroy
   PreventDestroy:
     Description: >
-      Whether to prevent the deletion of the database and bucket containing redis data.
+      Whether to prevent the deletion of the database and data bucket.
       This has to be set to false and applied before deletion if you wish to destroy all ressources.
     Type: String
     Default: "true"
@@ -198,7 +198,7 @@ Parameters:
       - "false"
   CreateFinalSnapshot:
     Description: >
-      Whether to create a snapshot of the database and public / private volumes when deleting the stack.
+      Whether to create a snapshot of the database and data sensitive volumes when deleting the stack.
       Note this does slow down deletion considerably and will incur cost after deletion if not cleaned up afterwards.
     Type: String
     Default: "true"
