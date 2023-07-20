@@ -35,4 +35,3 @@ variable "db_endpoint" {}
 variable "cluster_name" {}
 variable "eks_oidc_issuer" {}
 variable "node_group_role_arn" {}
-variable "node_group_id" {}

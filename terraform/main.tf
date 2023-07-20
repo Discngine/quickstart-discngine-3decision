@@ -230,7 +230,6 @@ module "kubernetes" {
   cluster_name            = module.eks.cluster_name
   eks_oidc_issuer         = module.eks.oidc_issuer
   node_group_role_arn     = module.eks.node_group_role_arn
-  node_group_id           = module.eks.node_group_id
 
   depends_on = [module.eks]
 }
