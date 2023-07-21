@@ -746,8 +746,6 @@ Resources:
             public_final_snapshot = ${CreateFinalSnapshot}
             private_final_snapshot = ${CreateFinalSnapshot}
             skip_db_final_snapshot = ${SkipFinalSnapshot}
-            public_volume_snapshot = "${PublicVolumeSnapshotId}"
-            private_volume_snapshot = "${PrivateVolumeSnapshotId}"
             create_network = false
             vpc_id = "${VPCID}"
             private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
@@ -777,8 +775,8 @@ Resources:
               client_id = "${GoogleClient}"
               secret    = "${GoogleSecret}"
             }
-            public_volume_snapshot = ""
-            private_volume_snapshot = ""
+            public_volume_snapshot = "${PublicVolumeSnapshotId}"
+            private_volume_snapshot = "${PrivateVolumeSnapshotId}"
 
             kubernetes_version = "${KubernetesVersion}"
             db_instance_type = "${DBInstanceClass}"
