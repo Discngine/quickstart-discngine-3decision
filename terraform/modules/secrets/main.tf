@@ -47,6 +47,19 @@ resource "aws_s3_object" "object" {
   source_hash = filemd5("${path.root}/function/package.zip")
 }
 
+# This is created to prevent the fact that the lambda resource sometimes randomly fails with error
+# InsufficientRolePermissions: The function's execution role doesn't have permission to perform this operation
+resource "time_sleep" "wait_1_minute" {
+  depends_on = [
+    aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
+  ]
+  create_duration = "1m"
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
 resource "aws_lambda_function" "secret_rotator_lambda" {
   function_name = "3decision-rotator-lambda"
 
@@ -73,7 +86,8 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
+    aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment,
+    time_sleep.wait_1_minute
   ]
 }
 
