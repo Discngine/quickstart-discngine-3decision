@@ -411,11 +411,15 @@ Parameters:
   PublicVolumeSnapshotId:
     Type: String
     Default: ""
-    Description: "Optional: Snapshot id of the public volume to recover."
+    Description: >
+      Optional: Snapshot id of the public volume to recover.
+      This is only used on volume creation.
   PrivateVolumeSnapshotId:
     Type: String
     Default: ""
-    Description: "Optional: Snapshot id of the private volume to recover."
+    Description: >
+      Optional: Snapshot id of the private volume to recover.
+      This is only used on volume creation.
 
 Rules:
   DiscngineSupportedRegionRule:
