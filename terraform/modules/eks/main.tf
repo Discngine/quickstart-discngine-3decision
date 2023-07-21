@@ -160,7 +160,7 @@ resource "aws_eks_node_group" "node_group" {
     id      = aws_launch_template.EKSLaunchTemplate.id
     version = aws_launch_template.EKSLaunchTemplate.latest_version
   }
-
+  force_update_version = true
   subnet_ids = var.private_subnet_ids
 }
 
