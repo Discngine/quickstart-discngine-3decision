@@ -83,6 +83,11 @@ Metadata:
           - GoogleClientId
           - GoogleSecret
       - Label:
+          default: Disaster Recovery specific parameters
+        Parameters:
+          - PublicVolumeSnapshotId
+          - PrivateVolumeSnapshotId
+      - Label:
           default: AWS Quick Start configuration
         Parameters:
           - QSS3BucketName
@@ -179,6 +184,10 @@ Metadata:
         default: Google app client id
       GoogleSecret:
         default: Google app secret
+      PublicVolumeSnapshotId:
+        default: Snapshot id of the public volume to recover
+      PrivateVolumeSnapshotId:
+        default: Snapshot id of the private volume to recover
 Parameters:
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
@@ -475,6 +484,14 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if google client id variable is set.
                   Secret of the google app"
+  PublicVolumeSnapshotId:
+    Type: String
+    Default: ""
+    Description: "Optional: Snapshot id of the public volume to recover."
+  PrivateVolumeSnapshotId:
+    Type: String
+    Default: ""
+    Description: "Optional: Snapshot id of the private volume to recover."
 
 Rules:
   DiscngineSupportedRegionRule:
@@ -566,3 +583,5 @@ Resources:
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
         AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
+        PublicVolumeSnapshotId: !Ref PublicVolumeSnapshotId
+        PrivateVolumeSnapshotId: !Ref PrivateVolumeSnapshotId
