@@ -79,6 +79,11 @@ Metadata:
         Parameters:
           - GoogleClientId
           - GoogleSecret
+      - Label:
+          default: Disaster Recovery specific parameters
+        Parameters:
+          - PublicVolumeSnapshotId
+          - PrivateVolumeSnapshotId
     ParameterLabels:
       StackOperation:
         default: Whether to apply (create/update) or destroy the resources
@@ -156,6 +161,10 @@ Metadata:
         default: Google app client id
       GoogleSecret:
         default: Google app secret
+      PublicVolumeSnapshotId:
+        default: Snapshot id of the public volume to recover
+      PrivateVolumeSnapshotId:
+        default: Snapshot id of the private volume to recover
 Parameters:
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
@@ -399,7 +408,14 @@ Parameters:
     Default: ""
     Description: "Conditional: Should be given if google client id variable is set.
                   Secret of the google app"
-
+  PublicVolumeSnapshotId:
+    Type: String
+    Default: ""
+    Description: "Optional: Snapshot id of the public volume to recover."
+  PrivateVolumeSnapshotId:
+    Type: String
+    Default: ""
+    Description: "Optional: Snapshot id of the private volume to recover."
 
 Rules:
   DiscngineSupportedRegionRule:
@@ -730,6 +746,8 @@ Resources:
             public_final_snapshot = ${CreateFinalSnapshot}
             private_final_snapshot = ${CreateFinalSnapshot}
             skip_db_final_snapshot = ${SkipFinalSnapshot}
+            public_volume_snapshot = "${PublicVolumeSnapshotId}"
+            private_volume_snapshot = "${PrivateVolumeSnapshotId}"
             create_network = false
             vpc_id = "${VPCID}"
             private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
