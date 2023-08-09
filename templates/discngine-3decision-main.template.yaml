@@ -13,6 +13,7 @@ Metadata:
       - Label:
           default: Infrastructure deployment configuration
         Parameters:
+          - RelaunchTerraform
           - StackOperation
           - PreventDestroy
           - CreateFinalSnapshot
@@ -64,6 +65,8 @@ Metadata:
           - DBSnapshotIdentifier
           - DBInstanceClass
           - DBMultiZone
+          - DBBackupRetentionPeriod
+          - DBDeleteAutoBackups
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -94,12 +97,14 @@ Metadata:
           - QSS3BucketRegion
           - QSS3KeyPrefix
     ParameterLabels:
+      RelaunchTerraform:
+        default: Relaunch terraform operation
       StackOperation:
-        default: Whether to apply (create/update) or destroy the resources
+        default: Terraform stack operation
       PreventDestroy:
-        default: Whether to prevent destruction of terraform bucket and database
+        default: Prevent destruction of resources
       CreateFinalSnapshot:
-        default: Whether to create final snapshot when deleting the database and volumes
+        default: Create final snapshot when deleting the database and volumes
       ExecutionAmiId:
         default: AMI id for infrastructure updates
       ExecutionRoleName:
@@ -152,6 +157,10 @@ Metadata:
         default: Instance type of the database
       DBMultiZone:
         default: Whether the DB is highly available
+      DBBackupRetentionPeriod:
+        default: Time to keep DB backups
+      DBDeleteAutoBackups:
+        default: Whether to delete automatic backups when deleting the database
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -189,6 +198,10 @@ Metadata:
       PrivateVolumeSnapshotId:
         default: Snapshot id of the private volume to recover
 Parameters:
+  RelaunchTerraform:
+    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without changing any other app specific parameters."
+    Type: String
+    Default: ""
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
@@ -392,6 +405,17 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'false'
+  DBBackupRetentionPeriod:
+    Default: 7
+    Description: "Required: The days to retain backups for. Must be between 0 and 35. If set to 0, automatic backups are disabled."
+    Type: Number
+    MinValue: 0
+    MaxValue: 35
+  DBDeleteAutoBackups:
+    Description: "Required: Whether to delete all created automated backups when deleting the database."
+    Type: String
+    AllowedValues: [ 'true', 'false' ]
+    Default: 'true'
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -548,6 +572,7 @@ Resources:
         PrivateSubnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
+        RelaunchTerraform: !Ref RelaunchTerraform
         StackOperation: !Ref StackOperation
         PreventDestroy: !Ref PreventDestroy
         CreateFinalSnapshot: !Ref CreateFinalSnapshot
@@ -570,6 +595,8 @@ Resources:
         NodeVolumeSize: !Ref NodeVolumeSize
         LoadBalancerType: !Ref LoadBalancerType
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
+        DBDeleteAutoBackups: !Ref DBDeleteAutoBackups
+        DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
         CustomAmiId: !Ref CustomAmiId
         AzureClientId: !Ref AzureClientId
         AzureTenant: !Ref AzureTenant
