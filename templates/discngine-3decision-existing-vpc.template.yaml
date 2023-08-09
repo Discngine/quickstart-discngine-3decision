@@ -330,6 +330,7 @@ Parameters:
     MaxValue: 35
   DBDeleteAutoBackups:
     Description: "Required: Whether to delete all created automated backups when deleting the database."
+    Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
   AdditionalEKSAdminUserArn:
