@@ -117,6 +117,11 @@ variable "db_backup_retention_period" {
   description = "Number of days to keep database backups"
 }
 
+variable "db_delete_automated_backups" {
+  default     = true
+  description = "Whether to delete automated backups when the db instance is deleted"
+}
+
 variable "license_type" {
   default     = "license-included"
   description = "Whether the oracle license is BYOL or included"
@@ -165,7 +170,7 @@ variable "main_subdomain" {
 }
 
 variable "additional_main_subdomains" {
-  default = []
+  default     = []
   description = "Additional main subdomains that will redirect to the main_subdomain"
 }
 
@@ -191,7 +196,7 @@ variable "tdecision_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
     chart            = optional(string, "3decision-helm")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "2.3.3")
+    version          = optional(string, "2.3.4")
     create_namespace = optional(bool, true)
   })
   default = {}

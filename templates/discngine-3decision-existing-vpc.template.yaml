@@ -13,6 +13,7 @@ Metadata:
       - Label:
           default: Infrastructure deployment configuration
         Parameters:
+          - RelaunchTerraform
           - StackOperation
           - PreventDestroy
           - CreateFinalSnapshot
@@ -61,6 +62,8 @@ Metadata:
           - DBSnapshotIdentifier
           - DBInstanceClass
           - DBMultiZone
+          - DBBackupRetentionPeriod
+          - DBDeleteAutoBackups
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -85,12 +88,14 @@ Metadata:
           - PublicVolumeSnapshotId
           - PrivateVolumeSnapshotId
     ParameterLabels:
+      RelaunchTerraform:
+        default: Relaunch terraform operation
       StackOperation:
-        default: Whether to apply (create/update) or destroy the resources
+        default: Terraform stack operation
       PreventDestroy:
-        default: Whether to prevent destruction of terraform bucket and database
+        default: Prevent destruction of resources
       CreateFinalSnapshot:
-        default: Whether to create final snapshot when deleting the database and volumes
+        default: Create final snapshot when deleting the database and volumes
       ExecutionAmiId:
         default: AMI id for infrastructure updates
       ExecutionRoleName:
@@ -129,6 +134,10 @@ Metadata:
         default: Instance type of the database
       DBMultiZone:
         default: Whether the DB is highly available
+      DBBackupRetentionPeriod:
+        default: Time to keep DB backups
+      DBDeleteAutoBackups:
+        default: Whether to delete automatic backups when deleting the database
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -166,6 +175,10 @@ Metadata:
       PrivateVolumeSnapshotId:
         default: Snapshot id of the private volume to recover
 Parameters:
+  RelaunchTerraform:
+    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without changing any other app specific parameters."
+    Type: String
+    Default: ""
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
@@ -316,6 +329,17 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'false'
+  DBBackupRetentionPeriod:
+    Default: 7
+    Description: "Required: The days to retain backups for. Must be between 0 and 35. If set to 0, automatic backups are disabled."
+    Type: Number
+    MinValue: 0
+    MaxValue: 35
+  DBDeleteAutoBackups:
+    Description: "Required: Whether to delete all created automated backups when deleting the database."
+    Type: String
+    AllowedValues: [ 'true', 'false' ]
+    Default: 'true'
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -454,11 +478,10 @@ Resources:
     Properties:
       AssumeRolePolicyDocument:
         Statement:
-          - Action: 'sts:AssumeRole'
+          - Effect: Allow
             Principal:
               Service: !Sub ec2.${AWS::URLSuffix}
-            Effect: Allow
-            Sid: ''
+            Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2FullAccess
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AWSCloudFormationFullAccess
@@ -662,8 +685,7 @@ Resources:
               mode: '000755'
               owner: root
               group: root
-              content:
-                !Sub |
+              content: |
                   sudo yum install git -y
 
                   mkdir -p /opt/dng
@@ -681,7 +703,7 @@ Resources:
                   unzip terraform_1.4.6_linux_amd64.zip
                   sudo mv terraform /usr/local/bin
 
-                  git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
+                  git clone https://github.com/Discngine/quickstart-discngine-3decision.git
     Properties:
       ImageId: !If [UseLatestAMI, '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
       InstanceType: t2.micro
@@ -734,6 +756,8 @@ Resources:
         - !Sub 
           - |
             #!/bin/bash
+
+            echo ${RelaunchTerraform} > /dev/null
             sudo chown -R root:root /opt/dng/
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
@@ -756,7 +780,8 @@ Resources:
             custom_ami = "${CustomAmiId}"
             db_snapshot_identifier = "${DBSnapshotIdentifier}"
             db_high_availability = ${DBMultiZone}
-            db_backup_retention_period = 7
+            db_backup_retention_period = ${DBBackupRetentionPeriod}
+            db_delete_automated_backups = ${DBDeleteAutoBackups}
             load_balancer_type = "${LoadBalancerType}"
             certificate_arn = "${CertificateArn}"
             domain = "${DomainName}"

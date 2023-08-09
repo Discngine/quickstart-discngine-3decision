@@ -129,15 +129,16 @@ module "eks" {
 module "database" {
   source = "./modules/database"
   # Input
-  region                  = var.region
-  account_id              = local.account_id
-  force_destroy           = var.force_destroy
-  snapshot_identifier     = var.db_snapshot_identifier
-  high_availability       = var.db_high_availability
-  instance_type           = var.db_instance_type
-  backup_retention_period = var.db_backup_retention_period
-  license_type            = var.license_type
-  skip_final_snapshot     = var.skip_db_final_snapshot
+  region                   = var.region
+  account_id               = local.account_id
+  force_destroy            = var.force_destroy
+  snapshot_identifier      = var.db_snapshot_identifier
+  high_availability        = var.db_high_availability
+  instance_type            = var.db_instance_type
+  backup_retention_period  = var.db_backup_retention_period
+  delete_automated_backups = var.db_delete_automated_backups
+  license_type             = var.license_type
+  skip_final_snapshot      = var.skip_db_final_snapshot
   # Output
   node_security_group_id = module.eks.node_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
