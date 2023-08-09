@@ -663,7 +663,7 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt LambdaExecutionRole.Arn
+      Role: !GetAtt Role.Arn
       Runtime: python3.8
       Code:
         S3Bucket: 3decision-eu-central-1
