@@ -473,7 +473,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: lambda.amazonaws.com
+              Service: ec2.${AWS::URLSuffix}
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2FullAccess
@@ -657,64 +657,6 @@ Resources:
     Properties: 
       GroupDescription: Security group for the Boot node
       VpcId: !Ref VPCID
-
-  LambdaFunction:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      Handler: lambda_function.lambda_handler
-      Role: !GetAtt Role.Arn
-      Runtime: python3.10
-      Code:
-        S3Bucket: 3decision-eu-central-1
-        S3Key: lambda.zip
-
-  InvokeLambdaFunction:
-    Type: 'Custom::InvokeLambda'
-    Properties:
-      ServiceToken: !GetAtt LambdaFunction.Arn
-      Region: !Ref AWS::Region
-      GitBranch: "pre-release-2.3.4-1.6.4" #!Ref GitBranch
-      CreateFinalSnapshot: !Ref CreateFinalSnapshot
-      CreateFinalSnapshot: !Ref CreateFinalSnapshot
-      VPCID: !Ref VPCID
-      PrivateSubnet1ID: !Ref PrivateSubnet1ID
-      PrivateSubnet2ID: !Ref PrivateSubnet2ID
-      PrivateSubnet3ID: !Ref PrivateSubnet3ID
-      CustomAmiId: !Ref CustomAmiId
-      DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
-      DBMultiZone: !Ref DBMultiZone
-      DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
-      DBDeleteAutoBackups: !Ref DBDeleteAutoBackups
-      LoadBalancerType: !Ref LoadBalancerType
-      CertificateArn: !Ref CertificateArn
-      DomainName: !Ref DomainName
-      MainSubdomain: !Ref MainSubdomain
-      AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
-      ApiSubdomain: !Ref ApiSubdomain
-      HostedZoneId: !Ref HostedZoneId
-      AzureTenant: !Ref AzureTenant
-      AzureSecret: !Ref AzureSecret
-      OktaDomain: !Ref OktaDomain
-      OktaServerId: !Ref OktaServerId
-      OktaSecret: !Ref OktaSecret
-      GoogleSecret: !Ref GoogleSecret
-      PublicVolumeSnapshotId: !Ref PublicVolumeSnapshotId
-      PrivateVolumeSnapshotId: !Ref PrivateVolumeSnapshotId
-      KubernetesVersion: !Ref KubernetesVersion
-      DBInstanceClass: !Ref DBInstanceClass
-      NodeInstanceType: !Ref NodeInstanceType
-      NodeVolumeSize: !Ref NodeVolumeSize
-      AdditionalEKSAdminUserArn: !Ref AdditionalEKSAdminUserArn
-      AdditionalEKSAdminRoleArn: !Ref AdditionalEKSAdminRoleArn
-      TdecisionNamespace: !Ref TdecisionNamespace
-
-      OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
-      GoogleClient: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
-      AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
-      Bucket: !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
-      TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
-      SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
-      ForceDestroy: !If [PreventDestroy, "false", "true"]
 
   BootNodeProfile:
     Type: AWS::IAM::InstanceProfile
