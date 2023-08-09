@@ -61,6 +61,8 @@ Metadata:
           - DBSnapshotIdentifier
           - DBInstanceClass
           - DBMultiZone
+          - DBBackupRetentionPeriod
+          - DBDeleteAutoBackups
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -129,6 +131,10 @@ Metadata:
         default: Instance type of the database
       DBMultiZone:
         default: Whether the DB is highly available
+      DBBackupRetentionPeriod:
+        default: Time to keep DB backups
+      DBDeleteAutoBackups:
+        default: Whether to delete automatic backups when deleting the database
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -316,6 +322,17 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'false'
+  DBBackupRetentionPeriod:
+    Default: 7
+    Description: "Required: The days to retain backups for. Must be between 0 and 35. If set to 0, automatic backups are disabled."
+    Type: Number
+    MinValue: 0
+    MaxValue: 35
+  DBDeleteAutoBackups:
+    Description: "Required: Whether to delete all created automated backups when deleting the database."
+    Type: String
+    AllowedValues: [ 'true', 'false' ]
+    Default: 'true'
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -756,7 +773,8 @@ Resources:
             custom_ami = "${CustomAmiId}"
             db_snapshot_identifier = "${DBSnapshotIdentifier}"
             db_high_availability = ${DBMultiZone}
-            db_backup_retention_period = 7
+            db_backup_retention_period = ${DBBackupRetentionPeriod}
+            db_delete_automated_backups = ${DBDeleteAutoBackups}
             load_balancer_type = "${LoadBalancerType}"
             certificate_arn = "${CertificateArn}"
             domain = "${DomainName}"

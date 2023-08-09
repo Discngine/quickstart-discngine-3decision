@@ -362,11 +362,13 @@ resource "time_static" "redis_timestamp" {}
 locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.3"]
+  private_structure_reprocessing_version_list = ["2.3.4"]
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
+  launch_private_structure_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
 }
 
 locals {
@@ -408,6 +410,8 @@ nest:
       value: ${local.redis_reprocessing_timestamp}
     private_structures_reprocessing_event_types:
       value: rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration
+    private_structure_reprocessing_timestamp:
+      value: ${local.launch_private_structure_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
