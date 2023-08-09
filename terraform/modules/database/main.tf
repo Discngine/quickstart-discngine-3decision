@@ -40,6 +40,7 @@ resource "aws_db_instance" "db_instance" {
   storage_type              = "gp2"
   snapshot_identifier       = var.snapshot_identifier != "" ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
   publicly_accessible       = false
+  delete_automated_backups  = var.delete_automated_backups
   deletion_protection       = !var.force_destroy
   skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = "db3dec-final-snapshot"
