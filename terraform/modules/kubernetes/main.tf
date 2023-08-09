@@ -368,7 +368,7 @@ locals {
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
-  launch_private_structure_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
+  launch_private_structure_reprocessing = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
 }
 
 locals {
