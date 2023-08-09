@@ -89,13 +89,13 @@ Metadata:
           - PrivateVolumeSnapshotId
     ParameterLabels:
       RelaunchTerraform:
-        default: Parameter to force relaunch of the terraform operation
+        default: Relaunch terraform operation
       StackOperation:
-        default: Whether to apply (create/update) or destroy the resources
+        default: Terraform stack operation
       PreventDestroy:
-        default: Whether to prevent destruction of terraform bucket and database
+        default: Prevent destruction of resources
       CreateFinalSnapshot:
-        default: Whether to create final snapshot when deleting the database and volumes
+        default: Create final snapshot when deleting the database and volumes
       ExecutionAmiId:
         default: AMI id for infrastructure updates
       ExecutionRoleName:
@@ -176,7 +176,7 @@ Metadata:
         default: Snapshot id of the private volume to recover
 Parameters:
   RelaunchTerraform:
-    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without wanting to change other app specific parameters."
+    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without changing any other app specific parameters."
     Type: String
     Default: ""
   StackOperation:
