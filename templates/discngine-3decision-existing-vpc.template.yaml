@@ -685,8 +685,7 @@ Resources:
               mode: '000755'
               owner: root
               group: root
-              content:
-                !Sub |
+              content: |
                   sudo yum install git -y
 
                   mkdir -p /opt/dng
