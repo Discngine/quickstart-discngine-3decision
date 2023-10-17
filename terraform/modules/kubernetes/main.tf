@@ -363,7 +363,7 @@ locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
   public_interaction_registration_reprocessing_version_list = ["2.3.3"]
   private_structure_reprocessing_version_list               = ["2.3.4"]
-  missing_structure_registration_reprocessing_version_list  = ["2.3.6"]
+  missing_structure_registration_reprocessing_version_list  = ["2.3.7"]
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
