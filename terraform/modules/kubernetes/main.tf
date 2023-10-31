@@ -518,7 +518,7 @@ rm clean_choral.yaml
   depends_on = [ kubectl_manifest.ClusterExternalSecret ]
 }
 
-resource "terraform_data" "redis_synchro_configmap_change" {
+resource "terraform_data" "redis_synchro_configmap_change_test" {
   triggers_replace = [local.redis_configmap_timestamp]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
@@ -572,34 +572,34 @@ spec:
         - |
           target_time="${local.redis_configmap_timestamp}"
 
-          current_time=$$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          current_time=\$$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          if [ "$${current_time}" \< "$${target_time}" ]; then
+          if [ "\$${current_time}" \< "\$${target_time}" ]; then
               while true; do
-                  current_time=$$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                  current_time=\$$(date -u +"%Y-%m-%dT%H:%M:%SZ")
                   
-                  if [ "$${current_time}" \< "$${target_time}" ]; then
+                  if [ "\$${current_time}" \< "\$${target_time}" ]; then
                       sec=/var/run/secrets/kubernetes.io/serviceaccount;
                       curl -sS \
-                        -H "Authorization: Bearer $(cat $${sec}/token)" \
+                        -H "Authorization: Bearer $(cat \$${sec}/token)" \
                         -H "Content-Type: application/strategic-merge-patch+json" \
-                        --cacert $$sec/ca.crt \
+                        --cacert \$$sec/ca.crt \
                         --request PATCH \
                         --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
-                        https://"$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/tdecision/configmaps/nest-env-configmap
+                        https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/tdecision/configmaps/nest-env-configmap
 
-                      echo "Current time: $${current_time} | Waiting for target time: $${target_time}"
+                      echo "Current time: \$${current_time} | Waiting for target time: \$${target_time}"
                       sleep 60
                   else
                       sec=/var/run/secrets/kubernetes.io/serviceaccount;
                       curl -sS \
-                        -H "Authorization: Bearer $(cat $${sec}/token)" \
+                        -H "Authorization: Bearer $(cat \$${sec}/token)" \
                         -H "Content-Type: application/strategic-merge-patch+json" \
-                        --cacert $$sec/ca.crt \
+                        --cacert \$$sec/ca.crt \
                         --request PATCH \
                         --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
-                        https://"$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
-                      echo "Reached the target time $${target_time}"
+                        https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
+                      echo "Reached the target time \$${target_time}"
                       break
                   fi
               done  
