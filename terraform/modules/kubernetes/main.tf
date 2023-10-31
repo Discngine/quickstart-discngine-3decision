@@ -367,6 +367,7 @@ locals {
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
+  redis_configmap_timestamp    = timeadd(time_static.redis_timestamp.rfc3339, "24h")
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
@@ -460,6 +461,157 @@ aws_destroy_resources: ${null_resource.delete_resources.id}
 YAML
 }
 
+# This deletes both the CHORAL_OWNER user and choral indexes
+# It is aimed to be used on new environments that would retrieve this data from a backup when it has to be installed
+resource "terraform_data" "clean_choral" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = <<EOF
+export KUBECONFIG=$HOME/.kube/config
+if kubectl get deploy -n choral | grep choral &> /dev/null; then
+  echo "choral already running, cleaning aborted."
+  exit 0
+fi
+cat > clean_choral.yaml << YAML
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clean-choral
+  namespace: choral
+spec:
+  restartPolicy: Never
+  containers:
+    - name: clean-choral
+      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+      command: [ "/bin/bash", "-c", "--" ]
+      envFrom:
+      - secretRef:
+          name: database-secrets
+      env:
+        - name: CONNECTION_STRING
+          value: ${local.connection_string}
+      args:
+        - echo 'dropping chembl indexes';
+          echo -ne 'DROP INDEX IDX_CHOR_STR_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_TAU_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_TAUISO_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_STRICT_CMP_STRUC FORCE;' > drop_chembl_index.sql;
+          exit | /root/sqlcl/bin/sql CHEMBL_23/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
+          echo 'dropping tdec indexes';
+          echo -ne 'DROP INDEX IDX_CHOR_STR_SMALL_MOL_SMILES FORCE;
+          DROP INDEX IDX_CHOR_TAU_SMALL_MOL_SMILES FORCE;
+          DROP INDEX IDX_CHOR_TAUISO_SMS FORCE;
+          DROP INDEX IDX_CHOR_STRISO_SMS FORCE;' > drop_t1_index.sql;
+          exit | /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/\$${DB_PASSWD}@\$${CONNECTION_STRING} @drop_t1_index.sql;
+          echo 'dropping choral owner schema';
+          echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
+          exit | /root/sqlcl/bin/sql SYS/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} as sysdba @drop_choral_owner.sql
+YAML
+kubectl apply -f clean_choral.yaml
+rm clean_choral.yaml
+    EOF
+  }
+  lifecycle {
+    ignore_changes = all
+  }
+  depends_on = [ kubectl_manifest.ClusterExternalSecret ]
+}
+
+resource "terraform_data" "redis_synchro_timestamp" {
+  triggers_replace = [local.redis_configmap_timestamp]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command = <<EOF
+export KUBECONFIG=$HOME/.kube/config
+cat > redis_synchro.yaml << YAML
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: synchro-redis
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: synchro-redis
+rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - nest-env-configmap
+    resources:
+    - configmaps
+    verbs:
+    - patch
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: synchro-redis
+subjects:
+- kind: ServiceAccount
+  name: synchro-redis
+roleRef:
+  kind: Role
+  name: synchro-redis
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: synchro-redis
+spec:
+  serviceAccountName: synchro-redis
+  restartPolicy: Never
+  containers:
+    - name: synchro-redis
+      image: alpine/curl:8.4.0
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          target_time=$(date -d "${local.redis_configmap_timestamp}" +"%s")
+          current_time=$(date +"%s")
+          time_diff=$(($target_time - $current_time))
+
+          # Check if the target time is in the future
+          if [ $time_diff -gt 0 ]; then
+              sec=/var/run/secrets/kubernetes.io/serviceaccount;
+              curl -sS \
+                -H "Authorization: Bearer $(cat $sec/token)" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                --cacert $sec/ca.crt \
+                --request PATCH \
+                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
+                https://"$KUBERNETES_SERVICE_HOST"/api/v1/namespaces/tdecision/configmaps/nest-env-configmap
+              
+              echo "Sleeping for $time_diff seconds until ${local.redis_configmap_timestamp}"
+              sleep $time_diff
+
+              sec=/var/run/secrets/kubernetes.io/serviceaccount;
+              curl -sS \
+                -H "Authorization: Bearer $(cat $sec/token)" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                --cacert $sec/ca.crt \
+                --request PATCH \
+                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
+                https://"$KUBERNETES_SERVICE_HOST"/api/v1/namespaces/tdecision/configmaps/nest-env-configmap
+
+              echo "Woke up at $(date)"
+          else
+              echo "The target time has already passed."
+          fi
+YAML
+kubectl apply -f clean_choral.yaml
+rm clean_choral.yaml
+    EOF
+  }
+  lifecycle {
+    ignore_changes = all
+  }
+  depends_on = [ kubectl_manifest.ClusterExternalSecret ]
+}
+
 resource "helm_release" "tdecision_chart" {
   name       = var.tdecision_chart.name
   repository = var.tdecision_chart.repository
@@ -485,7 +637,7 @@ resource "helm_release" "tdecision_chart" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      kubectl delete -n ${self.namespace} job oracle-schema-update --force
+      kubectl delete -n ${self.namespace} cronjob tdecision-3decision-helm-oracle-takeovers --force
       kubectl delete deployments -n ${self.namespace} --all --force
     EOT
   }
@@ -507,12 +659,6 @@ resource "null_resource" "delete_resources" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      COMPLETED=$(kubectl get -n ${var.tdecision_chart.namespace} job oracle-schema-update --output=jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
-      if [ "$${COMPLETED}" = "True" ]; then
-        kubectl delete -n ${var.tdecision_chart.namespace} job oracle-schema-update --force
-      else
-        echo "not deleting oracle schema update job as it is still underway"
-      fi
       kubectl delete deployments -n ${var.tdecision_chart.namespace} --all --force
     EOT
   }
