@@ -518,15 +518,15 @@ rm clean_choral.yaml
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
-resource "terraform_data" "redis_synchro_configmap_change_test" {
+resource "terraform_data" "redis_synchro_configmap_change" {
   triggers_replace = [local.redis_configmap_timestamp, var.tdecision_chart.version]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-target_time=\$(date -d "${local.redis_configmap_timestamp}" +"%s")
-current_time=\$(date +"%s")
-time_diff=\$((\$${target_time} - \$${current_time}))
-if [ \$${time_diff} -lt 0 ]; then
+target_time=$(date -d "${local.redis_configmap_timestamp}" +"%s")
+current_time=$(date +"%s")
+time_diff=$(($${target_time} - $${current_time}))
+if [ $${time_diff} -lt 0 ]; then
   echo "redis synchro already passed... not launching pod."
   exit 0
 fi
