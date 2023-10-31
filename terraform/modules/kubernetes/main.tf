@@ -497,7 +497,7 @@ spec:
           DROP INDEX IDX_CHOR_TAU_CMP_STRUC FORCE;
           DROP INDEX IDX_CHOR_TAUISO_CMP_STRUC FORCE;
           DROP INDEX IDX_CHOR_STRICT_CMP_STRUC FORCE;' > drop_chembl_index.sql;
-          exit | /root/sqlcl/bin/sql CHEMBL_23/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
+          exit | /root/sqlcl/bin/sql CHEMBL_29/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
           echo 'dropping tdec indexes';
           echo -ne 'DROP INDEX IDX_CHOR_STR_SMALL_MOL_SMILES FORCE;
           DROP INDEX IDX_CHOR_TAU_SMALL_MOL_SMILES FORCE;
@@ -506,7 +506,7 @@ spec:
           exit | /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/\$${DB_PASSWD}@\$${CONNECTION_STRING} @drop_t1_index.sql;
           echo 'dropping choral owner schema';
           echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
-          exit | /root/sqlcl/bin/sql SYS/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} as sysdba @drop_choral_owner.sql
+          exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
 YAML
 kubectl apply -f clean_choral.yaml
 rm clean_choral.yaml
