@@ -67,6 +67,9 @@ Metadata:
           - DBMultiZone
           - DBBackupRetentionPeriod
           - DBDeleteAutoBackups
+          - AdminInitialPassword
+          - ChemblInitialPassword
+          - TdecInitialPassword
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -161,6 +164,12 @@ Metadata:
         default: Time to keep DB backups
       DBDeleteAutoBackups:
         default: Whether to delete automatic backups when deleting the database
+      AdminInitialPassword:
+        default: Password of the admin user
+      ChemblInitialPassword:
+        default: Password of the chembl user
+      TdecInitialPassword:
+        default: Password of the 3decision user
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -416,6 +425,18 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
+  AdminInitialPassword:
+    Description: "Required: Password of the database admin user, change this if creating from a backup other than the official one."
+    Type: String
+    Default: 'Ch4ng3m3f0rs3cur3p4ss'
+  ChemblInitialPassword:
+    Description: "Required: Password of the database chembl user, change this if creating from a backup other than the official one."
+    Type: String
+    Default: 'Ch4ng3m3f0rs3cur3p4ss'
+  TdecInitialPassword:
+    Description: "Required: Password of the database 3decision user, change this if creating from a backup other than the official one."
+    Type: String
+    Default: 'Ch4ng3m3f0rs3cur3p4ss'
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -596,6 +617,9 @@ Resources:
         LoadBalancerType: !Ref LoadBalancerType
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
         DBDeleteAutoBackups: !Ref DBDeleteAutoBackups
+        AdminInitialPassword: !Ref AdminInitialPassword
+        ChemblInitialPassword: !Ref ChemblInitialPassword
+        TdecInitialPassword: !Ref TdecInitialPassword
         DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
         CustomAmiId: !Ref CustomAmiId
         AzureClientId: !Ref AzureClientId
