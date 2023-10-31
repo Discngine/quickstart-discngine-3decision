@@ -518,7 +518,7 @@ rm clean_choral.yaml
   depends_on = [ kubectl_manifest.ClusterExternalSecret ]
 }
 
-resource "terraform_data" "redis_synchro_timestamp" {
+resource "terraform_data" "redis_synchro_configmap_change" {
   triggers_replace = [local.redis_configmap_timestamp]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
@@ -595,14 +595,14 @@ spec:
                 --cacert $sec/ca.crt \
                 --request PATCH \
                 --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
-                https://"$KUBERNETES_SERVICE_HOST"/api/v1/namespaces/tdecision/configmaps/nest-env-configmap
+                https://"$KUBERNETES_SERVICE_HOST"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
 
               echo "Woke up at $(date)"
           else
               echo "The target time has already passed."
           fi
 YAML
-kubectl apply -f redis_synchro.yaml
+kubectl apply -f redis_synchro.yaml -n ${var.tdecision_chart.namespace}
 rm redis_synchro.yaml
     EOF
   }
