@@ -518,7 +518,7 @@ rm clean_choral.yaml
   depends_on = [ kubectl_manifest.ClusterExternalSecret ]
 }
 
-resource "terraform_data" "redis_synchro_configmap_change" {
+resource "terraform_data" "redis_synchro_configmap_change_test" {
   triggers_replace = [local.redis_configmap_timestamp]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
@@ -581,7 +581,7 @@ spec:
                   if [ "\$${current_time}" \< "\$${target_time}" ]; then
                       sec=/var/run/secrets/kubernetes.io/serviceaccount;
                       curl -sS \
-                        -H "Authorization: Bearer $(cat \$${sec}/token)" \
+                        -H "Authorization: Bearer \$$(cat \$${sec}/token)" \
                         -H "Content-Type: application/strategic-merge-patch+json" \
                         --cacert \$$sec/ca.crt \
                         --request PATCH \
@@ -593,7 +593,7 @@ spec:
                   else
                       sec=/var/run/secrets/kubernetes.io/serviceaccount;
                       curl -sS \
-                        -H "Authorization: Bearer $(cat \$${sec}/token)" \
+                        -H "Authorization: Bearer \$$(cat \$${sec}/token)" \
                         -H "Content-Type: application/strategic-merge-patch+json" \
                         --cacert \$$sec/ca.crt \
                         --request PATCH \
