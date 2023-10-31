@@ -602,8 +602,8 @@ spec:
               echo "The target time has already passed."
           fi
 YAML
-kubectl apply -f clean_choral.yaml
-rm clean_choral.yaml
+kubectl apply -f redis_synchro.yaml
+rm redis_synchro.yaml
     EOF
   }
   lifecycle {
