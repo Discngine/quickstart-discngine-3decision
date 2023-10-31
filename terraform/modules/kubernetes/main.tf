@@ -518,7 +518,7 @@ rm clean_choral.yaml
   depends_on = [ kubectl_manifest.ClusterExternalSecret ]
 }
 
-resource "terraform_data" "redis_synchro_configmap_change_test" {
+resource "terraform_data" "redis_synchro_configmap_change" {
   triggers_replace = [local.redis_configmap_timestamp]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
