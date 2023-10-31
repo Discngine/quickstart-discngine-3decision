@@ -518,7 +518,7 @@ rm clean_choral.yaml
   depends_on = [ kubectl_manifest.ClusterExternalSecret ]
 }
 
-resource "terraform_data" "redis_synchro_configmap_change_test" {
+resource "terraform_data" "redis_synchro_configmap_change" {
   triggers_replace = [local.redis_configmap_timestamp]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
@@ -583,7 +583,7 @@ spec:
                       curl -sS \
                         -H "Authorization: Bearer \$(cat \$${sec}/token)" \
                         -H "Content-Type: application/strategic-merge-patch+json" \
-                        --cacert \$$sec/ca.crt \
+                        --cacert \$${sec}/ca.crt \
                         --request PATCH \
                         --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
                         https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/tdecision/configmaps/nest-env-configmap
@@ -595,7 +595,7 @@ spec:
                       curl -sS \
                         -H "Authorization: Bearer \$(cat \$${sec}/token)" \
                         -H "Content-Type: application/strategic-merge-patch+json" \
-                        --cacert \$$sec/ca.crt \
+                        --cacert \$${sec}/ca.crt \
                         --request PATCH \
                         --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
                         https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
