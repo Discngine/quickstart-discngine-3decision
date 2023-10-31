@@ -518,7 +518,7 @@ rm clean_choral.yaml
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
-resource "terraform_data" "redis_synchro_configmap_change" {
+resource "terraform_data" "redis_synchro_configmap_change_test" {
   triggers_replace = [local.redis_configmap_timestamp, var.tdecision_chart.version]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
@@ -578,7 +578,7 @@ spec:
       command: ["/bin/sh", "-c"]
       args:
         - |
-          target_time=\$(date -d $\(echo "${local.redis_configmap_timestamp}" | tr -d "TZ") +"%s")
+          target_time=\$(date -d \$(echo "${local.redis_configmap_timestamp}" | tr -d "TZ") +"%s")
           current_time=\$(date +"%s")
           time_diff=\$((\$${target_time} - \$${current_time}))
           if [ \$${time_diff} -gt 0 ]; then
