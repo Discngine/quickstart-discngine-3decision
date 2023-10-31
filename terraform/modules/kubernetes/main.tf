@@ -466,7 +466,7 @@ YAML
 resource "terraform_data" "clean_choral" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<EOF
+    command     = <<EOF
 export KUBECONFIG=$HOME/.kube/config
 if kubectl get deploy -n choral | grep choral &> /dev/null; then
   echo "choral already running, cleaning aborted."
@@ -515,14 +515,22 @@ rm clean_choral.yaml
   lifecycle {
     ignore_changes = all
   }
-  depends_on = [ kubectl_manifest.ClusterExternalSecret ]
+  depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
-resource "terraform_data" "redis_synchro_configmap_change" {
-  triggers_replace = [local.redis_configmap_timestamp]
+resource "terraform_data" "redis_synchro_configmap_change_test" {
+  triggers_replace = [local.redis_configmap_timestamp, var.tdecision_chart.version]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command = <<EOF
+    command     = <<EOF
+target_time=\$(date -d "${local.redis_configmap_timestamp}" +"%s")
+current_time=\$(date +"%s")
+time_diff=\$((\$${target_time} - \$${current_time}))
+if [ \$${time_diff} -lt 0 ]; then
+  echo "redis synchro already passed... not launching pod."
+  exit 0
+fi
+
 export KUBECONFIG=$HOME/.kube/config
 cat > redis_synchro.yaml << YAML
 ---
@@ -570,49 +578,48 @@ spec:
       command: ["/bin/sh", "-c"]
       args:
         - |
-          target_time="${local.redis_configmap_timestamp}"
+          target_time=\$(date -d "${local.redis_configmap_timestamp}" +"%s")
 
-          current_time=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          current_time=\$(date +"%s")
 
-          if [ "\$${current_time}" \< "\$${target_time}" ]; then
-              while true; do
-                  current_time=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-                  
-                  if [ "\$${current_time}" \< "\$${target_time}" ]; then
-                      sec=/var/run/secrets/kubernetes.io/serviceaccount;
-                      curl -sS \
-                        -H "Authorization: Bearer \$(cat \$${sec}/token)" \
-                        -H "Content-Type: application/strategic-merge-patch+json" \
-                        --cacert \$${sec}/ca.crt \
-                        --request PATCH \
-                        --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
-                        https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/tdecision/configmaps/nest-env-configmap
+          time_diff=\$((\$${target_time} - \$${current_time}))
 
-                      echo "Current time: \$${current_time} | Waiting for target time: \$${target_time}"
-                      sleep 60
-                  else
-                      sec=/var/run/secrets/kubernetes.io/serviceaccount;
-                      curl -sS \
-                        -H "Authorization: Bearer \$(cat \$${sec}/token)" \
-                        -H "Content-Type: application/strategic-merge-patch+json" \
-                        --cacert \$${sec}/ca.crt \
-                        --request PATCH \
-                        --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
-                        https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
-                      echo "Reached the target time \$${target_time}"
-                      break
-                  fi
-              done  
+          if [ \$${time_diff} -gt 0 ]; then
+              echo "Sleeping for \$${time_diff} seconds until ${local.redis_configmap_timestamp}"
+
+              sec=/var/run/secrets/kubernetes.io/serviceaccount;
+              curl -sS \
+                -H "Authorization: Bearer \$(cat \$${sec}/token)" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                --cacert \$${sec}/ca.crt \
+                --request PATCH \
+                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
+                https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
+
+              sleep \$${time_diff}
+
+              sec=/var/run/secrets/kubernetes.io/serviceaccount;
+              curl -sS \
+                -H "Authorization: Bearer \$(cat \$${sec}/token)" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                --cacert \$${sec}/ca.crt \
+                --request PATCH \
+                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
+                https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
+              echo "Woke up at \$(date)"
+          else
+              echo "The target time has already passed."
           fi
 YAML
+kubectl delete -f redis_synchro.yaml -n ${var.tdecision_chart.namespace}
 kubectl apply -f redis_synchro.yaml -n ${var.tdecision_chart.namespace}
-rm redis_synchro.yaml
+rm -f redis_synchro.yaml
     EOF
   }
   lifecycle {
     ignore_changes = all
   }
-  depends_on = [ kubectl_manifest.ClusterExternalSecret ]
+  depends_on = [helm_release.tdecision_chart]
 }
 
 resource "helm_release" "tdecision_chart" {
