@@ -568,7 +568,7 @@ rm clean_choral.yaml
 # If this is not done the reprocessing will cache for too long and break the app
 # The patch is only done once since patching the configmap restarts most pods, so it has to be rerun if the chart is updated since that will reset the value
 resource "terraform_data" "redis_synchro_configmap_change" {
-  triggers_replace = [local.redis_configmap_timestamp, helm_release.tdecision_chart.revision]
+  triggers_replace = [local.redis_configmap_timestamp, helm_release.tdecision_chart.metadata.revision]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
