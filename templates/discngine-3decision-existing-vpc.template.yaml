@@ -841,7 +841,7 @@ Resources:
             if [ "$final_snapshot_value" = "true" ]; then
               id=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.id' terraform.tfstate)
               terraform state rm 'module.volumes.aws_ebs_volume.public_data'
-              terraform import 'module.volumes.aws_ebs_volume.public_data' "$id"
+              terraform import -var-file=vars.tfvars 'module.volumes.aws_ebs_volume.public_data' "$id"
             else
               echo "final_snapshot is not set to true. Doing nothing."
             fi
