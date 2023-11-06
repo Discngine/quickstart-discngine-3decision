@@ -836,6 +836,7 @@ Resources:
             terraform init -backend-config=backend.conf -reconfigure -upgrade
 
             sudo yum install jq -y
+            terraform state pull > terraform.tfstate
             final_snapshot_value=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.final_snapshot' terraform.tfstate)
 
             if [ "$final_snapshot_value" = "true" ]; then
@@ -845,6 +846,7 @@ Resources:
             else
               echo "final_snapshot is not set to true. Doing nothing."
             fi
+            rm terraform.tfstate
 
             terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
 
