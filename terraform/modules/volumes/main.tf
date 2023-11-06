@@ -10,7 +10,7 @@ locals {
 resource "aws_ebs_volume" "public_data" {
   availability_zone = var.availability_zone_names[0]
   snapshot_id       = var.public_volume_snapshot != "" ? var.public_volume_snapshot : lookup(local.public_snapshot, var.region)
-  final_snapshot    = false
+  final_snapshot    = var.private_final_snapshot
   type              = "gp2"
   encrypted         = true
   tags = {
