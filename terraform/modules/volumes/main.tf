@@ -17,7 +17,7 @@ resource "aws_ebs_volume" "public_data" {
     Name = "3decision-public-data"
   }
   lifecycle {
-    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id]
+    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot]
   }
   timeouts {
     delete = "180m"
@@ -35,7 +35,7 @@ resource "aws_ebs_volume" "private_data" {
     Name = "3decision-private-data"
   }
   lifecycle {
-    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id]
+    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot]
   }
   timeouts {
     delete = "120m"
