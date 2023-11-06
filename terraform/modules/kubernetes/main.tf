@@ -367,7 +367,7 @@ locals {
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
-  redis_configmap_timestamp    = timeadd(time_static.redis_timestamp.rfc3339, "24h")
+  redis_configmap_timestamp    = timeadd(local.redis_reprocessing_timestamp, "24h")
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
@@ -459,6 +459,52 @@ YAML
 ${local.values}
 aws_destroy_resources: ${null_resource.delete_resources.id}
 YAML
+}
+
+# This resets the passwords of schemas CHEMBL_29 and PD_T1_DNG_THREEDECISION
+# It is aimed to be used on new environments that have unknown passwords set in the backup
+resource "terraform_data" "reset_passwords" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+export KUBECONFIG=$HOME/.kube/config
+#if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
+#  echo "tdecision already running, password reset aborted."
+#  exit 0
+#fi
+cat > reset_passwords.yaml << YAML
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clean-choral
+  namespace: choral
+spec:
+  restartPolicy: Never
+  containers:
+    - name: clean-choral
+      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+      command: [ "/bin/bash", "-c", "--" ]
+      envFrom:
+      - secretRef:
+          name: database-secrets
+      env:
+        - name: CONNECTION_STRING
+          value: ${local.connection_string}
+      args:
+        - echo 'resetting passwords';
+          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss;' > reset_passwords.sql;
+          exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
+YAML
+kubectl apply -f reset_passwords.yaml
+rm reset_passwords.yaml
+    EOF
+  }
+  lifecycle {
+    ignore_changes = all
+  }
+  depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
 # This deletes both the CHORAL_OWNER user and choral indexes
@@ -634,7 +680,8 @@ resource "helm_release" "tdecision_chart" {
     kubernetes_secret.nest_authentication_secrets,
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
-    null_resource.delete_resources
+    null_resource.delete_resources,
+    terraform_data.reset_passwords
   ]
 
   provisioner "local-exec" {
@@ -689,7 +736,8 @@ resource "helm_release" "choral_chart" {
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubectl_manifest.ClusterExternalSecret,
     helm_release.aws_load_balancer_controller,
-    kubernetes_config_map_v1.aws_auth
+    kubernetes_config_map_v1.aws_auth,
+    terraform_data.clean_choral
   ]
 }
 
