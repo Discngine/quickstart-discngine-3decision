@@ -477,12 +477,12 @@ cat > reset_passwords.yaml << YAML
 apiVersion: v1
 kind: Pod
 metadata:
-  name: clean-choral
-  namespace: choral
+  name: reset-passwords
+  namespace: ${var.tdecision_chart.namespace}
 spec:
   restartPolicy: Never
   containers:
-    - name: clean-choral
+    - name: reset-passwords
       image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
       command: [ "/bin/bash", "-c", "--" ]
       envFrom:
@@ -493,8 +493,8 @@ spec:
           value: ${local.connection_string}
       args:
         - echo 'resetting passwords';
-          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss;
-          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss;' > reset_passwords.sql;
+          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;' > reset_passwords.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
 kubectl apply -f reset_passwords.yaml
@@ -628,8 +628,6 @@ spec:
           current_time=\$(date +"%s")
           time_diff=\$((\$${target_time} - \$${current_time}))
           if [ \$${time_diff} -gt 0 ]; then
-              echo "Sleeping for \$${time_diff} seconds until ${local.redis_configmap_timestamp}"
-
               sec=/var/run/secrets/kubernetes.io/serviceaccount
               curl -sS \
                 -H "Authorization: Bearer \$(cat \$${sec}/token)" \
@@ -638,6 +636,8 @@ spec:
                 --request PATCH \
                 --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
                 https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
+
+              echo "Sleeping for \$${time_diff} seconds until ${local.redis_configmap_timestamp}"
 
               sleep \$${time_diff}
 
