@@ -420,9 +420,9 @@ Parameters:
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
   AdminInitialPassword:
-    Description: "Required: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
+    Description: "Optional: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
     Type: String
-    Default: 'Ch4ng3m3f0rs3cur3p4ss'
+    Default: ""
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >

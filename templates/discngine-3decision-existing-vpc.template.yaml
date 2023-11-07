@@ -344,9 +344,9 @@ Parameters:
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
   AdminInitialPassword:
-    Description: "Required: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
+    Description: "Optional: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
     Type: String
-    Default: 'Ch4ng3m3f0rs3cur3p4ss'
+    Default: ""
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -471,6 +471,7 @@ Conditions:
   LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
   CreateFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "true"]
   PreventDestroy: !Equals [!Ref PreventDestroy, "true"]
+  DefaultAdminPassword: !Equals [!Ref AdminInitialPassword, ""]
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -828,7 +829,7 @@ Resources:
               namespace = "${TdecisionNamespace}"
             }
             initial_db_passwords = {
-              "ADMIN"                   = "${AdminInitialPassword}"
+              "ADMIN"                   = "${AdminPassword}"
               "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
               "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
             }
@@ -857,6 +858,7 @@ Resources:
             TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
             SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
             ForceDestroy: !If [PreventDestroy, "false", "true"]
+            AdminPassword: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
             
         workingDirectory:
         - "/opt/dng"
