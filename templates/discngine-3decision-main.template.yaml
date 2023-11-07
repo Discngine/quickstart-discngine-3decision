@@ -67,6 +67,7 @@ Metadata:
           - DBMultiZone
           - DBBackupRetentionPeriod
           - DBDeleteAutoBackups
+          - AdminInitialPassword
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -161,6 +162,8 @@ Metadata:
         default: Time to keep DB backups
       DBDeleteAutoBackups:
         default: Whether to delete automatic backups when deleting the database
+      AdminInitialPassword:
+        default: Password of the admin user
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -416,6 +419,10 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
+  AdminInitialPassword:
+    Description: "Optional: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
+    Type: String
+    Default: ""
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -596,6 +603,7 @@ Resources:
         LoadBalancerType: !Ref LoadBalancerType
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
         DBDeleteAutoBackups: !Ref DBDeleteAutoBackups
+        AdminInitialPassword: !Ref AdminInitialPassword
         DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
         CustomAmiId: !Ref CustomAmiId
         AzureClientId: !Ref AzureClientId

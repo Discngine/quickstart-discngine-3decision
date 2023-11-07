@@ -367,6 +367,7 @@ locals {
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
+  redis_configmap_timestamp    = timeadd(local.redis_reprocessing_timestamp, "24h")
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
@@ -460,6 +461,213 @@ aws_destroy_resources: ${null_resource.delete_resources.id}
 YAML
 }
 
+# This resets the passwords of schemas CHEMBL_29 and PD_T1_DNG_THREEDECISION
+# It is aimed to be used on new environments that have unknown passwords set in the backup
+resource "terraform_data" "reset_passwords" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+export KUBECONFIG=$HOME/.kube/config
+#if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
+#  echo "tdecision already running, password reset aborted."
+#  exit 0
+#fi
+cat > reset_passwords.yaml << YAML
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: reset-passwords
+  namespace: ${var.tdecision_chart.namespace}
+spec:
+  restartPolicy: Never
+  containers:
+    - name: reset-passwords
+      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+      command: [ "/bin/bash", "-c", "--" ]
+      envFrom:
+      - secretRef:
+          name: database-secrets
+      env:
+        - name: CONNECTION_STRING
+          value: ${local.connection_string}
+      args:
+        - echo 'resetting passwords';
+          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;' > reset_passwords.sql;
+          exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
+YAML
+kubectl apply -f reset_passwords.yaml
+rm reset_passwords.yaml
+    EOF
+  }
+  lifecycle {
+    ignore_changes = all
+  }
+  depends_on = [kubectl_manifest.ClusterExternalSecret]
+}
+
+# This deletes both the CHORAL_OWNER user and choral indexes
+# It is aimed to be used on new environments that would retrieve this data from a backup when it has to be installed
+resource "terraform_data" "clean_choral" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+export KUBECONFIG=$HOME/.kube/config
+if kubectl get deploy -n choral | grep choral &> /dev/null; then
+  echo "choral already running, cleaning aborted."
+  exit 0
+fi
+cat > clean_choral.yaml << YAML
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clean-choral
+  namespace: choral
+spec:
+  restartPolicy: Never
+  containers:
+    - name: clean-choral
+      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+      command: [ "/bin/bash", "-c", "--" ]
+      envFrom:
+      - secretRef:
+          name: database-secrets
+      env:
+        - name: CONNECTION_STRING
+          value: ${local.connection_string}
+      args:
+        - echo 'dropping chembl indexes';
+          echo -ne 'DROP INDEX IDX_CHOR_STR_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_TAU_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_TAUISO_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_STRICT_CMP_STRUC FORCE;' > drop_chembl_index.sql;
+          exit | /root/sqlcl/bin/sql CHEMBL_29/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
+          echo 'dropping tdec indexes';
+          echo -ne 'DROP INDEX IDX_CHOR_STR_SMALL_MOL_SMILES FORCE;
+          DROP INDEX IDX_CHOR_TAU_SMALL_MOL_SMILES FORCE;
+          DROP INDEX IDX_CHOR_TAUISO_SMS FORCE;
+          DROP INDEX IDX_CHOR_STRISO_SMS FORCE;' > drop_t1_index.sql;
+          exit | /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/\$${DB_PASSWD}@\$${CONNECTION_STRING} @drop_t1_index.sql;
+          echo 'dropping choral owner schema';
+          echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
+          exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
+YAML
+kubectl apply -f clean_choral.yaml
+rm clean_choral.yaml
+    EOF
+  }
+  lifecycle {
+    ignore_changes = all
+  }
+  depends_on = [kubectl_manifest.ClusterExternalSecret]
+}
+
+# This keeps the CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL value low in a seperate 3decision configmap until a day after redis reprocessing
+# If this is not done the reprocessing will cache for too long and break the app
+# The patch is only done once since patching the configmap restarts most pods, so it has to be rerun if the chart is updated since that will reset the value
+resource "terraform_data" "redis_synchro_configmap_change" {
+  triggers_replace = [local.redis_configmap_timestamp, helm_release.tdecision_chart.metadata.0.revision]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+target_time=$(date -d "${local.redis_configmap_timestamp}" +"%s")
+current_time=$(date +"%s")
+time_diff=$(($${target_time} - $${current_time}))
+if [ $${time_diff} -lt 0 ]; then
+  echo "redis synchro already passed... not launching pod."
+  exit 0
+fi
+
+export KUBECONFIG=$HOME/.kube/config
+cat > redis_synchro.yaml << YAML
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: synchro-redis
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: synchro-redis
+rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - nest-env-configmap
+    resources:
+    - configmaps
+    verbs:
+    - patch
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: synchro-redis
+subjects:
+- kind: ServiceAccount
+  name: synchro-redis
+roleRef:
+  kind: Role
+  name: synchro-redis
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: synchro-redis
+spec:
+  serviceAccountName: synchro-redis
+  restartPolicy: Never
+  containers:
+    - name: synchro-redis
+      image: alpine/curl:8.4.0
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          target_time=\$(date -d \$(echo "${local.redis_configmap_timestamp}" | tr -d "TZ") +"%s")
+          current_time=\$(date +"%s")
+          time_diff=\$((\$${target_time} - \$${current_time}))
+          if [ \$${time_diff} -gt 0 ]; then
+              sec=/var/run/secrets/kubernetes.io/serviceaccount
+              curl -sS \
+                -H "Authorization: Bearer \$(cat \$${sec}/token)" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                --cacert \$${sec}/ca.crt \
+                --request PATCH \
+                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
+                https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
+
+              echo "Sleeping for \$${time_diff} seconds until ${local.redis_configmap_timestamp}"
+
+              sleep \$${time_diff}
+
+              sec=/var/run/secrets/kubernetes.io/serviceaccount
+              curl -sS \
+                -H "Authorization: Bearer \$(cat \$${sec}/token)" \
+                -H "Content-Type: application/strategic-merge-patch+json" \
+                --cacert \$${sec}/ca.crt \
+                --request PATCH \
+                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
+                https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
+              echo "Woke up at \$(date)"
+          else
+              echo "The target time has already passed."
+          fi
+YAML
+kubectl delete -f redis_synchro.yaml -n ${var.tdecision_chart.namespace}
+kubectl apply -f redis_synchro.yaml -n ${var.tdecision_chart.namespace}
+rm -f redis_synchro.yaml
+    EOF
+  }
+  lifecycle {
+    ignore_changes = all
+  }
+  depends_on = [helm_release.tdecision_chart]
+}
+
 resource "helm_release" "tdecision_chart" {
   name       = var.tdecision_chart.name
   repository = var.tdecision_chart.repository
@@ -475,7 +683,8 @@ resource "helm_release" "tdecision_chart" {
     kubernetes_secret.nest_authentication_secrets,
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
-    null_resource.delete_resources
+    null_resource.delete_resources,
+    terraform_data.reset_passwords
   ]
 
   provisioner "local-exec" {
@@ -485,7 +694,7 @@ resource "helm_release" "tdecision_chart" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      kubectl delete -n ${self.namespace} job oracle-schema-update --force
+      kubectl delete -n ${self.namespace} cronjob tdecision-3decision-helm-oracle-takeovers --force
       kubectl delete deployments -n ${self.namespace} --all --force
     EOT
   }
@@ -507,12 +716,6 @@ resource "null_resource" "delete_resources" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      COMPLETED=$(kubectl get -n ${var.tdecision_chart.namespace} job oracle-schema-update --output=jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
-      if [ "$${COMPLETED}" = "True" ]; then
-        kubectl delete -n ${var.tdecision_chart.namespace} job oracle-schema-update --force
-      else
-        echo "not deleting oracle schema update job as it is still underway"
-      fi
       kubectl delete deployments -n ${var.tdecision_chart.namespace} --all --force
     EOT
   }
@@ -536,7 +739,8 @@ resource "helm_release" "choral_chart" {
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubectl_manifest.ClusterExternalSecret,
     helm_release.aws_load_balancer_controller,
-    kubernetes_config_map_v1.aws_auth
+    kubernetes_config_map_v1.aws_auth,
+    terraform_data.clean_choral
   ]
 }
 

@@ -200,7 +200,7 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
   secret_string = jsonencode(
     {
       username = each.key
-      password = each.key != "CHORAL_OWNER" ? var.initial_db_passwords : random_password.choral_password.result
+      password = each.key != "CHORAL_OWNER" ? var.initial_db_passwords[each.key] : random_password.choral_password.result
       engine   = "oracle"
       host     = element(split(":", var.db_endpoint), 0)
       dbname   = var.db_name
