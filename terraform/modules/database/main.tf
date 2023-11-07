@@ -43,6 +43,7 @@ resource "aws_db_instance" "db_instance" {
   delete_automated_backups = var.delete_automated_backups
   deletion_protection      = !var.force_destroy
   skip_final_snapshot      = var.skip_final_snapshot
+  final_snapshot_identifier = "db3dec-final-snapshot"
   backup_retention_period  = var.backup_retention_period
   lifecycle {
     ignore_changes = [
