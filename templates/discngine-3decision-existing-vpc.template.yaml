@@ -64,6 +64,7 @@ Metadata:
           - DBMultiZone
           - DBBackupRetentionPeriod
           - DBDeleteAutoBackups
+          - AdminInitialPassword
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -138,6 +139,8 @@ Metadata:
         default: Time to keep DB backups
       DBDeleteAutoBackups:
         default: Whether to delete automatic backups when deleting the database
+      AdminInitialPassword:
+        default: Password of the admin user
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -340,6 +343,10 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
+  AdminInitialPassword:
+    Description: "Optional: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
+    Type: String
+    Default: ""
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -464,6 +471,7 @@ Conditions:
   LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
   CreateFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "true"]
   PreventDestroy: !Equals [!Ref PreventDestroy, "true"]
+  DefaultAdminPassword: !Equals [!Ref AdminInitialPassword, ""]
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -820,8 +828,27 @@ Resources:
               version = ${TdecisionVersion}
               namespace = "${TdecisionNamespace}"
             }
+            initial_db_passwords = {
+              "ADMIN"                   = "${AdminPassword}"
+              "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
+              "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
+            }
             EOF
             terraform init -backend-config=backend.conf -reconfigure -upgrade
+
+            sudo yum install jq -y
+            terraform state pull > terraform.tfstate
+            final_snapshot_value=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.final_snapshot' terraform.tfstate)
+
+            if [ "$final_snapshot_value" = "true" ]; then
+              id=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.id' terraform.tfstate)
+              terraform state rm 'module.volumes.aws_ebs_volume.public_data'
+              terraform import -var-file=vars.tfvars 'module.volumes.aws_ebs_volume.public_data' "$id"
+            else
+              echo "final_snapshot is not set to true. Doing nothing."
+            fi
+            rm terraform.tfstate
+
             terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
 
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
@@ -831,6 +858,7 @@ Resources:
             TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
             SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
             ForceDestroy: !If [PreventDestroy, "false", "true"]
+            AdminPassword: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
             
         workingDirectory:
         - "/opt/dng"
