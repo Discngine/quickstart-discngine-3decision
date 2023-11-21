@@ -694,7 +694,7 @@ resource "helm_release" "tdecision_chart" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      kubectl delete -n ${self.namespace} cronjob tdecision-3decision-helm-oracle-takeovers --force
+      kubectl delete -n ${self.namespace} cronjob --all --force
       kubectl delete deployments -n ${self.namespace} --all --force
     EOT
   }
