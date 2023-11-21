@@ -22,7 +22,6 @@ resource "aws_security_group_rule" "db_security_group_egress" {
 }
 
 resource "aws_db_instance" "db_instance" {
-  allocated_storage        = 500
   max_allocated_storage    = 1000
   character_set_name       = "AL32UTF8"
   instance_class           = var.instance_type
