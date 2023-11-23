@@ -289,6 +289,12 @@ replica:
         readOnly: true
       - mountPath: /data
         name: redis-data
+global:
+  redis:
+    password: lapin80
+auth:
+  password: lapin80
+delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
 YAML
 }
 
@@ -309,6 +315,19 @@ resource "helm_release" "cert_manager_release" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
+# Deletes statefulsets on redis upgrade to avoid patching error
+# As a security measure, the id of this resource is added to the redis helm values so redis will always be updated if this is launched (so the statefulset is recreated)
+resource "terraform_data" "delete_sentinel_statefulsets" {
+  triggers_replace = [var.redis_sentinel_chart.version]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+export KUBECONFIG=$HOME/.kube/config
+kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
+    EOF
+  }
+}
+
 resource "helm_release" "sentinel_release" {
   name             = var.redis_sentinel_chart.name
   chart            = var.redis_sentinel_chart.chart
@@ -320,7 +339,8 @@ resource "helm_release" "sentinel_release" {
   depends_on = [
     kubectl_manifest.sentinel_configmap_redis,
     kubernetes_storage_class_v1.encrypted_storage_class,
-    kubernetes_config_map_v1.aws_auth
+    kubernetes_config_map_v1.aws_auth,
+    terraform_data.delete_sentinel_statefulsets
   ]
 }
 
