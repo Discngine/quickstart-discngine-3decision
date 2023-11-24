@@ -258,6 +258,22 @@ YAML
   ]
 }
 
+resource "kubernetes_config_map_v1" "sentinel_backup_timestamp" {
+  metadata {
+    name      = "sentinel-backup-timestamp-cm"
+    namespace = var.redis_sentinel_chart.namespace
+  }
+
+  data = {
+    "TIMESTAMP" = 0
+  }
+
+  depends_on = [kubernetes_namespace.redis_namespace]
+  lifecycle {
+    ignore_changes = [data, binary_data]
+  }
+}
+
 ######################
 #        HELM
 ######################
