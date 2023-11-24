@@ -18,6 +18,29 @@ terraform {
   }
 }
 
+# If anything is needed to be run once for the 1.8 release add it here
+resource "terraform_data" "cleaning_1_8" {
+  triggers_replace = [var.tdecision_chart.version]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+if [ "${var.tdecision_chart.version}" != "3.0.0" ]; then
+  echo "Not 1.8 release, do not run cleaning..."
+  exit 0
+fi
+export KUBECONFIG=$HOME/.kube/config
+kubectl delete pvc -n choral --all --force
+kubectl delete svc -n choral --all --force
+kubectl delete svc -n tdecision --all --force
+    EOF
+  }
+  lifecycle {
+    ignore_changes = all
+  }
+  depends_on = [kubectl_manifest.ClusterExternalSecret]
+}
+
+
 locals {
   cm_data = {
     "mapRoles" = <<YAML
@@ -488,10 +511,10 @@ resource "terraform_data" "reset_passwords" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
 export KUBECONFIG=$HOME/.kube/config
-#if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
-#  echo "tdecision already running, password reset aborted."
-#  exit 0
-#fi
+if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
+  echo "tdecision already running, password reset aborted."
+  exit 0
+fi
 cat > reset_passwords.yaml << YAML
 ---
 apiVersion: v1
@@ -704,7 +727,8 @@ resource "helm_release" "tdecision_chart" {
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,
-    terraform_data.reset_passwords
+    terraform_data.reset_passwords,
+    terraform_data.cleaning_1_8
   ]
 
   provisioner "local-exec" {
@@ -761,7 +785,8 @@ resource "helm_release" "choral_chart" {
     kubectl_manifest.ClusterExternalSecret,
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
-    terraform_data.clean_choral
+    terraform_data.clean_choral,
+    terraform_data.cleaning_1_8
   ]
 }
 
