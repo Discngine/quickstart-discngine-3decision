@@ -28,6 +28,7 @@ if [ "${var.tdecision_chart.version}" != "3.0.0" ]; then
   echo "Not 1.8 release, do not run cleaning..."
   exit 0
 fi
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete pvc -n choral --all --force
 kubectl delete svc -n choral --all --force
@@ -345,6 +346,7 @@ resource "terraform_data" "delete_sentinel_statefulsets" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
     EOF
@@ -510,6 +512,7 @@ resource "terraform_data" "reset_passwords" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
   echo "tdecision already running, password reset aborted."
@@ -556,6 +559,7 @@ resource "terraform_data" "clean_choral" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 if kubectl get deploy -n choral | grep choral &> /dev/null; then
   echo "choral already running, cleaning aborted."
@@ -623,6 +627,7 @@ if [ $${time_diff} -lt 0 ]; then
   exit 0
 fi
 
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 cat > redis_synchro.yaml << YAML
 ---
