@@ -271,7 +271,7 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
       spec {
         container {
           name  = "job-af-bucket-files-push"
-          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.1-test"
+          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.2"
           env {
             name  = "PROVIDER"
             value = "AWS"
@@ -300,11 +300,11 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
         volume {
           name = "nfs-pvc-public"
           persistent_volume_claim {
-            claim_name = "${helm_release.tdecision_chart.name}-3decision-helm-nfs-pvc-public"
+            claim_name = "${helm_release.tdecision_chart.name}-nfs-pvc-public"
           }
         }
         restart_policy       = "OnFailure"
-        service_account_name = "${helm_release.tdecision_chart.name}-3decision-helm-s3-access"
+        service_account_name = "${helm_release.tdecision_chart.name}-s3-access"
       }
     }
     backoff_limit = 3
