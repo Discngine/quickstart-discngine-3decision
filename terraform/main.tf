@@ -216,6 +216,9 @@ module "kubernetes" {
   additional_eks_roles_arn   = var.additional_eks_roles_arn
   additional_eks_users_arn   = var.additional_eks_users_arn
   custom_ami                 = var.custom_ami
+  af_file_name               = var.af_file_name
+  af_ftp_link                = var.af_ftp_link
+  af_file_nb                 = var.af_file_nb
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key
@@ -224,7 +227,7 @@ module "kubernetes" {
   bucket_name             = module.storage.bucket_name
   public_volume_id        = module.volumes.public_volume_id
   private_volume_id       = module.volumes.private_volume_id
-  redis_role_arn          = module.storage.redis_role_arn
+  s3_role_arn             = module.storage.s3_role_arn
   eks_service_cidr        = module.eks.service_cidr
   db_name                 = module.database.db_name
   db_endpoint             = module.database.db_endpoint
