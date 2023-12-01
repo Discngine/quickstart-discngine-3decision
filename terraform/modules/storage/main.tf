@@ -25,8 +25,13 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
-resource "aws_iam_role" "redis_role" {
-  name_prefix = "3decision-redis-s3"
+moved {
+  from = aws_iam_role.redis_role
+  to   = aws_iam_role.role
+}
+
+resource "aws_iam_role" "role" {
+  name_prefix = "3decision-s3"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -38,7 +43,7 @@ resource "aws_iam_role" "redis_role" {
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
           "StringLike" : {
-            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis"]
+            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis", "system:serviceaccount:tdecision:*"]
           }
         }
       }
@@ -48,8 +53,13 @@ resource "aws_iam_role" "redis_role" {
   description = "Role designed to access the Redis access point inside EKS pods"
 }
 
-resource "aws_iam_policy" "redis_policy" {
-  name_prefix = "3decision-redis-s3"
+moved {
+  from = aws_iam_policy.redis_policy
+  to   = aws_iam_policy.policy
+}
+
+resource "aws_iam_policy" "policy" {
+  name_prefix = "3decision-s3"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -69,7 +79,12 @@ resource "aws_iam_policy" "redis_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "secret_rotator_lambda_role_policy_attachment" {
-  role       = aws_iam_role.redis_role.id
-  policy_arn = aws_iam_policy.redis_policy.arn
+moved {
+  from = aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
+  to   = aws_iam_role_policy_attachment.policy_attachment
+}
+
+resource "aws_iam_role_policy_attachment" "policy_attachment" {
+  role       = aws_iam_role.role.id
+  policy_arn = aws_iam_policy.policy.arn
 }
