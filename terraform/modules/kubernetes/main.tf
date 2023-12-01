@@ -262,7 +262,8 @@ YAML
 resource "kubernetes_job_v1" "af_bucket_files_push" {
 
   metadata {
-    name = "job-af-bucket-files-push"
+    name      = "job-af-bucket-files-push"
+    namespace = var.tdecision_chart.namespace
   }
   spec {
     template {
