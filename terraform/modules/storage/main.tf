@@ -43,7 +43,7 @@ resource "aws_iam_role" "role" {
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
           "StringLike" : {
-            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis", "system:serviceaccount:tdecision:s3-access"]
+            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis", "system:serviceaccount:tdecision:*"]
           }
         }
       }
@@ -59,7 +59,7 @@ moved {
 }
 
 resource "aws_iam_policy" "policy" {
-  name_prefix = "3decision-redis-s3"
+  name_prefix = "3decision-s3"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [

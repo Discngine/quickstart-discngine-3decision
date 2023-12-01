@@ -271,7 +271,7 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
       spec {
         container {
           name  = "job-af-bucket-files-push"
-          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.1"
+          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.1-test"
           env {
             name  = "PROVIDER"
             value = "AWS"
