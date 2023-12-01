@@ -278,19 +278,19 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
           }
           env {
             name  = "BUCKET_NAME"
-            value = "${var.bucket_name}"
+            value = var.bucket_name
           }
           env {
             name  = "FTP_LINK"
-            value = "${var.af_ftp_link}"
+            value = var.af_ftp_link
           }
           env {
             name  = "FILE_NAME"
-            value = "${var.af_file_name}"
+            value = var.af_file_name
           }
           env {
             name  = "FILE_NUMBER"
-            value = "${var.af_file_nb}"
+            value = var.af_file_nb
           }
           volume_mount {
             name       = "nfs-pvc-public"
