@@ -259,6 +259,59 @@ YAML
   ]
 }
 
+resource "kubernetes_job_v1" "af_bucket_files_push" {
+
+  metadata {
+    name      = "job-af-bucket-files-push"
+    namespace = var.tdecision_chart.namespace
+  }
+  spec {
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "job-af-bucket-files-push"
+          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.2"
+          env {
+            name  = "PROVIDER"
+            value = "AWS"
+          }
+          env {
+            name  = "BUCKET_NAME"
+            value = var.bucket_name
+          }
+          env {
+            name  = "FTP_LINK"
+            value = var.af_ftp_link
+          }
+          env {
+            name  = "FILE_NAME"
+            value = var.af_file_name
+          }
+          env {
+            name  = "FILE_NUMBER"
+            value = var.af_file_nb
+          }
+          volume_mount {
+            name       = "nfs-pvc-public"
+            mount_path = "/publicdata"
+          }
+        }
+        volume {
+          name = "nfs-pvc-public"
+          persistent_volume_claim {
+            claim_name = "${helm_release.tdecision_chart.name}-nfs-pvc-public"
+          }
+        }
+        restart_policy       = "OnFailure"
+        service_account_name = "${helm_release.tdecision_chart.name}-s3-access"
+      }
+    }
+    backoff_limit = 3
+  }
+  wait_for_completion = false
+}
+
 ######################
 #        HELM
 ######################
@@ -271,7 +324,7 @@ serviceAccount:
   create: true
   name: sentinel-redis
   annotations:
-    eks.amazonaws.com/role-arn: ${var.redis_role_arn}  
+    eks.amazonaws.com/role-arn: ${var.s3_role_arn}  
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -460,6 +513,8 @@ ingress:
     additionalHosts: [${join(", ", var.additional_main_subdomains)}]
   api:
     host: ${var.api_subdomain}
+  react:
+    host: 3decision-reg
   class: alb
 nest:
   ReprocessingEnv:
@@ -498,10 +553,14 @@ nfs:
   private:
     serviceIP: ${cidrhost(var.eks_service_cidr, 266)}
 rbac:
+  namespaced:
+    s3Access:
+      annotations:
+        eks.amazonaws.com/role-arn: ${var.s3_role_arn}
   cluster:
     redisBackup:
       annotations:
-        eks.amazonaws.com/role-arn: ${var.redis_role_arn}
+        eks.amazonaws.com/role-arn: ${var.s3_role_arn}
 redis:
   nodeSelector: null
 pocket_features:
@@ -550,8 +609,8 @@ spec:
           value: ${local.connection_string}
       args:
         - echo 'resetting passwords';
-          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;
-          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;' > reset_passwords.sql;
+          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY "\$${CHEMBL_DB_PASSWD}" ACCOUNT UNLOCK;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY "\$${DB_PASSWD}" ACCOUNT UNLOCK;' > reset_passwords.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
 kubectl apply -f reset_passwords.yaml

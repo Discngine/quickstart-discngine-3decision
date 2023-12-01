@@ -28,10 +28,13 @@ variable "secrets_access_role_arn" {}
 variable "bucket_name" {}
 variable "public_volume_id" {}
 variable "private_volume_id" {}
-variable "redis_role_arn" {}
+variable "s3_role_arn" {}
 variable "eks_service_cidr" {}
 variable "db_name" {}
 variable "db_endpoint" {}
 variable "cluster_name" {}
 variable "eks_oidc_issuer" {}
 variable "node_group_role_arn" {}
+variable "af_file_name" {}
+variable "af_ftp_link" {}
+variable "af_file_nb" {}
