@@ -259,7 +259,7 @@ YAML
   ]
 }
 
-resource "kubernetes_job_v1" "af_bucket_files_push" {
+resource "kubernetes_job" "af_bucket_files_push" {
 
   metadata {
     name      = "job-af-bucket-files-push"
