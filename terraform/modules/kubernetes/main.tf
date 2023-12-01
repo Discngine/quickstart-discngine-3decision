@@ -304,7 +304,7 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
           }
         }
         restart_policy       = "OnFailure"
-        service_account_name = "s3-access"
+        service_account_name = "${helm_release.tdecision_chart.name}-3decision-helm-s3-access"
       }
     }
     backoff_limit = 3
