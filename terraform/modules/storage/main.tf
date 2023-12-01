@@ -43,7 +43,7 @@ resource "aws_iam_role" "role" {
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
           "StringLike" : {
-            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis", "system:serviceaccount:tdecision:*-s3-access"]
+            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis", "system:serviceaccount:tdecision:s3-access"]
           }
         }
       }
