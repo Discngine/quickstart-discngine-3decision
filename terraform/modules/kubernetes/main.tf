@@ -503,6 +503,8 @@ ingress:
     additionalHosts: [${join(", ", var.additional_main_subdomains)}]
   api:
     host: ${var.api_subdomain}
+  react:
+    host: 3decision-reg
   class: alb
 nest:
   ReprocessingEnv:
