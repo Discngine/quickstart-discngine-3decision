@@ -198,7 +198,7 @@ variable "tdecision_chart" {
   type = object({
     name             = optional(string, "tdecision")
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
-    chart            = optional(string, "3decision-helm")
+    chart            = optional(string, "tdecision")
     namespace        = optional(string, "tdecision")
     version          = optional(string, "2.3.7")
     create_namespace = optional(bool, true)

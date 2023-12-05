@@ -420,6 +420,17 @@ resource "helm_release" "sentinel_release" {
     kubernetes_config_map_v1.aws_auth,
     terraform_data.delete_sentinel_statefulsets
   ]
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      kubectl delete statefulsets -n ${self.namespace} --all --force
+      kubectl delete pods -n ${self.namespace} --all --force
+    EOT
+  }
 }
 
 resource "helm_release" "external_secrets_chart" {
@@ -805,6 +816,7 @@ resource "helm_release" "tdecision_chart" {
       kubectl delete -n ${self.namespace} cronjob --all --force
       kubectl delete -n ${self.namespace} job --all --force
       kubectl delete deployments -n ${self.namespace} --all --force
+      kubectl delete pods -n ${self.namespace} --all --force
     EOT
   }
 }
