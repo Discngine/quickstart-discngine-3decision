@@ -30,9 +30,20 @@ resource "terraform_data" "cleaning_1_8" {
 #fi
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
+kubectl delete deploy -n choral --all --force
+kubectl delete pod -n choral --all --force
 kubectl delete pvc -n choral --all --force
 kubectl delete svc -n choral --all --force
 kubectl delete svc -n tdecision --all --force
+cat > patch.yaml << PATCH
+- op: add
+  path: /metadata/annotations/alb.ingress.kubernetes.io~1group.name
+  value: lb
+PATCH
+kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision --type='json' -p "$(cat patch.yaml)"
+rm patch.yaml
+sleep 30
+kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 kubectl delete ingress -n tdecision --all --force
     EOF
   }
