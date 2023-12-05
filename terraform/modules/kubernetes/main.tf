@@ -24,10 +24,10 @@ resource "terraform_data" "cleaning_1_8" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-if [ "${var.tdecision_chart.version}" != "3.0.0" ]; then
-  echo "Not 1.8 release, do not run cleaning..."
-  exit 0
-fi
+#if [ "${var.tdecision_chart.version}" != "3.0.0" ]; then
+#  echo "Not 1.8 release, do not run cleaning..."
+#  exit 0
+#fi
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete pvc -n choral --all --force
