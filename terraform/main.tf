@@ -180,6 +180,21 @@ module "volumes" {
 }
 
 moved {
+  from = module.storage.aws_iam_role.redis_role
+  to   = module.storage["redis"].aws_iam_role.role
+}
+
+moved {
+  from = module.storage.aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
+  to   = module.storage["redis"].aws_iam_role_policy_attachment.policy_attachment
+}
+
+moved {
+  from = module.storage.aws_iam_policy.redis_policy
+  to   = module.storage["redis"].aws_iam_policy.policy
+}
+
+moved {
   from = module.storage
   to   = module.storage["redis"]
 }
