@@ -30,7 +30,7 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
 }
 
 resource "aws_iam_role" "role" {
-  name_prefix = "3decision-s3-${var.name}"
+  name_prefix = "3decision-${var.name}-s3"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -54,7 +54,7 @@ resource "aws_iam_role" "role" {
 
 
 resource "aws_iam_policy" "policy" {
-  name_prefix = "3decision-s3-${var.name}"
+  name_prefix = "3decision-${var.name}-s3"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
