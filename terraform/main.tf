@@ -179,12 +179,29 @@ module "volumes" {
   public_final_snapshot   = var.public_final_snapshot
 }
 
+moved {
+  from = module.storage
+  to   = module.storage["redis"]
+}
+
+locals {
+  buckets = toset(["redis", "alphafold"])
+  allowed_service_accounts = {
+    "redis"     = ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis"]
+    "alphafold" = ["system:serviceaccount:tdecision:*"]
+  }
+}
+
 module "storage" {
-  source = "./modules/storage"
+  for_each = local.buckets
+  source   = "./modules/storage"
+
   # Input
-  region        = var.region
-  account_id    = local.account_id
-  force_destroy = var.force_destroy
+  name                     = each.key
+  region                   = var.region
+  force_destroy            = each.key == "alphafold" ? true : var.force_destroy
+  allowed_service_accounts = lookup(local.allowed_service_accounts, each.key, [])
+
   # Output
   vpc_id              = var.create_network ? module.network[0].vpc_id : var.vpc_id
   eks_oidc_issuer     = module.eks.oidc_issuer
@@ -216,15 +233,18 @@ module "kubernetes" {
   additional_eks_roles_arn   = var.additional_eks_roles_arn
   additional_eks_users_arn   = var.additional_eks_users_arn
   custom_ami                 = var.custom_ami
+  af_file_name               = var.af_file_name
+  af_ftp_link                = var.af_ftp_link
+  af_file_nb                 = var.af_file_nb
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key
   jwt_ssh_public          = module.secrets.jwt_public_key
   secrets_access_role_arn = module.secrets.secrets_access_role_arn
-  bucket_name             = module.storage.bucket_name
+  bucket_names            = module.storage[*].bucket_name
   public_volume_id        = module.volumes.public_volume_id
   private_volume_id       = module.volumes.private_volume_id
-  redis_role_arn          = module.storage.redis_role_arn
+  s3_roles_arn            = module.storage[*].s3_role_arn
   eks_service_cidr        = module.eks.service_cidr
   db_name                 = module.database.db_name
   db_endpoint             = module.database.db_endpoint
