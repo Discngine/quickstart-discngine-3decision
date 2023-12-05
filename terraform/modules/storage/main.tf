@@ -5,8 +5,12 @@ locals {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket_prefix = "tdec"
+  bucket_prefix = "tdec-${var.name}"
   force_destroy = var.force_destroy
+
+  lifecycle {
+    ignore_changes = [bucket_prefix]
+  }
 }
 
 resource "aws_s3_bucket_ownership_controls" "bucket_ownership" {
@@ -25,13 +29,8 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
-moved {
-  from = aws_iam_role.redis_role
-  to   = aws_iam_role.role
-}
-
 resource "aws_iam_role" "role" {
-  name_prefix = "3decision-s3"
+  name_prefix = "3decision-s3-${var.name}"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -43,7 +42,7 @@ resource "aws_iam_role" "role" {
         "Action" : "sts:AssumeRoleWithWebIdentity",
         "Condition" : {
           "StringLike" : {
-            "${local.oidc_issuer}:sub" : ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis", "system:serviceaccount:tdecision:*"]
+            "${local.oidc_issuer}:sub" : var.allowed_service_accounts
           }
         }
       }
@@ -53,13 +52,9 @@ resource "aws_iam_role" "role" {
   description = "Role designed to access the Redis access point inside EKS pods"
 }
 
-moved {
-  from = aws_iam_policy.redis_policy
-  to   = aws_iam_policy.policy
-}
 
 resource "aws_iam_policy" "policy" {
-  name_prefix = "3decision-s3"
+  name_prefix = "3decision-s3-${var.name}"
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -77,11 +72,6 @@ resource "aws_iam_policy" "policy" {
       }
     ]
   })
-}
-
-moved {
-  from = aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
-  to   = aws_iam_role_policy_attachment.policy_attachment
 }
 
 resource "aws_iam_role_policy_attachment" "policy_attachment" {
