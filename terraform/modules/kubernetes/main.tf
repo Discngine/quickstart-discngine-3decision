@@ -42,9 +42,13 @@ cat > patch.yaml << PATCH
 PATCH
 kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision --type='json' -p "$(cat patch.yaml)"
 rm patch.yaml
+kubectl get ingress -n tdecision tdecision-3decision-helm-ingress -o yaml > ingress.yaml
 sleep 30
 kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 kubectl delete ingress -n tdecision --all --force
+sed -i "s/name: tdecision-3decision-helm-ingress/name: tdecision-ingress/g" ingress.yaml
+kubectl apply -f ingress.yaml
+rm ingress.yaml
     EOF
   }
   lifecycle {
