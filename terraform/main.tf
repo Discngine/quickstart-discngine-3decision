@@ -195,8 +195,18 @@ moved {
 }
 
 moved {
-  from = module.storage
-  to   = module.storage["redis"]
+  from = module.storage.aws_s3_bucket.bucket
+  to   = module.storage["redis"].aws_s3_bucket.bucket
+}
+
+moved {
+  from = module.storage.aws_s3_bucket_ownership_controls.bucket_ownership
+  to   = module.storage["redis"].aws_s3_bucket_ownership_controls.bucket_ownership
+}
+
+moved {
+  from = module.storage.aws_s3_bucket_public_access_block.public_access_block
+  to   = module.storage["redis"].aws_s3_bucket_public_access_block.public_access_block
 }
 
 locals {
