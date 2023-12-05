@@ -25,10 +25,12 @@ variable "additional_eks_roles_arn" {}
 variable "additional_eks_users_arn" {}
 variable "custom_ami" {}
 variable "secrets_access_role_arn" {}
-variable "bucket_names" {}
+variable "redis_bucket_name" {}
+variable "alphafold_bucket_name" {}
+variable "redis_s3_role_arn" {}
+variable "alphafold_s3_role_arn" {}
 variable "public_volume_id" {}
 variable "private_volume_id" {}
-variable "s3_roles_arn" {}
 variable "eks_service_cidr" {}
 variable "db_name" {}
 variable "db_endpoint" {}

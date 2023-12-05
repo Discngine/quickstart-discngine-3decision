@@ -241,10 +241,12 @@ module "kubernetes" {
   jwt_ssh_private         = module.secrets.jwt_private_key
   jwt_ssh_public          = module.secrets.jwt_public_key
   secrets_access_role_arn = module.secrets.secrets_access_role_arn
-  bucket_names            = module.storage[*].bucket_name
+  redis_bucket_name       = module.storage["redis"].bucket_name
+  alphafold_bucket_name   = module.storage["alphafold"].bucket_name
+  redis_s3_role_arn       = module.storage["redis"].s3_role_arn
+  alphafold_s3_role_arn   = module.storage["alphafold"].s3_role_arn
   public_volume_id        = module.volumes.public_volume_id
   private_volume_id       = module.volumes.private_volume_id
-  s3_roles_arn            = module.storage[*].s3_role_arn
   eks_service_cidr        = module.eks.service_cidr
   db_name                 = module.database.db_name
   db_endpoint             = module.database.db_endpoint

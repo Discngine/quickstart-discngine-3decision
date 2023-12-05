@@ -249,7 +249,7 @@ metadata:
   name: sentinel-backup-env-cm
   namespace: ${each.key}
 data:
-  BUCKET_NAME: ${var.bucket_names["redis"]}
+  BUCKET_NAME: ${var.redis_bucket_name}
   PROVIDER: aws
 YAML
   depends_on = [
@@ -278,7 +278,7 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
           }
           env {
             name  = "BUCKET_NAME"
-            value = var.bucket_names["alphafold"]
+            value = var.alphafold_bucket_name
           }
           env {
             name  = "FTP_LINK"
@@ -324,7 +324,7 @@ serviceAccount:
   create: true
   name: sentinel-redis
   annotations:
-    eks.amazonaws.com/role-arn: ${var.s3_roles_arn["redis"]}  
+    eks.amazonaws.com/role-arn: ${var.redis_s3_role_arn}  
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -545,11 +545,11 @@ rbac:
   namespaced:
     s3Access:
       annotations:
-        eks.amazonaws.com/role-arn: ${var.s3_roles_arn["alphafold"]}
+        eks.amazonaws.com/role-arn: ${var.alphafold_s3_role_arn}
   cluster:
     redisBackup:
       annotations:
-        eks.amazonaws.com/role-arn: ${var.s3_roles_arn["redis"]}
+        eks.amazonaws.com/role-arn: ${var.redis_s3_role_arn}
 redis:
   nodeSelector: null
 pocket_features:
