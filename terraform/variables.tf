@@ -326,3 +326,22 @@ variable "private_final_snapshot" {
   default     = true
   description = "Whether to create a snapshot of the public volume when deleting it"
 }
+
+###############
+#     Alphafold
+###############
+
+variable "af_ftp_link" {
+  default     = "https://ftp.ebi.ac.uk/pub/databases/alphafold/v4/"
+  description = "url of the ftp to get the swissprot tar"
+}
+
+variable "af_file_name" {
+  default     = "swissprot_pdb_v4.tar"
+  description = "file name to downlaod from the ftp"
+}
+
+variable "af_file_nb" {
+  default     = "542378"
+  description = "number of files in archive"
+}
