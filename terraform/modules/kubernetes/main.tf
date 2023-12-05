@@ -33,6 +33,7 @@ export KUBECONFIG=$HOME/.kube/config
 kubectl delete pvc -n choral --all --force
 kubectl delete svc -n choral --all --force
 kubectl delete svc -n tdecision --all --force
+kubectl delete ingress -n tdecision --all --force
     EOF
   }
   lifecycle {
