@@ -35,10 +35,7 @@ kubectl delete pod -n choral --all --force
 kubectl delete pvc -n choral --all --force
 kubectl delete svc -n choral --all --force
 kubectl delete svc -n tdecision --all --force
-#kubectl delete ingress -n tdecision --all --force
-#sed -i "s/name: tdecision-3decision-helm-ingress/name: tdecision-ingress/g" ingress.yaml
-#kubectl apply -f ingress.yaml
-#rm ingress.yaml
+kubectl delete ingress -n tdecision --all --force
     EOF
   }
   lifecycle {
