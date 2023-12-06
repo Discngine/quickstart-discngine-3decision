@@ -85,6 +85,13 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
     subnet_ids         = var.private_subnet_ids
   }
 
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<EOF
+      aws lambda update-function-configuration --function-name ${self.function_name} --vpc-config '{"SubnetIds": [], "SecurityGroupIds": []}'
+    EOF
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment,
     time_sleep.wait_1_minute
