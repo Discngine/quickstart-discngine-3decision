@@ -37,7 +37,7 @@ kubectl delete svc -n choral --all --force
 kubectl delete svc -n tdecision --all --force
 kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 kubectl delete ingress -n tdecision --all --force
-ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json | jq -r)
+ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json)
 aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
     EOF
   }
