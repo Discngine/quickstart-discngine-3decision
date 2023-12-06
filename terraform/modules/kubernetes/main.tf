@@ -28,6 +28,10 @@ if [[ "${var.tdecision_chart.version}" != "3.0.0"* ]]; then
   echo "Not 1.8 release, do not run cleaning..."
   exit 0
 fi
+if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
+  echo "tdecision not installed, no need for cleaning."
+  exit 0
+fi
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete deploy -n choral --all --force
