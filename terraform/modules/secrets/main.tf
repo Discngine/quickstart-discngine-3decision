@@ -88,7 +88,12 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   provisioner "local-exec" {
     when    = destroy
     command = <<EOF
-      aws lambda update-function-configuration --function-name ${self.function_name} --vpc-config '{"SubnetIds": [], "SecurityGroupIds": []}'
+      echo "detaching security group"
+      aws lambda update-function-configuration --function-name ${self.function_name} --vpc-config '{"SubnetIds": [], "SecurityGroupIds": []}' &&
+      while result=$(aws ec2 describe-network-interfaces --output text --filters '[{"Name": "group-id", "Values": ["${self.vpc_config.0.security_group_ids.0}"] }, {"Name": "status", "Values": ["in-use", "available"]}]'); test "$result" != ""; do
+        sleep 10;
+      done
+      echo "successfully detached security group"
     EOF
   }
 
