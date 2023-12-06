@@ -40,6 +40,7 @@ kubectl delete ingress -n tdecision --all --force
 ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
 echo "updating tag on lb $${ARN}"
 aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
+echo "1.8 cleaning over"
     EOF
   }
   lifecycle {
