@@ -349,7 +349,6 @@ resource "kubernetes_job_v1" "af_proteome_download" {
     backoff_limit = 3
   }
   wait_for_completion = false
-  depends_on          = [kubectl_manifest.ClusterExternalSecret]
 }
 
 ######################
