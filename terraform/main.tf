@@ -254,6 +254,7 @@ module "kubernetes" {
   main_subdomain             = var.main_subdomain
   additional_main_subdomains = var.additional_main_subdomains
   api_subdomain              = var.api_subdomain
+  reg_subdomain              = var.reg_subdomain
   load_balancer_type         = var.load_balancer_type
   additional_eks_roles_arn   = var.additional_eks_roles_arn
   additional_eks_users_arn   = var.additional_eks_users_arn
@@ -289,6 +290,7 @@ module "dns" {
   domain         = var.domain
   main_subdomain = var.main_subdomain
   api_subdomain  = var.api_subdomain
+  reg_subdomain  = var.reg_subdomain
   zone_id        = var.hosted_zone_id
   # Output
   cluster_id = module.eks.cluster_id

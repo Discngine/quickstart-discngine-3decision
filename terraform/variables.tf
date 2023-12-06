@@ -183,6 +183,11 @@ variable "api_subdomain" {
   description = "Name used for the api subdomain"
 }
 
+variable "reg_subdomain" {
+  default     = "3decision-reg"
+  description = "Name used for the reg subdomain"
+}
+
 variable "hosted_zone_id" {
   default     = ""
   description = "Route53 HostedZone id. If left empty, create DNS records manually after apply."

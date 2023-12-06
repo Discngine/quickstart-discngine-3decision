@@ -319,6 +319,39 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
   wait_for_completion = false
 }
 
+resource "kubernetes_job_v1" "af_proteome_download" {
+  metadata {
+    name      = "af-proteome-download-job"
+    namespace = var.tdecision_chart.namespace
+  }
+  spec {
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "af-bucket-files-push-job"
+          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_proteome_downloader:0.0.1"
+          volume_mount {
+            name       = "nfs-pvc-public"
+            mount_path = "/publicdata"
+          }
+          image_pull_policy = "Always"
+        }
+        volume {
+          name = "nfs-pvc-public"
+          persistent_volume_claim {
+            claim_name = "${helm_release.tdecision_chart.name}-nfs-pvc-public"
+          }
+        }
+        restart_policy = "OnFailure"
+      }
+    }
+    backoff_limit = 3
+  }
+  wait_for_completion = false
+  depends_on          = [kubectl_manifest.ClusterExternalSecret]
+}
+
 ######################
 #        HELM
 ######################
@@ -480,6 +513,7 @@ locals {
   public_interaction_registration_reprocessing_version_list = ["2.3.3"]
   private_structure_reprocessing_version_list               = ["2.3.4"]
   missing_structure_registration_reprocessing_version_list  = ["2.3.7"]
+  alphafold_structure_registration_version_list             = ["3.0.0"]
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
@@ -488,6 +522,7 @@ locals {
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
   launch_missing_structure_registration_reprocessing  = contains(local.missing_structure_registration_reprocessing_version_list, var.tdecision_chart.version)
+  launch_alphafold_structure_registration             = contains(local.alphafold_structure_registration_version_list, var.tdecision_chart.version)
 }
 
 locals {
@@ -521,7 +556,7 @@ ingress:
   api:
     host: ${var.api_subdomain}
   react:
-    host: 3decision-reg
+    host: ${var.reg_subdomain}
   class: alb
 nest:
   ReprocessingEnv:
@@ -535,6 +570,8 @@ nest:
       value: rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration
     private_structure_reprocessing_timestamp:
       value: ${local.launch_private_structure_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
+    alphafold_structure_registration_timestamp:
+      value: ${local.launch_alphafold_structure_registration ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
@@ -554,6 +591,9 @@ nest:
     google_redirect_uri:
       name: GOOGLE_REDIRECT_URI
       value: https://${var.api_subdomain}.${var.domain}/auth/google/callback
+    bucket_name:
+      name: "ALPHAFOLD_BUCKET_NAME"
+      value: ${var.alphafold_bucket_name}
 nfs:
   public:
     serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
