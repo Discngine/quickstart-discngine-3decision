@@ -35,20 +35,10 @@ kubectl delete pod -n choral --all --force
 kubectl delete pvc -n choral --all --force
 kubectl delete svc -n choral --all --force
 kubectl delete svc -n tdecision --all --force
-cat > patch.yaml << PATCH
-- op: add
-  path: /metadata/annotations/alb.ingress.kubernetes.io~1group.name
-  value: lb
-PATCH
-kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision --type='json' -p "$(cat patch.yaml)"
-rm -f patch.yaml
-kubectl get ingress -n tdecision tdecision-3decision-helm-ingress -o yaml > ingress.yaml
-sleep 30
 kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 kubectl delete ingress -n tdecision --all --force
-sed -i "s/name: tdecision-3decision-helm-ingress/name: tdecision-ingress/g" ingress.yaml
-kubectl apply -f ingress.yaml
-rm -f ingress.yaml
+ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json | jq -r)
+aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
     EOF
   }
   lifecycle {
