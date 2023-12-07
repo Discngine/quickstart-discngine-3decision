@@ -7,6 +7,7 @@ variable "vpc_id" {}
 variable "tdecision_chart" {}
 variable "choral_chart" {}
 variable "redis_sentinel_chart" {}
+variable "chemaxon_ms_chart" {}
 variable "cert_manager_chart" {}
 variable "external_secrets_chart" {}
 variable "reloader_chart" {}

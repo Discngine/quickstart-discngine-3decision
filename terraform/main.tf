@@ -242,6 +242,7 @@ module "kubernetes" {
   account_id                 = local.account_id
   tdecision_chart            = var.tdecision_chart
   choral_chart               = var.choral_chart
+  chemaxon_ms_chart          = var.chemaxon_ms_chart
   redis_sentinel_chart       = var.redis_sentinel_chart
   cert_manager_chart         = var.cert_manager_chart
   external_secrets_chart     = var.external_secrets_chart

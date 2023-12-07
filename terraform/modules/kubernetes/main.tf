@@ -917,6 +917,15 @@ resource "helm_release" "choral_chart" {
   ]
 }
 
+resource "helm_release" "chemaxon_ms_chart" {
+  name             = var.chemaxon_ms_chart.name
+  chart            = var.chemaxon_ms_chart.chart
+  namespace        = var.chemaxon_ms_chart.namespace
+  create_namespace = var.chemaxon_ms_chart.create_namespace
+  version          = var.chemaxon_ms_chart.version
+  timeout          = 1200
+}
+
 locals {
   oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)
 }

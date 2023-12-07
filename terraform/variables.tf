@@ -225,6 +225,19 @@ variable "choral_chart" {
   default = {}
 }
 
+variable "chemaxon_ms_chart" {
+  description = "A map with information about the redis sentinel helm chart"
+
+  type = object({
+    name             = optional(string, "chemaxon-ms")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/chemaxon-ms")
+    namespace        = optional(string, "chemaxon-ms")
+    create_namespace = optional(bool, true)
+    version          = optional(string, "1.0.6")
+  })
+  default = {}
+}
+
 variable "cert_manager_chart" {
   description = "A map with information about the cert manager helm chart"
 
