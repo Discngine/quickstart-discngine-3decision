@@ -630,6 +630,7 @@ YAML
 # This resets the passwords of schemas CHEMBL_29 and PD_T1_DNG_THREEDECISION
 # It is aimed to be used on new environments that have unknown passwords set in the backup
 resource "terraform_data" "reset_passwords" {
+  count = 0
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
