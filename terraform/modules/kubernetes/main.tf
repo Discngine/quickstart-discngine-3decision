@@ -598,6 +598,10 @@ nest:
     bucket_name:
       name: "ALPHAFOLD_BUCKET_NAME"
       value: ${var.alphafold_bucket_name}
+    aws_object_storage_region:
+      name: AWS_OBJECT_STORAGE_REGION
+      value: ${var.region}
+
 nfs:
   public:
     serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
