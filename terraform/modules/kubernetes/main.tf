@@ -24,6 +24,8 @@ resource "terraform_data" "cleaning_1_8" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+export KUBECONFIG=$HOME/.kube/config
 if [[ "${var.tdecision_chart.version}" != "3.0.0"* ]]; then
   echo "Not 1.8 release, do not run cleaning..."
   exit 0
@@ -32,8 +34,6 @@ if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespa
   echo "tdecision not installed, no need for cleaning."
   exit 0
 fi
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-export KUBECONFIG=$HOME/.kube/config
 kubectl delete deploy -n choral --all --force
 kubectl delete pod -n choral --all --force
 kubectl delete pvc -n choral --all --force
