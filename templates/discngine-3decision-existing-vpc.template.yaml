@@ -709,6 +709,10 @@ Resources:
                   sudo chmod +x kubectl
                   sudo mv kubectl /usr/local/bin
 
+                  curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+                  chmod 700 get_helm.sh
+                  ./get_helm.sh
+
                   wget https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
                   unzip terraform_1.4.6_linux_amd64.zip
                   sudo mv terraform /usr/local/bin
@@ -768,6 +772,13 @@ Resources:
             #!/bin/bash
 
             echo ${RelaunchTerraform} > /dev/null
+
+            if ! command -v helm; then
+              curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+              chmod 700 get_helm.sh
+              ./get_helm.sh
+            fi
+
             sudo chown -R root:root /opt/dng/
             cd /opt/dng/quickstart-discngine-3decision/terraform
             git pull
