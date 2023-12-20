@@ -777,6 +777,9 @@ Resources:
 
             sudo chown -R root:root /opt/dng/
             cd /opt/dng/quickstart-discngine-3decision/terraform
+
+            rm -rf .terraform/providers/
+
             git pull
             git checkout ${GitBranch} && git pull
             cat > backend.conf << EOF
