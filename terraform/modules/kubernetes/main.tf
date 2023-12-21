@@ -848,7 +848,7 @@ resource "helm_release" "tdecision_chart" {
   chart      = var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
-  timeout    = 1200
+  timeout    = 36000
   values     = [local.final_values]
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
