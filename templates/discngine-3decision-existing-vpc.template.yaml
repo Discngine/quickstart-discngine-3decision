@@ -879,4 +879,4 @@ Resources:
           OutputS3BucketName: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
           OutputS3KeyPrefix: 'logs/'
           OutputS3Region: !Ref AWS::Region
-      WaitForSuccessTimeoutSeconds: 3600
+      WaitForSuccessTimeoutSeconds: 36000
