@@ -556,7 +556,7 @@ ingress:
   visibility: ${var.load_balancer_type}
   ui:
     host: ${var.main_subdomain}
-    additionalHosts: [${join(", ", var.additional_main_subdomains)}]
+    additionalHosts: [${join(", ", var.additional_main_fqdns)}]
   api:
     host: ${var.api_subdomain}
   react:

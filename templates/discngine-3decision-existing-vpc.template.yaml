@@ -52,7 +52,8 @@ Metadata:
           - DomainName
           - MainSubdomain
           - ApiSubdomain
-          - AdditionalMainSubdomains
+          - RegistrationSubdomain
+          - AdditionalMainFQDNs
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
@@ -149,7 +150,9 @@ Metadata:
         default: Subdomain name for app landing page
       ApiSubdomain:
         default: Subdomain of the api
-      AdditionalMainSubdomains:
+      RegistrationSubdomain:
+        default: Subdomain used for registration
+      AdditionalMainFQDNs:
         default: Additional subdomains that will redirect to the landing page
       CertificateArn:
         default: Arn of a certificate
@@ -376,11 +379,15 @@ Parameters:
     Default: "3decision-api"
     Description: "Required: Name used for the api subdomain"
     Type: String
-  AdditionalMainSubdomains:
+  RegistrationSubdomain:
+    Default: "3decision-reg"
+    Description: "Required: Name used for the registration subdomain"
+    Type: String
+  AdditionalMainFQDNs:
     Default: ""
     Description: >
-      Optional: Additional subdomains that will redirect to the landing page.
-      Write this as: "subdomain", "subdomain".
+      Optional: Additional domains that will redirect to the landing page. This takes a list of fqdn without the trailing dot (e.g 3decision.example.com)
+      Write this as: "fqdn", "fqdn".
     Type: String
   CertificateArn:
     Default: ""
@@ -806,8 +813,9 @@ Resources:
             certificate_arn = "${CertificateArn}"
             domain = "${DomainName}"
             main_subdomain = "${MainSubdomain}"
-            additional_main_subdomains = [${AdditionalMainSubdomains}]
+            additional_main_fqdns = [${AdditionalMainFQDNs}]
             api_subdomain = "${ApiSubdomain}"
+            registration_subdomain = "${RegistrationSubdomain}"
             hosted_zone_id = "${HostedZoneId}"
             azure_oidc = {
               client_id = "${AzureClient}"

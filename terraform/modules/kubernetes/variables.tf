@@ -19,7 +19,7 @@ variable "google_oidc" {}
 variable "certificate_arn" {}
 variable "domain" {}
 variable "main_subdomain" {}
-variable "additional_main_subdomains" {}
+variable "additional_main_fqdns" {}
 variable "api_subdomain" {}
 variable "reg_subdomain" {}
 variable "load_balancer_type" {}

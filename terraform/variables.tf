@@ -173,7 +173,7 @@ variable "main_subdomain" {
   description = "Name used for the main app subdomain"
 }
 
-variable "additional_main_subdomains" {
+variable "additional_main_fqdns" {
   default     = []
   description = "Additional main subdomains that will redirect to the main_subdomain"
 }

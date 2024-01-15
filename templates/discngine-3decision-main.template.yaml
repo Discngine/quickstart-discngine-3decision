@@ -55,7 +55,8 @@ Metadata:
           - DomainName
           - MainSubdomain
           - ApiSubdomain
-          - AdditionalMainSubdomains
+          - RegistrationSubdomain
+          - AdditionalMainFQDNs
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
@@ -172,8 +173,10 @@ Metadata:
         default: Subdomain name for app landing page
       ApiSubdomain:
         default: Subdomain of the api
-      AdditionalMainSubdomains:
-        default: Additional subdomains that will redirect to the landing page
+      RegistrationSubdomain:
+        default: Subdomain used for registration
+      AdditionalMainFQDNs:
+        default: Additional domains that will redirect to the landing page
       CertificateArn:
         default: Arn of a certificate
       LoadBalancerType:
@@ -452,11 +455,15 @@ Parameters:
     Default: "3decision-api"
     Description: "Required: Name used for the api subdomain"
     Type: String
-  AdditionalMainSubdomains:
+  RegistrationSubdomain:
+    Default: "3decision-reg"
+    Description: "Required: Name used for the registration subdomain"
+    Type: String
+  AdditionalMainFQDNss:
     Default: ""
     Description: >
-      Optional: Additional subdomains that will redirect to the landing page.
-      Write this as: "subdomain", "subdomain".
+      Optional: Additional domains that will redirect to the landing page. This takes a list of fqdn without the trailing dot (e.g 3decision.example.com)
+      Write this as: "fqdn", "fqdn".
     Type: String
   CertificateArn:
     Default: ""
@@ -617,6 +624,7 @@ Resources:
         GoogleSecret: !Ref GoogleSecret
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
-        AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
+        RegistrationSubdomain: !Ref RegistrationSubdomain
+        AdditionalMainFQDNs: !Ref AdditionalMainFQDNs
         PublicVolumeSnapshotId: !Ref PublicVolumeSnapshotId
         PrivateVolumeSnapshotId: !Ref PrivateVolumeSnapshotId
