@@ -560,7 +560,7 @@ ingress:
   api:
     host: ${var.api_subdomain}
   react:
-    host: ${var.reg_subdomain}
+    host: ${var.registration_subdomain}
   class: alb
 nest:
   ReprocessingEnv:

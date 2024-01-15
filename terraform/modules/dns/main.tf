@@ -35,7 +35,7 @@ resource "aws_route53_record" "tdec_api_record" {
 
 resource "aws_route53_record" "tdec_reg_record" {
   zone_id = var.zone_id
-  name    = "${var.reg_subdomain}.${var.domain}"
+  name    = "${var.registration_subdomain}.${var.domain}"
   type    = "A"
   alias {
     name                   = "dualstack.${data.aws_lb.ingress_load_balancer.dns_name}"

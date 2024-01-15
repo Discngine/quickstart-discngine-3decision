@@ -255,7 +255,7 @@ module "kubernetes" {
   main_subdomain           = var.main_subdomain
   additional_main_fqdns    = var.additional_main_fqdns
   api_subdomain            = var.api_subdomain
-  reg_subdomain            = var.reg_subdomain
+  registration_subdomain   = var.registration_subdomain
   load_balancer_type       = var.load_balancer_type
   additional_eks_roles_arn = var.additional_eks_roles_arn
   additional_eks_users_arn = var.additional_eks_users_arn
@@ -288,11 +288,11 @@ module "dns" {
   count  = var.hosted_zone_id != "" ? 1 : 0
   source = "./modules/dns"
   # Input
-  domain         = var.domain
-  main_subdomain = var.main_subdomain
-  api_subdomain  = var.api_subdomain
-  reg_subdomain  = var.reg_subdomain
-  zone_id        = var.hosted_zone_id
+  domain                 = var.domain
+  main_subdomain         = var.main_subdomain
+  api_subdomain          = var.api_subdomain
+  registration_subdomain = var.registration_subdomain
+  zone_id                = var.hosted_zone_id
   # Output
   cluster_id = module.eks.cluster_id
   depends_on = [module.kubernetes.tdecision_release]
