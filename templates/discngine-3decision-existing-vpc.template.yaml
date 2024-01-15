@@ -611,6 +611,7 @@ Resources:
                   - iam:ListPolicyVersions
                   - iam:ListRolePolicies
                   - iam:GetPolicyVersion
+                  - iam:DeletePolicyVersion
                   - iam:CreateServiceLinkedRole
                   - iam:UpdateAssumeRolePolicy
                 Resource:
