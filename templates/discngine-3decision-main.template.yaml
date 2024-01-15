@@ -176,7 +176,7 @@ Metadata:
       RegistrationSubdomain:
         default: Subdomain used for registration
       AdditionalMainFQDNs:
-        default: Additional domains that will redirect to the landing page
+        default: Additional FQDNs that will redirect to the landing page
       CertificateArn:
         default: Arn of a certificate
       LoadBalancerType:
