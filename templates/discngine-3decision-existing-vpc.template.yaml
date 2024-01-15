@@ -155,7 +155,7 @@ Metadata:
       AdditionalMainFQDNs:
         default: Additional FQDNs that will redirect to the landing page
       CertificateArn:
-        default: Arn of a certificate
+        default: Arns of certificates to connect to the loadbalancer
       LoadBalancerType:
         default: Type of loadbalancer created
       AzureClientId:
@@ -391,7 +391,9 @@ Parameters:
     Type: String
   CertificateArn:
     Default: ""
-    Description: "Optional: Arn of a certificate of the associated domain you want added to the load balancer"
+    Description: >
+     Optional: List of ARNs of certificates of the associated domain you want added to the load balancer. You should add several when redirecting from another domain with the additional FQDN parameter
+     Write this as: arn,arn
     Type: String
   LoadBalancerType:
     AllowedValues:
