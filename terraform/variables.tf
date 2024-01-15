@@ -183,7 +183,7 @@ variable "api_subdomain" {
   description = "Name used for the api subdomain"
 }
 
-variable "reg_subdomain" {
+variable "registration_subdomain" {
   default     = "3decision-reg"
   description = "Name used for the reg subdomain"
 }
