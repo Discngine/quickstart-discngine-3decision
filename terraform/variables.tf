@@ -185,7 +185,7 @@ variable "api_subdomain" {
 
 variable "registration_subdomain" {
   default     = "3decision-reg"
-  description = "Name used for the reg subdomain"
+  description = "Name used for the registration subdomain"
 }
 
 variable "hosted_zone_id" {
