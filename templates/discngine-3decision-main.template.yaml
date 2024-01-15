@@ -459,7 +459,7 @@ Parameters:
     Default: "3decision-reg"
     Description: "Required: Name used for the registration subdomain"
     Type: String
-  AdditionalMainFQDNss:
+  AdditionalMainFQDNs:
     Default: ""
     Description: >
       Optional: Additional domains that will redirect to the landing page. This takes a list of fqdn without the trailing dot (e.g 3decision.example.com)
