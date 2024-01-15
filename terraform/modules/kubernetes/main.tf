@@ -26,7 +26,7 @@ resource "terraform_data" "cleaning_1_8" {
     command     = <<EOF
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
-if [[ "${var.tdecision_chart.version}" != "3.0.0"* ]]; then
+if [[ "${var.tdecision_chart.version}" != "3.0.0"* ]] && [[ "${var.tdecision_chart.version}" != "3.0.1"* ]]; then
   echo "Not 1.8 release, do not run cleaning..."
   exit 0
 fi
@@ -517,7 +517,7 @@ locals {
   public_interaction_registration_reprocessing_version_list = ["2.3.3"]
   private_structure_reprocessing_version_list               = ["2.3.4"]
   missing_structure_registration_reprocessing_version_list  = ["2.3.7"]
-  alphafold_structure_registration_version_list             = ["3.0.0"]
+  alphafold_structure_registration_version_list             = ["3.0.1"]
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
