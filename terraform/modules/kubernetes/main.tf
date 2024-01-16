@@ -38,6 +38,47 @@ kubectl delete deploy -n choral --all --force
 kubectl delete pod -n choral --all --force
 kubectl delete pvc -n choral --all --force
 kubectl delete svc -n choral --all --force
+
+cat > clean_choral.yaml << YAML
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: clean-choral
+  namespace: choral
+spec:
+  restartPolicy: Never
+  containers:
+    - name: clean-choral
+      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+      command: [ "/bin/bash", "-c", "--" ]
+      envFrom:
+      - secretRef:
+          name: database-secrets
+      env:
+        - name: CONNECTION_STRING
+          value: ${local.connection_string}
+      args:
+        - echo 'dropping chembl indexes';
+          echo -ne 'DROP INDEX IDX_CHOR_STR_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_TAU_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_TAUISO_CMP_STRUC FORCE;
+          DROP INDEX IDX_CHOR_STRICT_CMP_STRUC FORCE;' > drop_chembl_index.sql;
+          exit | /root/sqlcl/bin/sql CHEMBL_29/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
+          echo 'dropping tdec indexes';
+          echo -ne 'DROP INDEX IDX_CHOR_STR_SMALL_MOL_SMILES FORCE;
+          DROP INDEX IDX_CHOR_TAU_SMALL_MOL_SMILES FORCE;
+          DROP INDEX IDX_CHOR_TAUISO_SMS FORCE;
+          DROP INDEX IDX_CHOR_STRISO_SMS FORCE;' > drop_t1_index.sql;
+          exit | /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/\$${DB_PASSWD}@\$${CONNECTION_STRING} @drop_t1_index.sql;
+          echo 'dropping choral owner schema';
+          echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
+          exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
+YAML
+
+kubectl delete -n choral pod/clean-choral
+kubectl apply -f clean_choral.yaml
+
 kubectl delete svc -n tdecision --all --force
 kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 kubectl delete ingress -n tdecision --all --force
@@ -731,6 +772,7 @@ spec:
           echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
 YAML
+kubectl delete -n choral pod/clean-choral
 kubectl apply -f clean_choral.yaml
 rm clean_choral.yaml
     EOF
