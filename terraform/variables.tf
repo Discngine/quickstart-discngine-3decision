@@ -219,7 +219,7 @@ variable "choral_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/helm")
     chart            = optional(string, "choral")
     namespace        = optional(string, "choral")
-    version          = optional(string, "1.2.0")
+    version          = optional(string, "1.1.6")
     create_namespace = optional(bool, true)
   })
   default = {}
