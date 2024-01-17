@@ -167,10 +167,6 @@ resource "kubernetes_namespace" "tdecision_namespace" {
     name = var.tdecision_chart.namespace
   }
 
-  timeouts {
-    delete = "20m"
-  }
-
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
