@@ -208,7 +208,7 @@ resource "kubernetes_secret" "jwt_secret" {
 }
 
 resource "kubectl_manifest" "sqlcl" {
-  yaml_body = <<YAML
+  yaml_body  = <<YAML
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -248,6 +248,7 @@ spec:
               value: /root/sqlcl/bin/sql SYS/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} as sysdba
           args: [ "sleep infinity" ]
   YAML
+  depends_on = [kubernetes_namespace.tools_namespace, kubectl_manifest.ClusterExternalSecret]
 }
 
 resource "kubectl_manifest" "secretstore" {
