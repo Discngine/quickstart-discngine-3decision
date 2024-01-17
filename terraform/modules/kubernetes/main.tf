@@ -207,6 +207,49 @@ resource "kubernetes_secret" "jwt_secret" {
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
 
+resource "kubectl_manifest" "sqlcl" {
+  yaml_body = <<YAML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlcl
+  namespace: tools
+  labels:
+    role: help
+    app: sqlcl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlcl
+  template:
+    metadata:
+      name: sqlcl
+      namespace: tools
+      labels:
+        role: help
+        app: sqlcl
+    spec:
+      containers:
+        - name: web
+          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+          command: [ "/bin/bash", "-c", "--" ]
+          envFrom:
+          - secretRef:
+              name: database-secrets
+          env:
+            - name: CONNECTION_STRING
+              value: ${local.connection_string}
+            - name: sq3
+              value: /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
+            - name: sqc
+              value: /root/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
+            - name: sqs
+              value: /root/sqlcl/bin/sql SYS/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} as sysdba
+          args: [ "sleep infinity" ]
+  YAML
+}
+
 resource "kubectl_manifest" "secretstore" {
   yaml_body  = <<YAML
 ---
@@ -235,7 +278,7 @@ spec:
   externalSecretName: database-secrets
   namespaceSelector:
     matchExpressions:
-      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, choral]}
+      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, choral, tools]}
   refreshTime: 1m
   externalSecretSpec:
     refreshInterval: 1m
