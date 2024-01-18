@@ -18,6 +18,77 @@ terraform {
   }
 }
 
+resource "terraform_data" "test_failure" {
+  triggers_replace = [var.tdecision_chart.version]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+sleep 2m
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+export KUBECONFIG=$HOME/.kube/config
+kubectl create ns test
+exit 1
+    EOF
+  }
+  depends_on = [helm_release.tdecision_chart]
+}
+
+# If anything is needed to be run once for the 1.8 release add it here
+resource "terraform_data" "cleaning_1_8" {
+  triggers_replace = [var.tdecision_chart.version]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+export KUBECONFIG=$HOME/.kube/config
+if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace}; then
+  echo "tdecision not installed, no need for cleaning."
+  exit 0
+fi
+
+ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+echo "a $${ARN}"
+
+if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_chart.version}" = "3.0.1"* ]]; then
+
+  kubectl delete svc -n tdecision --all --force
+
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "b $${ARN}"
+
+  kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+
+  kubectl get ingress tdecision-ingress -n tdecision -o yaml
+  sleep 10
+  kubectl delete ingress -n tdecision --all --force
+
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "updating tag on lb $${ARN}"
+  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
+  echo "1.8 cleaning over"
+fi
+if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
+  kubectl delete svc -n tdecision --all --force
+
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "b $${ARN}"
+
+  kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+
+  kubectl get ingress tdecision-ingress -n tdecision -o yaml
+  sleep 10
+  kubectl delete ingress -n tdecision --all --force
+
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "updating tag on lb $${ARN}"
+  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=tdecision/tdecision-3decision-helm-ingress
+  echo "Ran 2.3.7 rollback ..."
+fi
+    EOF
+  }
+}
+
+
 locals {
   cm_data = {
     "mapRoles" = <<YAML
@@ -130,6 +201,50 @@ resource "kubernetes_secret" "jwt_secret" {
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
 
+resource "kubectl_manifest" "sqlcl" {
+  yaml_body  = <<YAML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlcl
+  namespace: tools
+  labels:
+    role: help
+    app: sqlcl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlcl
+  template:
+    metadata:
+      name: sqlcl
+      namespace: tools
+      labels:
+        role: help
+        app: sqlcl
+    spec:
+      containers:
+        - name: web
+          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+          command: [ "/bin/bash", "-c", "--" ]
+          envFrom:
+          - secretRef:
+              name: database-secrets
+          env:
+            - name: CONNECTION_STRING
+              value: ${local.connection_string}
+            - name: sq3
+              value: /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
+            - name: sqc
+              value: /root/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
+            - name: sqs
+              value: /root/sqlcl/bin/sql SYS/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} as sysdba
+          args: [ "sleep infinity" ]
+  YAML
+  depends_on = [kubernetes_namespace.tools_namespace, kubectl_manifest.ClusterExternalSecret]
+}
+
 resource "kubectl_manifest" "secretstore" {
   yaml_body  = <<YAML
 ---
@@ -158,7 +273,7 @@ spec:
   externalSecretName: database-secrets
   namespaceSelector:
     matchExpressions:
-      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, choral]}
+      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, choral, tools]}
   refreshTime: 1m
   externalSecretSpec:
     refreshInterval: 1m
@@ -225,7 +340,7 @@ metadata:
   name: sentinel-backup-env-cm
   namespace: ${each.key}
 data:
-  BUCKET_NAME: ${var.bucket_name}
+  BUCKET_NAME: ${var.redis_bucket_name}
   PROVIDER: aws
 YAML
   depends_on = [
@@ -233,6 +348,91 @@ YAML
     kubernetes_namespace.tdecision_namespace,
     kubernetes_config_map_v1.aws_auth
   ]
+}
+
+resource "kubernetes_job_v1" "af_bucket_files_push" {
+
+  metadata {
+    name      = "job-af-bucket-files-push"
+    namespace = var.tdecision_chart.namespace
+  }
+  spec {
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "job-af-bucket-files-push"
+          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.2"
+          env {
+            name  = "PROVIDER"
+            value = "AWS"
+          }
+          env {
+            name  = "BUCKET_NAME"
+            value = var.alphafold_bucket_name
+          }
+          env {
+            name  = "FTP_LINK"
+            value = var.af_ftp_link
+          }
+          env {
+            name  = "FILE_NAME"
+            value = var.af_file_name
+          }
+          env {
+            name  = "FILE_NUMBER"
+            value = var.af_file_nb
+          }
+          volume_mount {
+            name       = "nfs-pvc-public"
+            mount_path = "/publicdata"
+          }
+        }
+        volume {
+          name = "nfs-pvc-public"
+          persistent_volume_claim {
+            claim_name = "${helm_release.tdecision_chart.name}-nfs-pvc-public"
+          }
+        }
+        restart_policy       = "OnFailure"
+        service_account_name = "${helm_release.tdecision_chart.name}-s3-access"
+      }
+    }
+    backoff_limit = 3
+  }
+  wait_for_completion = false
+}
+
+resource "kubernetes_job_v1" "af_proteome_download" {
+  metadata {
+    name      = "af-proteome-download-job"
+    namespace = var.tdecision_chart.namespace
+  }
+  spec {
+    template {
+      metadata {}
+      spec {
+        container {
+          name  = "af-bucket-files-push-job"
+          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_proteome_downloader:0.0.1"
+          volume_mount {
+            name       = "nfs-pvc-public"
+            mount_path = "/publicdata"
+          }
+          image_pull_policy = "Always"
+        }
+        volume {
+          name = "nfs-pvc-public"
+          persistent_volume_claim {
+            claim_name = "${helm_release.tdecision_chart.name}-nfs-pvc-public"
+          }
+        }
+        restart_policy = "OnFailure"
+      }
+    }
+    backoff_limit = 3
+  }
+  wait_for_completion = false
 }
 
 ######################
@@ -247,7 +447,7 @@ serviceAccount:
   create: true
   name: sentinel-redis
   annotations:
-    eks.amazonaws.com/role-arn: ${var.redis_role_arn}  
+    eks.amazonaws.com/role-arn: ${var.redis_s3_role_arn}  
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -289,6 +489,12 @@ replica:
         readOnly: true
       - mountPath: /data
         name: redis-data
+global:
+  redis:
+    password: lapin80
+auth:
+  password: lapin80
+delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
 YAML
 }
 
@@ -309,6 +515,20 @@ resource "helm_release" "cert_manager_release" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
+# Deletes statefulsets on redis upgrade to avoid patching error
+# As a security measure, the id of this resource is added to the redis helm values so redis will always be updated if this is launched (so the statefulset is recreated)
+resource "terraform_data" "delete_sentinel_statefulsets" {
+  triggers_replace = [var.redis_sentinel_chart.version]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+export KUBECONFIG=$HOME/.kube/config
+kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
+    EOF
+  }
+}
+
 resource "helm_release" "sentinel_release" {
   name             = var.redis_sentinel_chart.name
   chart            = var.redis_sentinel_chart.chart
@@ -320,8 +540,20 @@ resource "helm_release" "sentinel_release" {
   depends_on = [
     kubectl_manifest.sentinel_configmap_redis,
     kubernetes_storage_class_v1.encrypted_storage_class,
-    kubernetes_config_map_v1.aws_auth
+    kubernetes_config_map_v1.aws_auth,
+    terraform_data.delete_sentinel_statefulsets
   ]
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      kubectl delete statefulsets -n ${self.namespace} --all --force
+      kubectl delete pods -n ${self.namespace} --all --force
+    EOT
+  }
 }
 
 resource "helm_release" "external_secrets_chart" {
@@ -364,6 +596,7 @@ locals {
   public_interaction_registration_reprocessing_version_list = ["2.3.3"]
   private_structure_reprocessing_version_list               = ["2.3.4"]
   missing_structure_registration_reprocessing_version_list  = ["2.3.7"]
+  alphafold_structure_registration_version_list             = ["3.0.1"]
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
   redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
@@ -372,6 +605,7 @@ locals {
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
   launch_missing_structure_registration_reprocessing  = contains(local.missing_structure_registration_reprocessing_version_list, var.tdecision_chart.version)
+  launch_alphafold_structure_registration             = contains(local.alphafold_structure_registration_version_list, var.tdecision_chart.version)
 }
 
 locals {
@@ -401,9 +635,11 @@ ingress:
   visibility: ${var.load_balancer_type}
   ui:
     host: ${var.main_subdomain}
-    additionalHosts: [${join(", ", var.additional_main_subdomains)}]
+    additionalHosts: [${join(", ", var.additional_main_fqdns)}]
   api:
     host: ${var.api_subdomain}
+  react:
+    host: ${var.registration_subdomain}
   class: alb
 nest:
   ReprocessingEnv:
@@ -417,6 +653,9 @@ nest:
       value: rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration
     private_structure_reprocessing_timestamp:
       value: ${local.launch_private_structure_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
+    alphafold_structure_registration_timestamp:
+      name: ALPHAFOLD_STRUCTURE_REGISTRATION_TIMESTAMP
+      value: ${local.launch_alphafold_structure_registration ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
@@ -436,16 +675,28 @@ nest:
     google_redirect_uri:
       name: GOOGLE_REDIRECT_URI
       value: https://${var.api_subdomain}.${var.domain}/auth/google/callback
+    bucket_name:
+      name: "ALPHAFOLD_BUCKET_NAME"
+      value: ${var.alphafold_bucket_name}
+    aws_object_storage_region:
+      name: AWS_OBJECT_STORAGE_REGION
+      value: ${var.region}
+
 nfs:
   public:
     serviceIP: ${cidrhost(var.eks_service_cidr, 265)}
   private:
     serviceIP: ${cidrhost(var.eks_service_cidr, 266)}
 rbac:
+  namespaced:
+    s3Access:
+      serviceAccountName: s3-access
+      annotations:
+        eks.amazonaws.com/role-arn: ${var.alphafold_s3_role_arn}
   cluster:
     redisBackup:
       annotations:
-        eks.amazonaws.com/role-arn: ${var.redis_role_arn}
+        eks.amazonaws.com/role-arn: ${var.redis_s3_role_arn}
 redis:
   nodeSelector: null
 pocket_features:
@@ -464,14 +715,16 @@ YAML
 # This resets the passwords of schemas CHEMBL_29 and PD_T1_DNG_THREEDECISION
 # It is aimed to be used on new environments that have unknown passwords set in the backup
 resource "terraform_data" "reset_passwords" {
+  count = 0
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
-#if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
-#  echo "tdecision already running, password reset aborted."
-#  exit 0
-#fi
+if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
+  echo "tdecision already running, password reset aborted."
+  exit 0
+fi
 cat > reset_passwords.yaml << YAML
 ---
 apiVersion: v1
@@ -493,8 +746,8 @@ spec:
           value: ${local.connection_string}
       args:
         - echo 'resetting passwords';
-          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;
-          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY Ch4ng3m3f0rs3cur3p4ss ACCOUNT UNLOCK;' > reset_passwords.sql;
+          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY "\$${CHEMBL_DB_PASSWD}" ACCOUNT UNLOCK;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY "\$${DB_PASSWD}" ACCOUNT UNLOCK;' > reset_passwords.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
 kubectl apply -f reset_passwords.yaml
@@ -513,6 +766,7 @@ resource "terraform_data" "clean_choral" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 if kubectl get deploy -n choral | grep choral &> /dev/null; then
   echo "choral already running, cleaning aborted."
@@ -554,6 +808,7 @@ spec:
           echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
 YAML
+kubectl delete -n choral pod/clean-choral
 kubectl apply -f clean_choral.yaml
 rm clean_choral.yaml
     EOF
@@ -580,6 +835,7 @@ if [ $${time_diff} -lt 0 ]; then
   exit 0
 fi
 
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 cat > redis_synchro.yaml << YAML
 ---
@@ -671,11 +927,12 @@ rm -f redis_synchro.yaml
 resource "helm_release" "tdecision_chart" {
   name       = var.tdecision_chart.name
   repository = var.tdecision_chart.repository
-  chart      = var.tdecision_chart.chart
+  chart      = var.tdecision_chart.version == "2.3.7" ? "3decision-helm" : var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
-  timeout    = 1200
-  values     = [local.final_values]
+  wait       = false
+
+  values = [local.final_values]
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     helm_release.cert_manager_release,
@@ -684,7 +941,8 @@ resource "helm_release" "tdecision_chart" {
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,
-    terraform_data.reset_passwords
+    terraform_data.reset_passwords,
+    terraform_data.cleaning_1_8
   ]
 
   provisioner "local-exec" {
@@ -697,6 +955,10 @@ resource "helm_release" "tdecision_chart" {
       kubectl delete -n ${self.namespace} cronjob --all --force
       kubectl delete -n ${self.namespace} job --all --force
       kubectl delete deployments -n ${self.namespace} --all --force
+      kubectl delete pods -n ${self.namespace} --all --force
+      kubectl delete ingress -n ${self.namespace} --all --force
+      kubectl get all -n ${self.namespace}
+      echo "finished deleting resources"
     EOT
   }
 }
@@ -741,8 +1003,18 @@ resource "helm_release" "choral_chart" {
     kubectl_manifest.ClusterExternalSecret,
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
-    terraform_data.clean_choral
+    terraform_data.clean_choral,
+    terraform_data.cleaning_1_8
   ]
+}
+
+resource "helm_release" "chemaxon_ms_chart" {
+  name             = var.chemaxon_ms_chart.name
+  chart            = var.chemaxon_ms_chart.chart
+  namespace        = var.chemaxon_ms_chart.namespace
+  create_namespace = var.chemaxon_ms_chart.create_namespace
+  version          = var.chemaxon_ms_chart.version
+  timeout          = 1200
 }
 
 locals {
