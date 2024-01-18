@@ -24,6 +24,9 @@ resource "terraform_data" "test_failure" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
 sleep 5m
+aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+export KUBECONFIG=$HOME/.kube/config
+kubectl create ns test
 exit 1
     EOF
   }
