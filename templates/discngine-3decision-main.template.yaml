@@ -55,7 +55,8 @@ Metadata:
           - DomainName
           - MainSubdomain
           - ApiSubdomain
-          - AdditionalMainSubdomains
+          - RegistrationSubdomain
+          - AdditionalMainFQDNs
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
@@ -172,10 +173,12 @@ Metadata:
         default: Subdomain name for app landing page
       ApiSubdomain:
         default: Subdomain of the api
-      AdditionalMainSubdomains:
-        default: Additional subdomains that will redirect to the landing page
+      RegistrationSubdomain:
+        default: Subdomain used for registration
+      AdditionalMainFQDNs:
+        default: Additional FQDNs that will redirect to the landing page
       CertificateArn:
-        default: Arn of a certificate
+        default: Arns of certificates to connect to the loadbalancer
       LoadBalancerType:
         default: Type of loadbalancer created
       AzureClientId:
@@ -452,15 +455,21 @@ Parameters:
     Default: "3decision-api"
     Description: "Required: Name used for the api subdomain"
     Type: String
-  AdditionalMainSubdomains:
+  RegistrationSubdomain:
+    Default: "3decision-reg"
+    Description: "Required: Name used for the registration subdomain"
+    Type: String
+  AdditionalMainFQDNs:
     Default: ""
     Description: >
-      Optional: Additional subdomains that will redirect to the landing page.
-      Write this as: "subdomain", "subdomain".
+      Optional: Additional domains that will redirect to the landing page. This takes a list of fqdn without the trailing dot (e.g 3decision.example.com)
+      Write this as: "fqdn", "fqdn".
     Type: String
   CertificateArn:
     Default: ""
-    Description: "Optional: Arn of a certificate of the associated domain you want added to the load balancer"
+    Description: >
+     Optional: List of ARNs of certificates of the associated domain you want added to the load balancer. You should add several when redirecting from another domain with the additional FQDN parameter
+     Write this as: arn,arn
     Type: String
   LoadBalancerType:
     AllowedValues:
@@ -617,6 +626,7 @@ Resources:
         GoogleSecret: !Ref GoogleSecret
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
-        AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
+        RegistrationSubdomain: !Ref RegistrationSubdomain
+        AdditionalMainFQDNs: !Ref AdditionalMainFQDNs
         PublicVolumeSnapshotId: !Ref PublicVolumeSnapshotId
         PrivateVolumeSnapshotId: !Ref PrivateVolumeSnapshotId
