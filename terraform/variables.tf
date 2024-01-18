@@ -173,7 +173,7 @@ variable "main_subdomain" {
   description = "Name used for the main app subdomain"
 }
 
-variable "additional_main_subdomains" {
+variable "additional_main_fqdns" {
   default     = []
   description = "Additional main subdomains that will redirect to the main_subdomain"
 }
@@ -181,6 +181,11 @@ variable "additional_main_subdomains" {
 variable "api_subdomain" {
   default     = "3decision-api"
   description = "Name used for the api subdomain"
+}
+
+variable "registration_subdomain" {
+  default     = "3decision-reg"
+  description = "Name used for the registration subdomain"
 }
 
 variable "hosted_zone_id" {
@@ -198,9 +203,9 @@ variable "tdecision_chart" {
   type = object({
     name             = optional(string, "tdecision")
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
-    chart            = optional(string, "3decision-helm")
+    chart            = optional(string, "tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "2.3.7")
+    version          = optional(string, "3.0.1")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -216,6 +221,19 @@ variable "choral_chart" {
     namespace        = optional(string, "choral")
     version          = optional(string, "1.1.6")
     create_namespace = optional(bool, true)
+  })
+  default = {}
+}
+
+variable "chemaxon_ms_chart" {
+  description = "A map with information about the chemaxon microservices helm chart"
+
+  type = object({
+    name             = optional(string, "chemaxon-ms")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/chemaxon-ms")
+    namespace        = optional(string, "chemaxon-ms")
+    create_namespace = optional(bool, true)
+    version          = optional(string, "1.0.6")
   })
   default = {}
 }
@@ -265,10 +283,10 @@ variable "redis_sentinel_chart" {
 
   type = object({
     name             = optional(string, "sentinel")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/redis-sentinel")
+    chart            = optional(string, "oci://registry-1.docker.io/bitnamicharts/redis")
     namespace        = optional(string, "redis-cluster")
     create_namespace = optional(bool, true)
-    version          = optional(string, "16.3.1")
+    version          = optional(string, "18.4.0")
   })
   default = {}
 }
@@ -325,4 +343,23 @@ variable "public_final_snapshot" {
 variable "private_final_snapshot" {
   default     = true
   description = "Whether to create a snapshot of the public volume when deleting it"
+}
+
+###############
+#     Alphafold
+###############
+
+variable "af_ftp_link" {
+  default     = "https://ftp.ebi.ac.uk/pub/databases/alphafold/v4/"
+  description = "url of the ftp to get the swissprot tar"
+}
+
+variable "af_file_name" {
+  default     = "swissprot_pdb_v4.tar"
+  description = "file name to downlaod from the ftp"
+}
+
+variable "af_file_nb" {
+  default     = "542378"
+  description = "number of files in archive"
 }
