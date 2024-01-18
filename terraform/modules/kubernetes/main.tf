@@ -24,9 +24,6 @@ resource "terraform_data" "cleaning_1_8" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerTags" --output json); ARN="$${ARN//\"/}"
-echo "first $${ARN}"
-date
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace}; then
@@ -34,18 +31,9 @@ if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespa
   exit 0
 fi
 if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_chart.version}" = "3.0.1"* ]]; then
+
   kubectl delete svc -n tdecision --all --force
-
-  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerTags" --output json); ARN="$${ARN//\"/}"
-  echo "after service deletion $${ARN}"
-  date
-
   kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
-
-  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerTags" --output json); ARN="$${ARN//\"/}"
-  echo "after patch $${ARN}"
-  date
-
   sleep 10
   kubectl delete ingress -n tdecision --all --force
 
