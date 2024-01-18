@@ -43,7 +43,7 @@ if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_char
 
   kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 
-  kubectl get ingress tdecision-ingress -o yaml
+  kubectl get ingress tdecision-ingress -n tdecision -o yaml
   sleep 10
   kubectl delete ingress -n tdecision --all --force
 
@@ -60,7 +60,7 @@ if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
 
   kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 
-  kubectl get ingress tdecision-ingress -o yaml
+  kubectl get ingress tdecision-ingress -n tdecision -o yaml
   sleep 10
   kubectl delete ingress -n tdecision --all --force
 
