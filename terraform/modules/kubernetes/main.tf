@@ -37,31 +37,33 @@ if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_char
 
   kubectl delete svc -n tdecision --all --force
 
-  kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "updating tag on lb $${ARN}"
+  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
+
+  kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
 
   sleep 10
   kubectl get tdecision-3decision-helm-ingress -n tdecision -o yaml
   kubectl delete ingress -n tdecision --all --force
 
-  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
-  echo "updating tag on lb $${ARN}"
-  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
   echo "1.8 cleaning over"
 fi
 if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl delete svc -n tdecision --all --force
   kubectl delete pvc -n tdecision --all --force
   kubectl delete pod -n tdecision --all --force
-  
-  kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "updating tag on lb $${ARN}"
+  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=tdecision/tdecision-3decision-helm-ingress
+
+  kubectl patch ingress tdecision-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
 
   sleep 10
   kubectl get tdecision-ingress -n tdecision -o yaml
   kubectl delete ingress -n tdecision --all --force
 
-  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
-  echo "updating tag on lb $${ARN}"
-  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=tdecision/tdecision-3decision-helm-ingress
   echo "Ran 2.3.7 rollback ..."
 fi
     EOF
