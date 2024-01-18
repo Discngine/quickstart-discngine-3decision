@@ -18,6 +18,17 @@ terraform {
   }
 }
 
+resource "terraform_data" "test_failure" {
+  triggers_replace = [var.tdecision_chart.version]
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<EOF
+sleep 5m
+exit 1
+    EOF
+  }
+}
+
 # If anything is needed to be run once for the 1.8 release add it here
 resource "terraform_data" "cleaning_1_8" {
   triggers_replace = [var.tdecision_chart.version]
