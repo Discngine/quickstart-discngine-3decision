@@ -18,20 +18,6 @@ terraform {
   }
 }
 
-resource "terraform_data" "test_failure" {
-  triggers_replace = [var.tdecision_chart.version]
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<EOF
-if [[ var.tdecision_chart.version = "2.3.7" ]]; then
-  sleep 2m
-  exit 1
-fi
-    EOF
-  }
-  depends_on = [helm_release.tdecision_chart]
-}
-
 # If anything is needed to be run once for the 1.8 release add it here
 resource "terraform_data" "cleaning_1_8" {
   triggers_replace = [var.tdecision_chart.version]
@@ -45,6 +31,8 @@ if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespa
   exit 0
 fi
 
+ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+echo "lb $${ARN}"
 if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_chart.version}" = "3.0.1"* ]]; then
 
   kubectl delete svc -n tdecision --all --force
@@ -52,6 +40,7 @@ if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_char
   kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 
   sleep 10
+  kubectl get tdecision-3decision-helm-ingress -n tdecision -o yaml
   kubectl delete ingress -n tdecision --all --force
 
   ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
@@ -67,6 +56,7 @@ if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 
   sleep 10
+  kubectl get tdecision-ingress -n tdecision -o yaml
   kubectl delete ingress -n tdecision --all --force
 
   ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
