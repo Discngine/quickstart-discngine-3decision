@@ -45,10 +45,20 @@ if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespa
   echo "tdecision not installed, no need for cleaning."
   exit 0
 fi
+
+ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+echo "a $${ARN}"
+
 if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_chart.version}" = "3.0.1"* ]]; then
 
   kubectl delete svc -n tdecision --all --force
+
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "b $${ARN}"
+
   kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+
+  kubectl get ingress tdecision-ingress -o yaml
   sleep 10
   kubectl delete ingress -n tdecision --all --force
 
@@ -60,7 +70,12 @@ fi
 if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl delete svc -n tdecision --all --force
 
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "b $${ARN}"
+
   kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+
+  kubectl get ingress tdecision-ingress -o yaml
   sleep 10
   kubectl delete ingress -n tdecision --all --force
 
