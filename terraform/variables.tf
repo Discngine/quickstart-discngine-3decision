@@ -216,8 +216,8 @@ variable "choral_chart" {
 
   type = object({
     name             = optional(string, "choral")
-    repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/helm")
-    chart            = optional(string, "choral")
+    repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
+    chart            = optional(string, "choral-helm")
     namespace        = optional(string, "choral")
     version          = optional(string, "1.1.6")
     create_namespace = optional(bool, true)
