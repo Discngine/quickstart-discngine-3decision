@@ -624,6 +624,7 @@ nest:
     private_structure_reprocessing_timestamp:
       value: ${local.launch_private_structure_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
     alphafold_structure_registration_timestamp:
+      name: ALPHAFOLD_STRUCTURE_REGISTRATION_TIMESTAMP
       value: ${local.launch_alphafold_structure_registration ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
   env:
     okta_client_id:
