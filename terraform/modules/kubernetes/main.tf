@@ -891,7 +891,7 @@ rm -f redis_synchro.yaml
 resource "helm_release" "tdecision_chart" {
   name       = var.tdecision_chart.name
   repository = var.tdecision_chart.repository
-  chart      = var.tdecision_chart.chart
+  chart      = var.tdecision_chart.version == "2.3.7" ? "3decision-helm" : var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
   wait       = false
