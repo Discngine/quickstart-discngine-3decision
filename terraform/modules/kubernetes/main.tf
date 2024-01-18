@@ -30,6 +30,7 @@ kubectl create ns test
 exit 1
     EOF
   }
+  depends_on = [helm_release.tdecision_chart]
 }
 
 # If anything is needed to be run once for the 1.8 release add it here
