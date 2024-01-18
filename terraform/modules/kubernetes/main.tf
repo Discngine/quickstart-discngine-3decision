@@ -659,6 +659,7 @@ nfs:
 rbac:
   namespaced:
     s3Access:
+      serviceAccountName: s3-access
       annotations:
         eks.amazonaws.com/role-arn: ${var.alphafold_s3_role_arn}
   cluster:
