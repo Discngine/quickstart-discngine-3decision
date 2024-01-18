@@ -43,7 +43,6 @@ if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_char
   echo "1.8 cleaning over"
 fi
 if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
-  kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
   kubectl delete svc -n tdecision --all --force
 
   kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
