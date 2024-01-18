@@ -26,28 +26,30 @@ resource "terraform_data" "cleaning_1_8" {
     command     = <<EOF
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
-if [[ "${var.tdecision_chart.version}" != "3.0.0"* ]] && [[ "${var.tdecision_chart.version}" != "3.0.1"* ]]; then
-  echo "Not 1.8 release, do not run cleaning..."
-  exit 0
-fi
 if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace}; then
   echo "tdecision not installed, no need for cleaning."
   exit 0
 fi
-kubectl delete svc -n tdecision --all --force
-kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
-sleep 10
-kubectl delete ingress -n tdecision --all --force
-ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
-echo "updating tag on lb $${ARN}"
-aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
-echo "1.8 cleaning over"
+if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] && [[ "${var.tdecision_chart.version}" = "3.0.1"* ]]; then
+  kubectl delete svc -n tdecision --all --force
+  kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+  sleep 10
+  kubectl delete ingress -n tdecision --all --force
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "updating tag on lb $${ARN}"
+  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
+  echo "1.8 cleaning over"
+fi
+if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
+  kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
+  kubectl delete svc -n tdecision --all --force
+  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
+  echo "updating tag on lb $${ARN}"
+  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=tdecision/tdecision-3decision-helm-ingress
+  echo "Ran 2.3.7 rollback ..."
+fi
     EOF
   }
-  lifecycle {
-    ignore_changes = all
-  }
-  depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
 
