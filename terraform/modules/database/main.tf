@@ -75,4 +75,8 @@ resource "aws_db_parameter_group" "db_param_group" {
     value        = "GREATEST({DBInstanceClassMemory/9868951}, 1000)"
     apply_method = "pending-reboot"
   }
+  parameter {
+    name         = "ddl_lock_timeout"
+    value        = "60"
+  }
 }
