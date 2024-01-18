@@ -226,7 +226,7 @@ variable "choral_chart" {
 }
 
 variable "chemaxon_ms_chart" {
-  description = "A map with information about the redis sentinel helm chart"
+  description = "A map with information about the chemaxon microservices helm chart"
 
   type = object({
     name             = optional(string, "chemaxon-ms")
