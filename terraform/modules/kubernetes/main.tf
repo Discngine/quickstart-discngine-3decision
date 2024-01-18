@@ -46,7 +46,7 @@ if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
   kubectl delete svc -n tdecision --all --force
 
-  kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+  kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
   sleep 10
   kubectl delete ingress -n tdecision --all --force
 
