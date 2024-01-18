@@ -45,6 +45,11 @@ fi
 if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
   kubectl delete svc -n tdecision --all --force
+
+  kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
+  sleep 10
+  kubectl delete ingress -n tdecision --all --force
+
   ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
   echo "updating tag on lb $${ARN}"
   aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=tdecision/tdecision-3decision-helm-ingress
