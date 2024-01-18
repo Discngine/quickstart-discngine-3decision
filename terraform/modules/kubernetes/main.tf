@@ -18,21 +18,6 @@ terraform {
   }
 }
 
-resource "terraform_data" "test_failure" {
-  triggers_replace = [var.tdecision_chart.version]
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<EOF
-sleep 5m
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-export KUBECONFIG=$HOME/.kube/config
-kubectl create ns test
-exit 1
-    EOF
-  }
-  depends_on = [helm_release.tdecision_chart]
-}
-
 # If anything is needed to be run once for the 1.8 release add it here
 resource "terraform_data" "cleaning_1_8" {
   triggers_replace = [var.tdecision_chart.version]
