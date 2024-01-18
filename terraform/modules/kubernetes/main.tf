@@ -23,11 +23,10 @@ resource "terraform_data" "test_failure" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-sleep 2m
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-export KUBECONFIG=$HOME/.kube/config
-kubectl create ns test
-exit 1
+if [[ var.tdecision_chart.version = "2.3.7" ]]; then
+  sleep 2m
+  exit 1
+fi
     EOF
   }
   depends_on = [helm_release.tdecision_chart]
@@ -62,7 +61,9 @@ if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_char
 fi
 if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl delete svc -n tdecision --all --force
-
+  kubectl delete pvc -n tdecision --all --force
+  kubectl delete pod -n tdecision --all --force
+  
   kubectl patch ingress tdecision-ingress -n tdecision -p '{"metadata":{"finalizers":null}}' --type=merge
 
   sleep 10
