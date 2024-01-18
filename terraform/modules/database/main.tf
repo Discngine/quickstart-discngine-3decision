@@ -29,7 +29,6 @@ resource "aws_db_instance" "db_instance" {
   identifier_prefix        = "db3dec"
   parameter_group_name     = aws_db_parameter_group.db_param_group.name
   engine                   = "oracle-se2-cdb"
-  engine_version           = "19.0.0.0.ru-2023-07.rur-2023-07.r1"
   license_model            = var.license_type
   option_group_name        = "default:oracle-se2-cdb-19"
   port                     = "1521"
@@ -75,5 +74,9 @@ resource "aws_db_parameter_group" "db_param_group" {
     name         = "processes"
     value        = "GREATEST({DBInstanceClassMemory/9868951}, 1000)"
     apply_method = "pending-reboot"
+  }
+  parameter {
+    name         = "ddl_lock_timeout"
+    value        = "60"
   }
 }
