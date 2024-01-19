@@ -42,7 +42,6 @@ if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_char
   kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
 
   sleep 10
-  kubectl get tdecision-3decision-helm-ingress -n tdecision -o yaml
   kubectl delete ingress -n tdecision --all --force --timeout=60s
 
   echo "1.8 cleaning over"
@@ -61,7 +60,6 @@ if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl patch ingress tdecision-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
 
   sleep 10
-  kubectl get tdecision-ingress -n tdecision -o yaml
   kubectl delete ingress -n tdecision --all --force --timeout=60s
 
   echo "Ran 2.3.7 rollback ..."
