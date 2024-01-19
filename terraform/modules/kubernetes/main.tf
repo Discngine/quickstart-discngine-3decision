@@ -51,6 +51,7 @@ if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl delete svc -n tdecision --all --force
   kubectl delete pvc -n tdecision --all --force&
   sleep 10
+  kubectl delete job -n tdecision --all --force
   kubectl delete pod -n tdecision --all --force
 
   ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
