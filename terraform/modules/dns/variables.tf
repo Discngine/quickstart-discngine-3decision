@@ -3,5 +3,6 @@
 variable "domain" {}
 variable "main_subdomain" {}
 variable "api_subdomain" {}
+variable "registration_subdomain" {}
 variable "zone_id" {}
 variable "cluster_id" {}
