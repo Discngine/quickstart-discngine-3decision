@@ -31,8 +31,6 @@ if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespa
   exit 0
 fi
 
-ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
-echo "lb $${ARN}"
 if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_chart.version}" = "3.0.1"* ]]; then
 
   kubectl delete svc -n tdecision --all --force
