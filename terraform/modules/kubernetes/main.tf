@@ -42,14 +42,15 @@ if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_char
   kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
 
   sleep 10
-  kubectl get tdecision-3decision-helm-ingress -n tdecision -o yaml
-  kubectl delete ingress -n tdecision --all --force
+  kubectl delete ingress -n tdecision --all --force --timeout=60s
 
   echo "1.8 cleaning over"
 fi
 if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl delete svc -n tdecision --all --force
-  kubectl delete pvc -n tdecision --all --force
+  kubectl delete pvc -n tdecision --all --force&
+  sleep 10
+  kubectl delete job -n tdecision --all --force
   kubectl delete pod -n tdecision --all --force
 
   ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
@@ -59,8 +60,7 @@ if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
   kubectl patch ingress tdecision-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
 
   sleep 10
-  kubectl get tdecision-ingress -n tdecision -o yaml
-  kubectl delete ingress -n tdecision --all --force
+  kubectl delete ingress -n tdecision --all --force --timeout=60s
 
   echo "Ran 2.3.7 rollback ..."
 fi
