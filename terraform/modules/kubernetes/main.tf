@@ -910,7 +910,6 @@ resource "helm_release" "tdecision_chart" {
   chart      = var.tdecision_chart.version == "2.3.7" ? "3decision-helm" : var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
-  wait       = false
 
   values = [local.final_values]
   depends_on = [
