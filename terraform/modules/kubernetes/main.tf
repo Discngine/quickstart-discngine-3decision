@@ -18,57 +18,6 @@ terraform {
   }
 }
 
-# If anything is needed to be run once for the 1.8 release add it here
-resource "terraform_data" "cleaning_1_8" {
-  triggers_replace = [var.tdecision_chart.version]
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<EOF
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-export KUBECONFIG=$HOME/.kube/config
-if ! helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace}; then
-  echo "tdecision not installed, no need for cleaning."
-  exit 0
-fi
-
-if [[ "${var.tdecision_chart.version}" = "3.0.0"* ]] || [[ "${var.tdecision_chart.version}" = "3.0.1"* ]]; then
-
-  kubectl delete svc -n tdecision --all --force
-
-  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
-  echo "updating tag on lb $${ARN}"
-  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=lb-3dec
-
-  kubectl patch ingress tdecision-3decision-helm-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
-
-  sleep 10
-  kubectl delete ingress -n tdecision --all --force --timeout=60s
-
-  echo "1.8 cleaning over"
-fi
-if [[ "${var.tdecision_chart.version}" = "2.3.7"* ]]; then
-  kubectl delete svc -n tdecision --all --force
-  kubectl delete pvc -n tdecision --all --force&
-  sleep 10
-  kubectl delete job -n tdecision --all --force
-  kubectl delete pod -n tdecision --all --force
-
-  ARN=$(aws elbv2 describe-load-balancers --names lb-3dec --query "LoadBalancers[0].LoadBalancerArn" --output json); ARN="$${ARN//\"/}"
-  echo "updating tag on lb $${ARN}"
-  aws elbv2 add-tags --resource-arn $${ARN} --tags Key=ingress.k8s.aws/stack,Value=tdecision/tdecision-3decision-helm-ingress
-
-  kubectl patch ingress tdecision-ingress -n tdecision --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]'
-
-  sleep 10
-  kubectl delete ingress -n tdecision --all --force --timeout=60s
-
-  echo "Ran 2.3.7 rollback ..."
-fi
-    EOF
-  }
-}
-
-
 locals {
   cm_data = {
     "mapRoles" = <<YAML
@@ -907,7 +856,7 @@ rm -f redis_synchro.yaml
 resource "helm_release" "tdecision_chart" {
   name       = var.tdecision_chart.name
   repository = var.tdecision_chart.repository
-  chart      = var.tdecision_chart.version == "2.3.7" ? "3decision-helm" : var.tdecision_chart.chart
+  chart      = var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
 
