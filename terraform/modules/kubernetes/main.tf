@@ -870,7 +870,6 @@ resource "helm_release" "tdecision_chart" {
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,
     terraform_data.reset_passwords,
-    terraform_data.cleaning_1_8
   ]
 
   provisioner "local-exec" {
@@ -932,7 +931,6 @@ resource "helm_release" "choral_chart" {
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
     terraform_data.clean_choral,
-    terraform_data.cleaning_1_8
   ]
 }
 
