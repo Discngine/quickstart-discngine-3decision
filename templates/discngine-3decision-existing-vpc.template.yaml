@@ -735,7 +735,7 @@ Resources:
                   git clone https://github.com/Discngine/quickstart-discngine-3decision.git
     Properties:
       ImageId: !If [UseLatestAMI, '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}', !Ref ExecutionAmiId]
-      InstanceType: t3.small
+      InstanceType: t2.micro
       IamInstanceProfile: !Ref BootNodeProfile
       SubnetId: !Ref PrivateSubnet1ID
       KeyName: !Ref KeyPairName
