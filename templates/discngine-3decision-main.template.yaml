@@ -60,6 +60,7 @@ Metadata:
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
+          - InboundCidrs
       - Label:
           default : Discngine 3decision database configuration
         Parameters:
@@ -181,6 +182,8 @@ Metadata:
         default: Arns of certificates to connect to the loadbalancer
       LoadBalancerType:
         default: Type of loadbalancer created
+      InboundCidrs:
+        default: Inbound access to loadbalancer
       AzureClientId:
         default: Azure app client id
       AzureSecret:
@@ -479,6 +482,10 @@ Parameters:
     Description: "Type of loadbalancer created.
                   This can either be equal to internet-facing for public loadbalancer or internal for private loadbalancers"
     Type: String
+  InboundCidrs:
+    Default: ""
+    Description: "List of cidr blocks to configure for ingress access to the loadbalancer"
+    Type: String
   AzureClientId:
     Type: String
     Default: ""
@@ -610,6 +617,7 @@ Resources:
         AdditionalEKSAdminRoleArn: !Ref AdditionalEKSAdminRoleArn
         NodeVolumeSize: !Ref NodeVolumeSize
         LoadBalancerType: !Ref LoadBalancerType
+        InboundCidrs: !Ref InboundCidrs
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
         DBDeleteAutoBackups: !Ref DBDeleteAutoBackups
         AdminInitialPassword: !Ref AdminInitialPassword

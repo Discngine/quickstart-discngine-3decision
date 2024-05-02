@@ -164,6 +164,11 @@ variable "certificate_arn" {
   description = "Arn of the certificate to add to the loadbalancer"
 }
 
+variable "inbound_cidrs" {
+  default     = ""
+  description = "List of cidr blocks to allow access to the loadbalancer"
+}
+
 variable "domain" {
   description = "Root domain name used for load balancer rules. This is only the root domain name not the fqdn, eg: example.com"
 }
@@ -205,7 +210,7 @@ variable "tdecision_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
     chart            = optional(string, "tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.0.1")
+    version          = optional(string, "3.0.5")
     create_namespace = optional(bool, true)
   })
   default = {}

@@ -562,6 +562,7 @@ ingress:
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}
   visibility: ${var.load_balancer_type}
+  inboundCidrs: ${var.inbound_cidrs == "" ? "none" : var.inbound_cidrs}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]

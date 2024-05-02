@@ -57,6 +57,7 @@ Metadata:
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
+          - InboundCidrs
       - Label:
           default : Discngine 3decision database configuration
         Parameters:
@@ -158,6 +159,8 @@ Metadata:
         default: Arns of certificates to connect to the loadbalancer
       LoadBalancerType:
         default: Type of loadbalancer created
+      InboundCidrs:
+        default: Inbound access to loadbalancer
       AzureClientId:
         default: Azure app client id
       AzureSecret:
@@ -402,6 +405,10 @@ Parameters:
     Default: "internal"
     Description: "Type of loadbalancer created.
                   This can either be equal to internet-facing for public loadbalancer or internal for private loadbalancers"
+    Type: String
+  InboundCidrs:
+    Default: ""
+    Description: "List of cidr blocks to configure for ingress access to the loadbalancer. E.g. 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
     Type: String
   AzureClientId:
     Type: String
@@ -814,6 +821,7 @@ Resources:
             db_delete_automated_backups = ${DBDeleteAutoBackups}
             load_balancer_type = "${LoadBalancerType}"
             certificate_arn = "${CertificateArn}"
+            inbound_cidrs = "${InboundCidrs}"
             domain = "${DomainName}"
             main_subdomain = "${MainSubdomain}"
             additional_main_fqdns = [${AdditionalMainFQDNs}]
