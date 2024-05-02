@@ -409,9 +409,8 @@ Parameters:
   InboundCidrs:
     Default: ""
     Description: >
-      Optional: List of cidr blocks to configure for ingress access to the loadbalancer. If left empty all incoming traffic will be accepted
-      Write this as: cidr,cidr
-      E.g. to whitelist all private ips 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      Optional: List of cidr blocks to configure for ingress access to the loadbalancer. If left empty all incoming traffic will be accepted.
+      Write this as: cidr,cidr.
     Type: String
   AzureClientId:
     Type: String
