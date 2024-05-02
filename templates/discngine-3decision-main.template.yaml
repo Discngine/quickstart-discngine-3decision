@@ -484,7 +484,7 @@ Parameters:
     Type: String
   InboundCidrs:
     Default: ""
-    Description: "List of cidr blocks to configure for ingress access to the loadbalancer"
+    Description: "List of cidr blocks to configure for ingress access to the loadbalancer. E.g. 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
     Type: String
   AzureClientId:
     Type: String
