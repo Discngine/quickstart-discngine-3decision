@@ -17,6 +17,7 @@ variable "okta_oidc" {}
 variable "azure_oidc" {}
 variable "google_oidc" {}
 variable "certificate_arn" {}
+variable "inbound_cidrs" {}
 variable "domain" {}
 variable "main_subdomain" {}
 variable "additional_main_fqdns" {}
