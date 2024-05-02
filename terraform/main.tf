@@ -251,7 +251,7 @@ module "kubernetes" {
   azure_oidc               = var.azure_oidc
   google_oidc              = var.google_oidc
   certificate_arn          = var.certificate_arn
-  inboundCidrs             = var.inbound_cidrs
+  inbound_cidrs             = var.inbound_cidrs
   domain                   = var.domain
   main_subdomain           = var.main_subdomain
   additional_main_fqdns    = var.additional_main_fqdns
