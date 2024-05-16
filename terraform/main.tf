@@ -251,7 +251,7 @@ module "kubernetes" {
   azure_oidc               = var.azure_oidc
   google_oidc              = var.google_oidc
   certificate_arn          = var.certificate_arn
-  inbound_cidrs             = var.inbound_cidrs
+  inbound_cidrs            = var.inbound_cidrs
   domain                   = var.domain
   main_subdomain           = var.main_subdomain
   additional_main_fqdns    = var.additional_main_fqdns
@@ -264,6 +264,7 @@ module "kubernetes" {
   af_file_name             = var.af_file_name
   af_ftp_link              = var.af_ftp_link
   af_file_nb               = var.af_file_nb
+  initial_db_passwords     = var.initial_db_passwords
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key

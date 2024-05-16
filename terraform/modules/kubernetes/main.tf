@@ -645,7 +645,9 @@ YAML
 # This resets the passwords of schemas CHEMBL_29 and PD_T1_DNG_THREEDECISION
 # It is aimed to be used on new environments that have unknown passwords set in the backup
 resource "terraform_data" "reset_passwords" {
-  count = 0
+  count = var.initial_db_passwords["ADMIN"] != "Ch4ng3m3f0rs3cur3p4ss" ? 1 : 0
+
+  triggers_replace = [var.initial_db_passwords]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
@@ -677,7 +679,8 @@ spec:
       args:
         - echo 'resetting passwords';
           echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY "\$${CHEMBL_DB_PASSWD}" ACCOUNT UNLOCK;
-          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY "\$${DB_PASSWD}" ACCOUNT UNLOCK;' > reset_passwords.sql;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY "\$${DB_PASSWD}" ACCOUNT UNLOCK;
+          ALTER USER CHORAL_OWNER IDENTIFIED BY "\$${CHORAL_DB_PASSWD}" ACCOUNT UNLOCK;' > reset_passwords.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
 kubectl apply -f reset_passwords.yaml
@@ -693,6 +696,7 @@ rm reset_passwords.yaml
 # This deletes both the CHORAL_OWNER user and choral indexes
 # It is aimed to be used on new environments that would retrieve this data from a backup when it has to be installed
 resource "terraform_data" "clean_choral" {
+  triggers_replace = [var.initial_db_passwords]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
