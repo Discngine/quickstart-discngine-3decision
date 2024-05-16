@@ -168,7 +168,7 @@ spec:
             - name: sqc
               value: /root/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
             - name: sqs
-              value: /root/sqlcl/bin/sql SYS/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} as sysdba
+              value: /root/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}
           args: [ "sleep infinity" ]
   YAML
   depends_on = [kubernetes_namespace.tools_namespace, kubectl_manifest.ClusterExternalSecret]
@@ -746,9 +746,6 @@ kubectl delete -n choral pod/clean-choral
 kubectl apply -f clean_choral.yaml
 rm clean_choral.yaml
     EOF
-  }
-  lifecycle {
-    ignore_changes = all
   }
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
