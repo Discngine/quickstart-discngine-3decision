@@ -932,7 +932,7 @@ resource "helm_release" "choral_chart" {
     terraform_data.clean_choral,
   ]
   lifecycle {
-    ignore_changes = all
+    ignore_changes = [version, name, repository, chart]
   }
 }
 
