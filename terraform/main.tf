@@ -15,7 +15,7 @@ terraform {
       version = ">=2.12.1"
     }
     kubectl = {
-      source  = "gavinbunney/kubectl"
+      source  = "alekc/kubectl"
       version = ">=1.14.0"
     }
     tls = {

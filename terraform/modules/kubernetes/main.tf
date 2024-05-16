@@ -13,7 +13,7 @@ terraform {
       source = "hashicorp/kubernetes"
     }
     kubectl = {
-      source = "gavinbunney/kubectl"
+      source = "alekc/kubectl"
     }
   }
 }
@@ -653,10 +653,6 @@ resource "terraform_data" "reset_passwords" {
     command     = <<EOF
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
-if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
-  echo "tdecision already running, password reset aborted."
-  exit 0
-fi
 cat > reset_passwords.yaml << YAML
 ---
 apiVersion: v1
