@@ -673,12 +673,13 @@ spec:
         - name: CONNECTION_STRING
           value: ${local.connection_string}
       args:
-        - echo 'resetting passwords';
-          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY "\$${CHEMBL_DB_PASSWD}" ACCOUNT UNLOCK;
-          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY "\$${DB_PASSWD}" ACCOUNT UNLOCK;
-          ALTER USER CHORAL_OWNER IDENTIFIED BY "\$${CHORAL_DB_PASSWD}" ACCOUNT UNLOCK;' > reset_passwords.sql;
+        - echo "resetting passwords";
+          echo -ne "ALTER USER CHEMBL_29 IDENTIFIED BY \"\$${CHEMBL_DB_PASSWD}\" ACCOUNT UNLOCK;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY \"\$${DB_PASSWD}\" ACCOUNT UNLOCK;
+          ALTER USER CHORAL_OWNER IDENTIFIED BY \"\$${CHORAL_DB_PASSWD}\" ACCOUNT UNLOCK;" > reset_passwords.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
+kubectl delete -f reset_passwords.yaml
 kubectl apply -f reset_passwords.yaml
 rm reset_passwords.yaml
     EOF
