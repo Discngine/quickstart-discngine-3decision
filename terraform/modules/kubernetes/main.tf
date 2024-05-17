@@ -688,16 +688,12 @@ kubectl apply -f reset_passwords.yaml
 rm reset_passwords.yaml
     EOF
   }
-  lifecycle {
-    ignore_changes = all
-  }
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
 # This deletes both the CHORAL_OWNER user and choral indexes
 # It is aimed to be used on new environments that would retrieve this data from a backup when it has to be installed
 resource "terraform_data" "clean_choral" {
-  triggers_replace = [var.initial_db_passwords]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
@@ -747,6 +743,9 @@ kubectl delete -n choral pod/clean-choral
 kubectl apply -f clean_choral.yaml
 rm clean_choral.yaml
     EOF
+  }
+  lifecycle {
+    ignore_changes = all
   }
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
