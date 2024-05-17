@@ -682,6 +682,9 @@ spec:
 YAML
 kubectl delete -f reset_passwords.yaml
 kubectl apply -f reset_passwords.yaml
+sleep 5m
+kubectl delete -f reset_passwords.yaml
+kubectl apply -f reset_passwords.yaml
 rm reset_passwords.yaml
     EOF
   }
