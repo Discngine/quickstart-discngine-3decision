@@ -13,7 +13,7 @@ terraform {
       source = "hashicorp/kubernetes"
     }
     kubectl = {
-      source = "gavinbunney/kubectl"
+      source = "alekc/kubectl"
     }
   }
 }
@@ -168,7 +168,7 @@ spec:
             - name: sqc
               value: /root/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
             - name: sqs
-              value: /root/sqlcl/bin/sql SYS/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} as sysdba
+              value: /root/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}
           args: [ "sleep infinity" ]
   YAML
   depends_on = [kubernetes_namespace.tools_namespace, kubectl_manifest.ClusterExternalSecret]
@@ -563,6 +563,7 @@ ingress:
   certificateArn: ${var.certificate_arn}
   visibility: ${var.load_balancer_type}
   inboundCidrs: ${var.inbound_cidrs == "" ? "null" : var.inbound_cidrs}
+  deletionProtection: ${!var.force_destroy}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]
@@ -645,16 +646,14 @@ YAML
 # This resets the passwords of schemas CHEMBL_29 and PD_T1_DNG_THREEDECISION
 # It is aimed to be used on new environments that have unknown passwords set in the backup
 resource "terraform_data" "reset_passwords" {
-  count = 0
+  count = var.initial_db_passwords["ADMIN"] != "Ch4ng3m3f0rs3cur3p4ss" ? 1 : 0
+
+  triggers_replace = [var.initial_db_passwords]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
-if helm get notes ${var.tdecision_chart.name} -n ${var.tdecision_chart.namespace} &> /dev/null; then
-  echo "tdecision already running, password reset aborted."
-  exit 0
-fi
 cat > reset_passwords.yaml << YAML
 ---
 apiVersion: v1
@@ -675,17 +674,19 @@ spec:
         - name: CONNECTION_STRING
           value: ${local.connection_string}
       args:
-        - echo 'resetting passwords';
-          echo -ne 'ALTER USER CHEMBL_29 IDENTIFIED BY "\$${CHEMBL_DB_PASSWD}" ACCOUNT UNLOCK;
-          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY "\$${DB_PASSWD}" ACCOUNT UNLOCK;' > reset_passwords.sql;
+        - echo "resetting passwords";
+          echo -ne "ALTER USER CHEMBL_29 IDENTIFIED BY \"\$${CHEMBL_DB_PASSWD}\" ACCOUNT UNLOCK;
+          ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY \"\$${DB_PASSWD}\" ACCOUNT UNLOCK;
+          ALTER USER CHORAL_OWNER IDENTIFIED BY \"\$${CHORAL_DB_PASSWD}\" ACCOUNT UNLOCK;" > reset_passwords.sql;
           exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
+kubectl delete -f reset_passwords.yaml
+kubectl apply -f reset_passwords.yaml
+sleep 5m
+kubectl delete -f reset_passwords.yaml
 kubectl apply -f reset_passwords.yaml
 rm reset_passwords.yaml
     EOF
-  }
-  lifecycle {
-    ignore_changes = all
   }
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
@@ -935,7 +936,7 @@ resource "helm_release" "choral_chart" {
     terraform_data.clean_choral,
   ]
   lifecycle {
-    ignore_changes = all
+    ignore_changes = [version, name, repository, chart]
   }
 }
 
