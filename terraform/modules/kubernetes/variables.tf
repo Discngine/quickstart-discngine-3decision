@@ -43,3 +43,5 @@ variable "node_group_role_arn" {}
 variable "af_file_name" {}
 variable "af_ftp_link" {}
 variable "af_file_nb" {}
+variable "initial_db_passwords" {}
+variable "force_destroy" {}
