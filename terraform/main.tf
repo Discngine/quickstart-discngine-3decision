@@ -265,6 +265,7 @@ module "kubernetes" {
   af_ftp_link              = var.af_ftp_link
   af_file_nb               = var.af_file_nb
   initial_db_passwords     = var.initial_db_passwords
+  force_destroy            = var.force_destroy
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key

@@ -563,6 +563,7 @@ ingress:
   certificateArn: ${var.certificate_arn}
   visibility: ${var.load_balancer_type}
   inboundCidrs: ${var.inbound_cidrs == "" ? "null" : var.inbound_cidrs}
+  deletionProtection: ${!var.force_destroy}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]
