@@ -264,6 +264,7 @@ master:
     ports:
       redis: 6380
 replica:
+  replicaCount: 1
   resources:
     requests:
       cpu: 1000m
