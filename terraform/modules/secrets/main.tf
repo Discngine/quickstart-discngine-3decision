@@ -85,6 +85,22 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
     subnet_ids         = var.private_subnet_ids
   }
 
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<EOF
+      echo "detaching security group"
+      aws lambda update-function-configuration --function-name ${self.function_name} --vpc-config '{"SubnetIds": [], "SecurityGroupIds": []}' &&
+      while result=$(aws ec2 describe-network-interfaces --output text --filters '[{"Name": "group-id", "Values": ["${self.tags.security_group_id}"] }, {"Name": "status", "Values": ["in-use", "available"]}]'); test "$result" != ""; do
+        sleep 10;
+      done
+      echo "successfully detached security group"
+    EOF
+  }
+
+  tags = {
+    security_group_id = aws_security_group.lambda_security_group.id
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment,
     time_sleep.wait_1_minute
@@ -200,7 +216,7 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
   secret_string = jsonencode(
     {
       username = each.key
-      password = each.key != "CHORAL_OWNER" ? var.initial_db_passwords : random_password.choral_password.result
+      password = each.key != "CHORAL_OWNER" ? var.initial_db_passwords[each.key] : random_password.choral_password.result
       engine   = "oracle"
       host     = element(split(":", var.db_endpoint), 0)
       dbname   = var.db_name

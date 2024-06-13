@@ -55,10 +55,12 @@ Metadata:
           - DomainName
           - MainSubdomain
           - ApiSubdomain
-          - AdditionalMainSubdomains
+          - RegistrationSubdomain
+          - AdditionalMainFQDNs
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
+          - InboundCidrs
       - Label:
           default : Discngine 3decision database configuration
         Parameters:
@@ -67,6 +69,7 @@ Metadata:
           - DBMultiZone
           - DBBackupRetentionPeriod
           - DBDeleteAutoBackups
+          - AdminInitialPassword
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -161,6 +164,8 @@ Metadata:
         default: Time to keep DB backups
       DBDeleteAutoBackups:
         default: Whether to delete automatic backups when deleting the database
+      AdminInitialPassword:
+        default: Password of the admin user
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -169,12 +174,16 @@ Metadata:
         default: Subdomain name for app landing page
       ApiSubdomain:
         default: Subdomain of the api
-      AdditionalMainSubdomains:
-        default: Additional subdomains that will redirect to the landing page
+      RegistrationSubdomain:
+        default: Subdomain used for registration
+      AdditionalMainFQDNs:
+        default: Additional FQDNs that will redirect to the landing page
       CertificateArn:
-        default: Arn of a certificate
+        default: Arns of certificates to connect to the loadbalancer
       LoadBalancerType:
         default: Type of loadbalancer created
+      InboundCidrs:
+        default: Inbound access to loadbalancer
       AzureClientId:
         default: Azure app client id
       AzureSecret:
@@ -368,8 +377,8 @@ Parameters:
   # https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-release-calendar
     Type: String
     Description: Kubernetes control plane version.
-    AllowedValues: ['1.23', '1.24', '1.25', '1.26', '1.27']
-    Default: '1.27'
+    AllowedValues: ['1.25', '1.26', '1.27', '1.28', '1.29']
+    Default: '1.28'
   NodeVolumeSize:
     Type: String
     Default: 50
@@ -416,6 +425,10 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
+  AdminInitialPassword:
+    Description: "Optional: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
+    Type: String
+    Default: ""
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -445,15 +458,21 @@ Parameters:
     Default: "3decision-api"
     Description: "Required: Name used for the api subdomain"
     Type: String
-  AdditionalMainSubdomains:
+  RegistrationSubdomain:
+    Default: "3decision-reg"
+    Description: "Required: Name used for the registration subdomain"
+    Type: String
+  AdditionalMainFQDNs:
     Default: ""
     Description: >
-      Optional: Additional subdomains that will redirect to the landing page.
-      Write this as: "subdomain", "subdomain".
+      Optional: Additional domains that will redirect to the landing page. This takes a list of fqdn without the trailing dot (e.g 3decision.example.com)
+      Write this as: "fqdn", "fqdn".
     Type: String
   CertificateArn:
     Default: ""
-    Description: "Optional: Arn of a certificate of the associated domain you want added to the load balancer"
+    Description: >
+     Optional: List of ARNs of certificates of the associated domain you want added to the load balancer. You should add several when redirecting from another domain with the additional FQDN parameter
+     Write this as: arn,arn
     Type: String
   LoadBalancerType:
     AllowedValues:
@@ -462,6 +481,12 @@ Parameters:
     Default: "internet-facing"
     Description: "Type of loadbalancer created.
                   This can either be equal to internet-facing for public loadbalancer or internal for private loadbalancers"
+    Type: String
+  InboundCidrs:
+    Default: ""
+    Description: >
+      Optional: List of cidr blocks to configure for ingress access to the loadbalancer. If left empty all incoming traffic will be accepted.
+      Write this as: cidr,cidr.
     Type: String
   AzureClientId:
     Type: String
@@ -594,8 +619,10 @@ Resources:
         AdditionalEKSAdminRoleArn: !Ref AdditionalEKSAdminRoleArn
         NodeVolumeSize: !Ref NodeVolumeSize
         LoadBalancerType: !Ref LoadBalancerType
+        InboundCidrs: !Ref InboundCidrs
         DBSnapshotIdentifier: !Ref DBSnapshotIdentifier
         DBDeleteAutoBackups: !Ref DBDeleteAutoBackups
+        AdminInitialPassword: !Ref AdminInitialPassword
         DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
         CustomAmiId: !Ref CustomAmiId
         AzureClientId: !Ref AzureClientId
@@ -609,6 +636,7 @@ Resources:
         GoogleSecret: !Ref GoogleSecret
         MainSubdomain: !Ref MainSubdomain
         ApiSubdomain: !Ref ApiSubdomain
-        AdditionalMainSubdomains: !Ref AdditionalMainSubdomains
+        RegistrationSubdomain: !Ref RegistrationSubdomain
+        AdditionalMainFQDNs: !Ref AdditionalMainFQDNs
         PublicVolumeSnapshotId: !Ref PublicVolumeSnapshotId
         PrivateVolumeSnapshotId: !Ref PrivateVolumeSnapshotId

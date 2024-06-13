@@ -10,17 +10,17 @@ locals {
 resource "aws_ebs_volume" "public_data" {
   availability_zone = var.availability_zone_names[0]
   snapshot_id       = var.public_volume_snapshot != "" ? var.public_volume_snapshot : lookup(local.public_snapshot, var.region)
-  final_snapshot    = var.public_final_snapshot
+  final_snapshot    = false
   type              = "gp2"
   encrypted         = true
   tags = {
     Name = "3decision-public-data"
   }
   lifecycle {
-    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id]
+    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot]
   }
   timeouts {
-    delete = "60m"
+    delete = "180m"
   }
 }
 
@@ -35,9 +35,9 @@ resource "aws_ebs_volume" "private_data" {
     Name = "3decision-private-data"
   }
   lifecycle {
-    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id]
+    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot]
   }
   timeouts {
-    delete = "60m"
+    delete = "120m"
   }
 }

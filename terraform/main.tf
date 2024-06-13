@@ -15,7 +15,7 @@ terraform {
       version = ">=2.12.1"
     }
     kubectl = {
-      source  = "gavinbunney/kubectl"
+      source  = "alekc/kubectl"
       version = ">=1.14.0"
     }
     tls = {
@@ -179,12 +179,54 @@ module "volumes" {
   public_final_snapshot   = var.public_final_snapshot
 }
 
+locals {
+  buckets = toset(["redis", "alphafold"])
+  allowed_service_accounts = {
+    "redis"     = ["system:serviceaccount:*:redis-s3-upload", "system:serviceaccount:*:sentinel-redis"]
+    "alphafold" = ["system:serviceaccount:tdecision:*"]
+  }
+}
+
+moved {
+  from = module.storage.aws_iam_role.redis_role
+  to   = module.storage["redis"].aws_iam_role.role
+}
+
+moved {
+  from = module.storage.aws_iam_role_policy_attachment.secret_rotator_lambda_role_policy_attachment
+  to   = module.storage["redis"].aws_iam_role_policy_attachment.policy_attachment
+}
+
+moved {
+  from = module.storage.aws_iam_policy.redis_policy
+  to   = module.storage["redis"].aws_iam_policy.policy
+}
+
+moved {
+  from = module.storage.aws_s3_bucket.bucket
+  to   = module.storage["redis"].aws_s3_bucket.bucket
+}
+
+moved {
+  from = module.storage.aws_s3_bucket_ownership_controls.bucket_ownership
+  to   = module.storage["redis"].aws_s3_bucket_ownership_controls.bucket_ownership
+}
+
+moved {
+  from = module.storage.aws_s3_bucket_public_access_block.public_access_block
+  to   = module.storage["redis"].aws_s3_bucket_public_access_block.public_access_block
+}
+
 module "storage" {
-  source = "./modules/storage"
+  for_each = local.buckets
+  source   = "./modules/storage"
+
   # Input
-  region        = var.region
-  account_id    = local.account_id
-  force_destroy = var.force_destroy
+  name                     = each.key
+  region                   = var.region
+  force_destroy            = each.key == "alphafold" ? true : var.force_destroy
+  allowed_service_accounts = lookup(local.allowed_service_accounts, each.key, [])
+
   # Output
   vpc_id              = var.create_network ? module.network[0].vpc_id : var.vpc_id
   eks_oidc_issuer     = module.eks.oidc_issuer
@@ -195,36 +237,46 @@ module "kubernetes" {
   source = "./modules/kubernetes"
 
   # Input
-  region                     = var.region
-  availability_zone_names    = local.availability_zone_names
-  account_id                 = local.account_id
-  tdecision_chart            = var.tdecision_chart
-  choral_chart               = var.choral_chart
-  redis_sentinel_chart       = var.redis_sentinel_chart
-  cert_manager_chart         = var.cert_manager_chart
-  external_secrets_chart     = var.external_secrets_chart
-  reloader_chart             = var.reloader_chart
-  okta_oidc                  = var.okta_oidc
-  azure_oidc                 = var.azure_oidc
-  google_oidc                = var.google_oidc
-  certificate_arn            = var.certificate_arn
-  domain                     = var.domain
-  main_subdomain             = var.main_subdomain
-  additional_main_subdomains = var.additional_main_subdomains
-  api_subdomain              = var.api_subdomain
-  load_balancer_type         = var.load_balancer_type
-  additional_eks_roles_arn   = var.additional_eks_roles_arn
-  additional_eks_users_arn   = var.additional_eks_users_arn
-  custom_ami                 = var.custom_ami
+  region                   = var.region
+  availability_zone_names  = local.availability_zone_names
+  account_id               = local.account_id
+  tdecision_chart          = var.tdecision_chart
+  choral_chart             = var.choral_chart
+  chemaxon_ms_chart        = var.chemaxon_ms_chart
+  redis_sentinel_chart     = var.redis_sentinel_chart
+  cert_manager_chart       = var.cert_manager_chart
+  external_secrets_chart   = var.external_secrets_chart
+  reloader_chart           = var.reloader_chart
+  okta_oidc                = var.okta_oidc
+  azure_oidc               = var.azure_oidc
+  google_oidc              = var.google_oidc
+  certificate_arn          = var.certificate_arn
+  inbound_cidrs            = var.inbound_cidrs
+  domain                   = var.domain
+  main_subdomain           = var.main_subdomain
+  additional_main_fqdns    = var.additional_main_fqdns
+  api_subdomain            = var.api_subdomain
+  registration_subdomain   = var.registration_subdomain
+  load_balancer_type       = var.load_balancer_type
+  additional_eks_roles_arn = var.additional_eks_roles_arn
+  additional_eks_users_arn = var.additional_eks_users_arn
+  custom_ami               = var.custom_ami
+  af_file_name             = var.af_file_name
+  af_ftp_link              = var.af_ftp_link
+  af_file_nb               = var.af_file_nb
+  initial_db_passwords     = var.initial_db_passwords
+  force_destroy            = var.force_destroy
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key
   jwt_ssh_public          = module.secrets.jwt_public_key
   secrets_access_role_arn = module.secrets.secrets_access_role_arn
-  bucket_name             = module.storage.bucket_name
+  redis_bucket_name       = module.storage["redis"].bucket_name
+  alphafold_bucket_name   = module.storage["alphafold"].bucket_name
+  redis_s3_role_arn       = module.storage["redis"].s3_role_arn
+  alphafold_s3_role_arn   = module.storage["alphafold"].s3_role_arn
   public_volume_id        = module.volumes.public_volume_id
   private_volume_id       = module.volumes.private_volume_id
-  redis_role_arn          = module.storage.redis_role_arn
   eks_service_cidr        = module.eks.service_cidr
   db_name                 = module.database.db_name
   db_endpoint             = module.database.db_endpoint
@@ -239,10 +291,11 @@ module "dns" {
   count  = var.hosted_zone_id != "" ? 1 : 0
   source = "./modules/dns"
   # Input
-  domain         = var.domain
-  main_subdomain = var.main_subdomain
-  api_subdomain  = var.api_subdomain
-  zone_id        = var.hosted_zone_id
+  domain                 = var.domain
+  main_subdomain         = var.main_subdomain
+  api_subdomain          = var.api_subdomain
+  registration_subdomain = var.registration_subdomain
+  zone_id                = var.hosted_zone_id
   # Output
   cluster_id = module.eks.cluster_id
   depends_on = [module.kubernetes.tdecision_release]

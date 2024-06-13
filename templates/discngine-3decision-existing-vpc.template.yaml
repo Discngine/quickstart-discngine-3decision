@@ -52,10 +52,12 @@ Metadata:
           - DomainName
           - MainSubdomain
           - ApiSubdomain
-          - AdditionalMainSubdomains
+          - RegistrationSubdomain
+          - AdditionalMainFQDNs
           - HostedZoneId
           - CertificateArn
           - LoadBalancerType
+          - InboundCidrs
       - Label:
           default : Discngine 3decision database configuration
         Parameters:
@@ -64,6 +66,7 @@ Metadata:
           - DBMultiZone
           - DBBackupRetentionPeriod
           - DBDeleteAutoBackups
+          - AdminInitialPassword
       - Label:
           default: Discngine 3decision azure authentication configuration
         Parameters:
@@ -138,6 +141,8 @@ Metadata:
         default: Time to keep DB backups
       DBDeleteAutoBackups:
         default: Whether to delete automatic backups when deleting the database
+      AdminInitialPassword:
+        default: Password of the admin user
       HostedZoneId:
         default: Route 53 hosted zone Id
       DomainName:
@@ -146,12 +151,16 @@ Metadata:
         default: Subdomain name for app landing page
       ApiSubdomain:
         default: Subdomain of the api
-      AdditionalMainSubdomains:
-        default: Additional subdomains that will redirect to the landing page
+      RegistrationSubdomain:
+        default: Subdomain used for registration
+      AdditionalMainFQDNs:
+        default: Additional FQDNs that will redirect to the landing page
       CertificateArn:
-        default: Arn of a certificate
+        default: Arns of certificates to connect to the loadbalancer
       LoadBalancerType:
         default: Type of loadbalancer created
+      InboundCidrs:
+        default: Inbound access to loadbalancer
       AzureClientId:
         default: Azure app client id
       AzureSecret:
@@ -292,8 +301,8 @@ Parameters:
   # https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-release-calendar
     Type: String
     Description: Kubernetes control plane version.
-    AllowedValues: ['1.23', '1.24', '1.25', '1.26', '1.27']
-    Default: '1.27'
+    AllowedValues: ['1.25', '1.26', '1.27', '1.28', '1.29']
+    Default: '1.28'
   NodeVolumeSize:
     Type: String
     Default: 50
@@ -340,6 +349,10 @@ Parameters:
     Type: String
     AllowedValues: [ 'true', 'false' ]
     Default: 'true'
+  AdminInitialPassword:
+    Description: "Optional: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
+    Type: String
+    Default: ""
   AdditionalEKSAdminUserArn:
     Default: ""
     Description: >
@@ -369,15 +382,21 @@ Parameters:
     Default: "3decision-api"
     Description: "Required: Name used for the api subdomain"
     Type: String
-  AdditionalMainSubdomains:
+  RegistrationSubdomain:
+    Default: "3decision-reg"
+    Description: "Required: Name used for the registration subdomain"
+    Type: String
+  AdditionalMainFQDNs:
     Default: ""
     Description: >
-      Optional: Additional subdomains that will redirect to the landing page.
-      Write this as: "subdomain", "subdomain".
+      Optional: Additional domains that will redirect to the landing page. This takes a list of fqdn without the trailing dot (e.g 3decision.example.com)
+      Write this as: "fqdn", "fqdn".
     Type: String
   CertificateArn:
     Default: ""
-    Description: "Optional: Arn of a certificate of the associated domain you want added to the load balancer"
+    Description: >
+     Optional: List of ARNs of certificates of the associated domain you want added to the load balancer. You should add several when redirecting from another domain with the additional FQDN parameter
+     Write this as: arn,arn
     Type: String
   LoadBalancerType:
     AllowedValues:
@@ -386,6 +405,12 @@ Parameters:
     Default: "internal"
     Description: "Type of loadbalancer created.
                   This can either be equal to internet-facing for public loadbalancer or internal for private loadbalancers"
+    Type: String
+  InboundCidrs:
+    Default: ""
+    Description: >
+      Optional: List of cidr blocks to configure for ingress access to the loadbalancer. If left empty all incoming traffic will be accepted.
+      Write this as: cidr,cidr.
     Type: String
   AzureClientId:
     Type: String
@@ -464,6 +489,7 @@ Conditions:
   LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
   CreateFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "true"]
   PreventDestroy: !Equals [!Ref PreventDestroy, "true"]
+  DefaultAdminPassword: !Equals [!Ref AdminInitialPassword, ""]
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -596,6 +622,7 @@ Resources:
                   - iam:ListPolicyVersions
                   - iam:ListRolePolicies
                   - iam:GetPolicyVersion
+                  - iam:DeletePolicyVersion
                   - iam:CreateServiceLinkedRole
                   - iam:UpdateAssumeRolePolicy
                 Resource:
@@ -640,7 +667,9 @@ Resources:
                   - "lambda:GetPolicy"
                   - "lambda:PublishVersion"
                   - "lambda:ListFunctions"
+                  - "lambda:ListTags"
                   - "lambda:TagResource"
+                  - "lambda:UntagResource"
                   - "lambda:RemovePermission"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
@@ -758,8 +787,18 @@ Resources:
             #!/bin/bash
 
             echo ${RelaunchTerraform} > /dev/null
+
+            if ! command -v helm; then
+              curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+              chmod 700 get_helm.sh
+              ./get_helm.sh
+            fi
+
             sudo chown -R root:root /opt/dng/
             cd /opt/dng/quickstart-discngine-3decision/terraform
+
+            rm -rf .terraform/providers/
+
             git pull
             git checkout ${GitBranch} && git pull
             cat > backend.conf << EOF
@@ -784,10 +823,12 @@ Resources:
             db_delete_automated_backups = ${DBDeleteAutoBackups}
             load_balancer_type = "${LoadBalancerType}"
             certificate_arn = "${CertificateArn}"
+            inbound_cidrs = "${InboundCidrs}"
             domain = "${DomainName}"
             main_subdomain = "${MainSubdomain}"
-            additional_main_subdomains = [${AdditionalMainSubdomains}]
+            additional_main_fqdns = [${AdditionalMainFQDNs}]
             api_subdomain = "${ApiSubdomain}"
+            registration_subdomain = "${RegistrationSubdomain}"
             hosted_zone_id = "${HostedZoneId}"
             azure_oidc = {
               client_id = "${AzureClient}"
@@ -820,8 +861,27 @@ Resources:
               version = ${TdecisionVersion}
               namespace = "${TdecisionNamespace}"
             }
+            initial_db_passwords = {
+              "ADMIN"                   = "${AdminPassword}"
+              "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
+              "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
+            }
             EOF
             terraform init -backend-config=backend.conf -reconfigure -upgrade
+
+            sudo yum install jq -y
+            terraform state pull > terraform.tfstate
+            final_snapshot_value=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.final_snapshot' terraform.tfstate)
+
+            if [ "$final_snapshot_value" = "true" ]; then
+              id=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.id' terraform.tfstate)
+              terraform state rm 'module.volumes.aws_ebs_volume.public_data'
+              terraform import -var-file=vars.tfvars 'module.volumes.aws_ebs_volume.public_data' "$id"
+            else
+              echo "final_snapshot is not set to true. Doing nothing."
+            fi
+            rm terraform.tfstate
+
             terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
 
           - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
@@ -831,6 +891,7 @@ Resources:
             TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
             SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
             ForceDestroy: !If [PreventDestroy, "false", "true"]
+            AdminPassword: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
             
         workingDirectory:
         - "/opt/dng"
@@ -839,4 +900,4 @@ Resources:
           OutputS3BucketName: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
           OutputS3KeyPrefix: 'logs/'
           OutputS3Region: !Ref AWS::Region
-      WaitForSuccessTimeoutSeconds: 3600
+      WaitForSuccessTimeoutSeconds: 36000
