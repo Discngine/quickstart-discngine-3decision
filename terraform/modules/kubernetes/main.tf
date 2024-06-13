@@ -273,22 +273,12 @@ replica:
     secret:
       secretName: ssh-key-secret
       optional: true
-  initContainers:
-    - name: redis-pull-container
-      envFrom:
-      - configMapRef:
-          name: sentinel-backup-env-cm
-          optional: true
-      image: fra.ocir.io/discngine1/3decision_kube/redis-backup:0.0.1
-      command: ["./entrypoint.sh"]
-      args: ["pull"]
-      imagePullPolicy: Always
-      volumeMounts:
-      - mountPath: /root/.ssh/
-        name: secret-key
-        readOnly: true
-      - mountPath: /data
-        name: redis-data
+global:
+  redis:
+    password: lapin80
+auth:
+  password: lapin80
+delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
 YAML
 }
 
