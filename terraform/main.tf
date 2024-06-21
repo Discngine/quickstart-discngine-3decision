@@ -38,38 +38,38 @@ provider "aws" {
   region = var.region
 }
 
-provider "kubernetes" {
-  host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
-  cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
-  exec {
-    api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
-    args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
-    command     = var.deploy_cluster ? "aws" : ""
-  }
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
-    cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
-    exec {
-      api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
-      args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
-      command     = var.deploy_cluster ? "aws" : ""
-    }
-  }
-}
-
-provider "kubectl" {
-  host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
-  cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
-  exec {
-    api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
-    args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
-    command     = var.deploy_cluster ? "aws" : ""
-  }
-  load_config_file = false
-}
+#provider "kubernetes" {
+#  host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
+#  cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
+#  exec {
+#    api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
+#    args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
+#    command     = var.deploy_cluster ? "aws" : ""
+#  }
+#}
+#
+#provider "helm" {
+#  kubernetes {
+#    host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
+#    cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
+#    exec {
+#      api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
+#      args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
+#      command     = var.deploy_cluster ? "aws" : ""
+#    }
+#  }
+#}
+#
+#provider "kubectl" {
+#  host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
+#  cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
+#  exec {
+#    api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
+#    args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
+#    command     = var.deploy_cluster ? "aws" : ""
+#  }
+#  load_config_file = false
+#}
 
 provider "tls" {
 }
