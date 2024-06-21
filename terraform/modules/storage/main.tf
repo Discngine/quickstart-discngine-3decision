@@ -29,6 +29,41 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_lifecycle_configuration" "scc_s3_bucket_lifecycle" {
+  bucket = aws_s3_bucket.bucket.id
+
+  rule {
+    id     = "TransitionRule-IT"
+    status = "Enabled"
+    transition {
+      days          = "0"
+      storage_class = "INTELLIGENT_TIERING"
+    }
+  }
+
+  rule {
+    id     = "NonCurrentVersionDeletionRule"
+    status = "Enabled"
+    noncurrent_version_expiration {
+      noncurrent_days = "30"
+    }
+    expiration {
+      expired_object_delete_marker = true
+    }
+  }
+
+  rule {
+    id     = "DeleteMarkersRule"
+    status = "Enabled"
+    expiration {
+      expired_object_delete_marker = true
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
 resource "aws_iam_role" "role" {
   name_prefix = "3decision-${var.name}-s3"
   assume_role_policy = jsonencode({

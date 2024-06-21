@@ -198,6 +198,10 @@ resource "aws_secretsmanager_secret" "db_passwords" {
 
   name                    = "3dec-${lower(each.key)}-db"
   recovery_window_in_days = 0
+
+  tags = {
+    "Name" = each.key
+  }
 }
 
 resource "random_password" "choral_password" {

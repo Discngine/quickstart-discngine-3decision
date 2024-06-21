@@ -45,6 +45,37 @@ variable "private_subnet_ids" {
 # EKS
 #########
 
+variable "deploy_cluster" {
+  default     = true
+  description = "Whether to deploy the cluster and all kubernetes resources associated to it."
+}
+
+##############
+# EKS NOT DEPLOYED
+##############
+
+variable "eks_openid_provider_arn" {
+  default = ""
+  description = "Arn of the existing eks openid provider"
+}
+
+variable "eks_oidc_issuer" {
+  default = ""
+  description = "Issuer url of the existing eks openid provider"
+}
+
+variable "eks_node_group_role_arn" {
+  default = ""
+}
+
+variable "eks_node_security_group_id" {
+  default = ""
+}
+
+#############
+# EKS IS DEPLOYED
+#############
+
 variable "keypair_name" {
   default     = ""
   description = "Name of keypair to add to EKS nodes"

@@ -36,37 +36,44 @@ terraform {
 
 provider "aws" {
   region = var.region
+  default_tags {
+    tags = {
+      "Owner"       = "WAKEFBX"
+      "Cost Center" = "614246"
+      "SSC_JENKINS" = "T"
+    }
+  }
 }
 
 provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_ca_cert)
+  host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
+  cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
   exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
-    command     = "aws"
+    api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
+    args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
+    command     = var.deploy_cluster ? "aws" : ""
   }
 }
 
 provider "helm" {
   kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_ca_cert)
+    host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
+    cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
     exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
-      command     = "aws"
+      api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
+      args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
+      command     = var.deploy_cluster ? "aws" : ""
     }
   }
 }
 
 provider "kubectl" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_ca_cert)
+  host                   = var.deploy_cluster ? module.eks[0].cluster_endpoint : ""
+  cluster_ca_certificate = var.deploy_cluster ? base64decode(module.eks[0].cluster_ca_cert) : ""
   exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
-    command     = "aws"
+    api_version = var.deploy_cluster ? "client.authentication.k8s.io/v1beta1" : ""
+    args        = var.deploy_cluster ? ["eks", "get-token", "--cluster-name", module.eks[0].cluster_name] : ""
+    command     = var.deploy_cluster ? "aws" : ""
   }
   load_config_file = false
 }
@@ -107,8 +114,14 @@ module "network" {
   # Input
 }
 
+moved {
+  from = module.eks
+  to   = module.eks[0]
+}
+
 module "eks" {
   source = "./modules/eks"
+  count  = var.deploy_cluster ? 1 : 0
   # Input
   region             = var.region
   account_id         = local.account_id
@@ -140,7 +153,7 @@ module "database" {
   license_type             = var.license_type
   skip_final_snapshot      = var.skip_db_final_snapshot
   # Output
-  node_security_group_id = module.eks.node_security_group_id
+  node_security_group_id = var.deploy_cluster ? module.eks[0].node_security_group_id : var.eks_node_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
   private_subnet_ids     = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
 }
@@ -148,7 +161,7 @@ module "database" {
 module "security" {
   source = "./modules/security"
   # Output
-  node_security_group_id           = module.eks.node_security_group_id
+  node_security_group_id           = var.deploy_cluster ? module.eks[0].node_security_group_id : var.eks_node_security_group_id
   db_security_group_id             = module.database.db_security_group_id
   secrets_lambda_security_group_id = module.secrets.secrets_lambda_security_group_id
 }
@@ -165,7 +178,7 @@ module "secrets" {
   db_security_group_id = module.database.db_security_group_id
   db_name              = module.database.db_name
   db_endpoint          = module.database.db_endpoint
-  node_group_role_arn  = module.eks.node_group_role_arn
+  node_group_role_arn  = var.deploy_cluster ? module.eks[0].node_group_role_arn : var.eks_node_group_role_arn
 }
 
 module "volumes" {
@@ -229,12 +242,18 @@ module "storage" {
 
   # Output
   vpc_id              = var.create_network ? module.network[0].vpc_id : var.vpc_id
-  eks_oidc_issuer     = module.eks.oidc_issuer
-  openid_provider_arn = module.eks.openid_provider_arn
+  eks_oidc_issuer     = var.deploy_cluster ? module.eks[0].oidc_issuer : var.eks_oidc_issuer
+  openid_provider_arn = var.deploy_cluster ? module.eks[0].openid_provider_arn : var.eks_openid_provider_arn
+}
+
+moved {
+  from = module.kubernetes
+  to   = module.kubernetes[0]
 }
 
 module "kubernetes" {
   source = "./modules/kubernetes"
+  count  = var.deploy_cluster ? 1 : 0
 
   # Input
   region                   = var.region
@@ -277,12 +296,12 @@ module "kubernetes" {
   alphafold_s3_role_arn   = module.storage["alphafold"].s3_role_arn
   public_volume_id        = module.volumes.public_volume_id
   private_volume_id       = module.volumes.private_volume_id
-  eks_service_cidr        = module.eks.service_cidr
+  eks_service_cidr        = module.eks[0].service_cidr
   db_name                 = module.database.db_name
   db_endpoint             = module.database.db_endpoint
-  cluster_name            = module.eks.cluster_name
-  eks_oidc_issuer         = module.eks.oidc_issuer
-  node_group_role_arn     = module.eks.node_group_role_arn
+  cluster_name            = module.eks[0].cluster_name
+  eks_oidc_issuer         = module.eks[0].oidc_issuer
+  node_group_role_arn     = module.eks[0].node_group_role_arn
 
   depends_on = [module.eks]
 }
@@ -296,7 +315,6 @@ module "dns" {
   api_subdomain          = var.api_subdomain
   registration_subdomain = var.registration_subdomain
   zone_id                = var.hosted_zone_id
-  # Output
-  cluster_id = module.eks.cluster_id
+
   depends_on = [module.kubernetes.tdecision_release]
 }
