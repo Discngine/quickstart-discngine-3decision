@@ -36,13 +36,6 @@ terraform {
 
 provider "aws" {
   region = var.region
-  default_tags {
-    tags = {
-      "Owner"       = "WAKEFBX"
-      "Cost Center" = "614246"
-      "SSC_JENKINS" = "T"
-    }
-  }
 }
 
 provider "kubernetes" {
