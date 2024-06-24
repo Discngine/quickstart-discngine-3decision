@@ -1272,7 +1272,7 @@ resource "helm_release" "aws_load_balancer_controller" {
         memory: 80Mi
     serviceAccount:
       annotations:
-        eks.amazonaws.com/role-arn: ${aws_iam_role.load_balancer_controller.arn}
+        eks.amazonaws.com/role-arn: ${aws_iam_role.load_balancer_controller[0].arn}
       create: true
       name: aws-load-balancer-controller
     vpcId: ${var.vpc_id}
