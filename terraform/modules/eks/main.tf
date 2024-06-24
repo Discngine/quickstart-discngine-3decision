@@ -19,7 +19,7 @@ moved {
 resource "aws_eks_cluster" "cluster" {
   count    = var.create_cluster ? 1 : 0
   name     = "EKS-tdecision"
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = aws_iam_role.eks_cluster_role[0].arn
   version  = var.kubernetes_version
 
   vpc_config {
@@ -27,11 +27,11 @@ resource "aws_eks_cluster" "cluster" {
     endpoint_private_access = true
     endpoint_public_access  = var.k8s_public_access
 
-    security_group_ids = [aws_security_group.eks_cluster_sg.id]
+    security_group_ids = [aws_security_group.eks_cluster_sg[0].id]
   }
   encryption_config {
     provider {
-      key_arn = aws_kms_key.cluster_secrets_key.arn
+      key_arn = aws_kms_key.cluster_secrets_key[0].arn
     }
     resources = ["secrets"]
   }
@@ -97,7 +97,7 @@ moved {
 resource "aws_security_group_rule" "eks_cluster_ingress" {
   count             = var.create_cluster ? 1 : 0
   type              = "ingress"
-  security_group_id = aws_security_group.eks_cluster_sg.id
+  security_group_id = aws_security_group.eks_cluster_sg[0].id
   from_port         = 0
   to_port           = 65535
   protocol          = "tcp"
@@ -112,7 +112,7 @@ moved {
 resource "aws_security_group_rule" "eks_cluster_egress" {
   count             = var.create_cluster ? 1 : 0
   type              = "egress"
-  security_group_id = aws_security_group.eks_cluster_sg.id
+  security_group_id = aws_security_group.eks_cluster_sg[0].id
   from_port         = 0
   to_port           = 0
   protocol          = "-1"
