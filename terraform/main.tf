@@ -236,11 +236,6 @@ module "storage" {
   openid_provider_arn = module.eks.openid_provider_arn
 }
 
-moved {
-  from = module.kubernetes
-  to   = module.kubernetes[0]
-}
-
 module "kubernetes" {
   source = "./modules/kubernetes"
 
