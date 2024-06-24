@@ -1,11 +1,23 @@
 # oke Module - Main file for the oke module
 
+moved {
+  from = aws_kms_key.cluster_secrets_key
+  to   = aws_kms_key.cluster_secrets_key[0]
+}
+
 resource "aws_kms_key" "cluster_secrets_key" {
+  count       = var.create_cluster ? 1 : 0
   description = "EKS cluster secrets key"
+}
+
+moved {
+  from = aws_eks_cluster.cluster
+  to   = aws_eks_cluster.cluster[0]
 }
 
 # Create EKS cluster
 resource "aws_eks_cluster" "cluster" {
+  count    = var.create_cluster ? 1 : 0
   name     = "EKS-tdecision"
   role_arn = aws_iam_role.eks_cluster_role.arn
   version  = var.kubernetes_version
@@ -25,8 +37,24 @@ resource "aws_eks_cluster" "cluster" {
   }
 }
 
+data "aws_eks_cluster" "cluster" {
+  count = var.create_cluster ? 0 : 1
+
+  name = var.cluster_name
+}
+
+locals {
+  cluster = var.create_cluster ? aws_eks_cluster.cluster : data.aws_eks_cluster.cluster
+}
+
+moved {
+  from = aws_iam_role.eks_cluster_role
+  to   = aws_iam_role.eks_cluster_role[0]
+}
+
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_cluster_role" {
+  count       = var.create_cluster ? 1 : 0
   name_prefix = "3decision-eks-controlplane"
 
   managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"]
@@ -47,15 +75,27 @@ resource "aws_iam_role" "eks_cluster_role" {
 EOF
 }
 
+moved {
+  from = aws_security_group.eks_cluster_sg
+  to   = aws_security_group.eks_cluster_sg[0]
+}
+
 # Create security group for EKS cluster
 resource "aws_security_group" "eks_cluster_sg" {
+  count       = var.create_cluster ? 1 : 0
   name_prefix = "tdec-eks"
   description = "Security group for EKS cluster"
 
   vpc_id = var.vpc_id
 }
 
+moved {
+  from = aws_security_group_rule.eks_cluster_ingress
+  to   = aws_security_group_rule.eks_cluster_ingress[0]
+}
+
 resource "aws_security_group_rule" "eks_cluster_ingress" {
+  count             = var.create_cluster ? 1 : 0
   type              = "ingress"
   security_group_id = aws_security_group.eks_cluster_sg.id
   from_port         = 0
@@ -64,7 +104,13 @@ resource "aws_security_group_rule" "eks_cluster_ingress" {
   cidr_blocks       = [var.vpc_cidr]
 }
 
+moved {
+  from = aws_security_group_rule.eks_cluster_egress
+  to   = aws_security_group_rule.eks_cluster_egress[0]
+}
+
 resource "aws_security_group_rule" "eks_cluster_egress" {
+  count             = var.create_cluster ? 1 : 0
   type              = "egress"
   security_group_id = aws_security_group.eks_cluster_sg.id
   from_port         = 0
@@ -101,16 +147,16 @@ EOF
 }
 
 data "aws_ssm_parameter" "eks_ami_release_version" {
-  name = "/aws/service/eks/optimized-ami/${aws_eks_cluster.cluster.version}/amazon-linux-2/recommended/image_id"
+  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2/recommended/image_id"
 }
 
 locals {
-  user_data = <<EOF
+  user_data = var.user_data != "" ? var.user_data : <<EOF
 #!/bin/bash
 set -o xtrace
-/etc/eks/bootstrap.sh ${aws_eks_cluster.cluster.name} \
-                  --b64-cluster-ca ${aws_eks_cluster.cluster.certificate_authority.0.data} \
-                  --apiserver-endpoint ${aws_eks_cluster.cluster.endpoint} \
+/etc/eks/bootstrap.sh ${local.cluster.name} \
+                  --b64-cluster-ca ${local.cluster.certificate_authority.0.data} \
+                  --apiserver-endpoint ${local.cluster.endpoint} \
                   --use-max-pods false \
                   --kubelet-extra-args '--max-pods=110'
   EOF
@@ -147,7 +193,7 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
 
 # Create EKS node group
 resource "aws_eks_node_group" "node_group" {
-  cluster_name    = aws_eks_cluster.cluster.name
+  cluster_name    = local.cluster.name
   node_group_name = "Default"
   node_role_arn   = aws_iam_role.eks_node_role.arn
 
@@ -161,11 +207,11 @@ resource "aws_eks_node_group" "node_group" {
     version = aws_launch_template.EKSLaunchTemplate.latest_version
   }
   force_update_version = true
-  subnet_ids = var.private_subnet_ids
+  subnet_ids           = var.private_subnet_ids
 }
 
 resource "aws_iam_openid_connect_provider" "default" {
-  url = aws_eks_cluster.cluster.identity.0.oidc.0.issuer
+  url = local.cluster.identity.0.oidc.0.issuer
 
   client_id_list = [
     "sts.amazonaws.com",
@@ -176,11 +222,17 @@ resource "aws_iam_openid_connect_provider" "default" {
 }
 
 locals {
-  oidc_issuer = element(split("https://", aws_eks_cluster.cluster.identity.0.oidc.0.issuer), 1)
+  oidc_issuer = element(split("https://", local.cluster.identity.0.oidc.0.issuer), 1)
+}
+
+moved {
+  from = aws_iam_role.eks_csi_driver_role
+  to   = aws_iam_role.eks_csi_driver_role[0]
 }
 
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_csi_driver_role" {
+  count       = var.create_cluster ? 1 : 0
   name_prefix = "3decision-csi-driver"
 
   managed_policy_arns = [
@@ -238,8 +290,15 @@ EOF
   }
 }
 
+moved {
+  from = aws_eks_addon.csi_driver
+  to   = aws_eks_addon.csi_driver[0]
+}
+
 resource "aws_eks_addon" "csi_driver" {
-  cluster_name             = aws_eks_cluster.cluster.name
+  count = var.create_cluster ? 1 : 0
+
+  cluster_name             = local.cluster.name
   addon_name               = "aws-ebs-csi-driver"
   service_account_role_arn = aws_iam_role.eks_csi_driver_role.arn
 

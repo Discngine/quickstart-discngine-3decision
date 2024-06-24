@@ -427,7 +427,13 @@ delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
 YAML
 }
 
+moved {
+  from = helm_release.cert_manager_release
+  to   = helm_release.cert_manager_release[0]
+}
 resource "helm_release" "cert_manager_release" {
+  count = var.deploy_cert_manager ? 1 : 0
+
   name             = var.cert_manager_chart.name
   chart            = var.cert_manager_chart.chart
   repository       = var.cert_manager_chart.repository
@@ -953,7 +959,12 @@ locals {
   oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)
 }
 
+moved {
+  from = aws_iam_role.load_balancer_controller
+  to   = aws_iam_role.load_balancer_controller[0]
+}
 resource "aws_iam_role" "load_balancer_controller" {
+  count       = var.deploy_alb_chart ? 1 : 0
   name_prefix = "3decision-load-balancer-controller"
 
   assume_role_policy = <<EOF
@@ -1233,7 +1244,14 @@ EOF
   }
 }
 
+moved {
+  from = helm_release.aws_load_balancer_controller
+  to   = helm_release.aws_load_balancer_controller[0]
+}
+
 resource "helm_release" "aws_load_balancer_controller" {
+  count = var.deploy_alb_chart ? 1 : 0
+
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"

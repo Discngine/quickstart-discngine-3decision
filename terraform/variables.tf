@@ -45,7 +45,7 @@ variable "private_subnet_ids" {
 # EKS
 #########
 
-variable "deploy_cluster" {
+variable "create_cluster" {
   default     = true
   description = "Whether to deploy the cluster and all kubernetes resources associated to it."
 }
@@ -54,22 +54,14 @@ variable "deploy_cluster" {
 # EKS NOT DEPLOYED
 ##############
 
-variable "eks_openid_provider_arn" {
+variable "eks_cluster_name" {
   default = ""
-  description = "Arn of the existing eks openid provider"
+  description = "Name of the existing cluster if not created"
 }
 
-variable "eks_oidc_issuer" {
+variable "eks_node_user_data" {
   default = ""
-  description = "Issuer url of the existing eks openid provider"
-}
-
-variable "eks_node_group_role_arn" {
-  default = ""
-}
-
-variable "eks_node_security_group_id" {
-  default = ""
+  description = "User data to pass to nodes instead of default"
 }
 
 #############
@@ -232,6 +224,16 @@ variable "hosted_zone_id" {
 ###############
 # KUBERNETES
 ###############
+
+variable "deploy_cert_manager" {
+  default = true
+  description = "Whether to deploy the cert manager"
+}
+
+variable "deploy_alb_chart" {
+  default = true
+  description = "Whether to deploy the alb chart"
+}
 
 variable "tdecision_chart" {
   description = "A map with information about the cert manager helm chart"

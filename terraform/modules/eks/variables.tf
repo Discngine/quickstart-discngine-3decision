@@ -11,3 +11,6 @@ variable "instance_type" {}
 variable "boot_volume_size" {}
 variable "private_subnet_ids" {}
 variable "vpc_cidr" {}
+variable "create_cluster" {}
+variable "user_data" {}
+variable "cluster_name" {}
