@@ -300,7 +300,7 @@ resource "aws_eks_addon" "csi_driver" {
 
   cluster_name             = local.cluster.name
   addon_name               = "aws-ebs-csi-driver"
-  service_account_role_arn = aws_iam_role.eks_csi_driver_role.arn
+  service_account_role_arn = aws_iam_role.eks_csi_driver_role[0].arn
 
   depends_on = [aws_eks_node_group.node_group]
 }
