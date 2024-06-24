@@ -44,7 +44,7 @@ data "aws_eks_cluster" "cluster" {
 }
 
 locals {
-  cluster = var.create_cluster ? aws_eks_cluster.cluster : data.aws_eks_cluster.cluster
+  cluster = var.create_cluster ? aws_eks_cluster.cluster[0] : data.aws_eks_cluster.cluster[0]
 }
 
 moved {
