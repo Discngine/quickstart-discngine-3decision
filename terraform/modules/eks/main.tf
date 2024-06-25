@@ -210,8 +210,14 @@ resource "aws_eks_node_group" "node_group" {
   subnet_ids           = var.private_subnet_ids
 }
 
+moved {
+  from = aws_iam_openid_connect_provider.default
+  to   = aws_iam_openid_connect_provider.default[0]
+}
+
 resource "aws_iam_openid_connect_provider" "default" {
-  url = local.cluster.identity.0.oidc.0.issuer
+  count = var.create_openid_provider ? 1 : 0
+  url   = local.cluster.identity.0.oidc.0.issuer
 
   client_id_list = [
     "sts.amazonaws.com",
@@ -219,6 +225,10 @@ resource "aws_iam_openid_connect_provider" "default" {
   ]
 
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
+}
+
+locals {
+  openid_provider_arn = var.create_openid_provider ? aws_iam_openid_connect_provider.default.arn : var.openid_provider_arn
 }
 
 locals {
@@ -245,7 +255,7 @@ resource "aws_iam_role" "eks_csi_driver_role" {
     {
       "Effect": "Allow",
       "Principal": {
-        "Federated": "${aws_iam_openid_connect_provider.default.arn}"
+        "Federated": "${aws_iam_openid_connect_provider.default[0].arn}"
       },
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {

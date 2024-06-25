@@ -117,7 +117,7 @@ resource "aws_kms_key" "kms" {
 }
 
 locals {
-  kms_key_id = var.create_kms_key ? aws_kms_key.kms[0].id : null
+  kms_key_id = var.create_kms_key ? aws_kms_key.kms[0].arn : null
 }
 
 ############
@@ -144,6 +144,8 @@ module "eks" {
   create_cluster     = var.create_cluster
   cluster_name       = var.eks_cluster_name
   user_data          = var.eks_node_user_data
+  create_openid_provider = var.create_openid_provider
+  openid_provider_arn = var.openid_provider_arn
   # Output
   vpc_cidr           = var.vpc_id != "" ? data.aws_vpc.vpc[0].cidr_block : "10.0.0.0/16"
   vpc_id             = var.create_network ? module.network[0].vpc_id : var.vpc_id

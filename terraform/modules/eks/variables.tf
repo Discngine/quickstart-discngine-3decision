@@ -14,3 +14,5 @@ variable "vpc_cidr" {}
 variable "create_cluster" {}
 variable "user_data" {}
 variable "cluster_name" {}
+variable "create_openid_provider" {}
+variable "openid_provider_arn" {}

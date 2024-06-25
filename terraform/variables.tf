@@ -112,6 +112,16 @@ variable "additional_eks_users_arn" {
   default     = []
 }
 
+variable "create_openid_provider" {
+  default     = true
+  description = "Whether to create an iam openid provider connected to EKS. Set openid_provider_arn if set to false"
+}
+
+variable "openid_provider_arn" {
+  default     = ""
+  description = "Arn of an existing openid provider used if create_openid_provider is set to false."
+}
+
 ###############
 # DATABASE
 ###############

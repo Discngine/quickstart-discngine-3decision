@@ -25,7 +25,7 @@ output "oidc_issuer" {
 }
 
 output "openid_provider_arn" {
-  value = aws_iam_openid_connect_provider.default.arn
+  value = local.openid_provider_arn
 }
 
 output "service_cidr" {
