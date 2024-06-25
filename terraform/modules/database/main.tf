@@ -46,6 +46,7 @@ resource "aws_db_instance" "db_instance" {
   backup_retention_period   = var.backup_retention_period
   lifecycle {
     ignore_changes = [
+      kms_key_id,
       snapshot_identifier,
       storage_encrypted,
       allocated_storage,
