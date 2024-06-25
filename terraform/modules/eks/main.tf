@@ -228,7 +228,7 @@ resource "aws_iam_openid_connect_provider" "default" {
 }
 
 locals {
-  openid_provider_arn = var.create_openid_provider ? aws_iam_openid_connect_provider.default.arn : var.openid_provider_arn
+  openid_provider_arn = var.create_openid_provider ? aws_iam_openid_connect_provider.default[0].arn : var.openid_provider_arn
 }
 
 locals {
