@@ -13,6 +13,7 @@ resource "aws_ebs_volume" "public_data" {
   final_snapshot    = false
   type              = "gp2"
   encrypted         = true
+  kms_key_id        = var.kms_key_id
   tags = {
     Name = "3decision-public-data"
   }
@@ -31,6 +32,7 @@ resource "aws_ebs_volume" "private_data" {
   final_snapshot    = var.private_final_snapshot
   size              = 200
   encrypted         = true
+  kms_key_id        = var.kms_key_id
   tags = {
     Name = "3decision-private-data"
   }

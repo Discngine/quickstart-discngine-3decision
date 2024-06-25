@@ -14,10 +14,20 @@ variable "region" {
   }
 }
 
+variable "default_tags" {
+  default     = {}
+  description = "Default tags to add to all resources"
+}
+
 variable "force_destroy" {
   type        = bool
   default     = true
   description = "Setting this to false will not allow deletion of the database / non empty s3 buckets"
+}
+
+variable "create_kms_key" {
+  default     = false
+  description = "Whether to create a kms key for the database and volumes"
 }
 
 ###########
@@ -47,26 +57,18 @@ variable "private_subnet_ids" {
 
 variable "create_cluster" {
   default     = true
-  description = "Whether to deploy the cluster and all kubernetes resources associated to it."
+  description = "Whether to create the eks cluster."
 }
 
-##############
-# EKS NOT DEPLOYED
-##############
-
 variable "eks_cluster_name" {
-  default = ""
+  default     = ""
   description = "Name of the existing cluster if not created"
 }
 
 variable "eks_node_user_data" {
-  default = ""
+  default     = ""
   description = "User data to pass to nodes instead of default"
 }
-
-#############
-# EKS IS DEPLOYED
-#############
 
 variable "keypair_name" {
   default     = ""
@@ -226,12 +228,12 @@ variable "hosted_zone_id" {
 ###############
 
 variable "deploy_cert_manager" {
-  default = true
+  default     = true
   description = "Whether to deploy the cert manager"
 }
 
 variable "deploy_alb_chart" {
-  default = true
+  default     = true
   description = "Whether to deploy the alb chart"
 }
 

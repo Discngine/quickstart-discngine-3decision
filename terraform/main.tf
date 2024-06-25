@@ -36,6 +36,9 @@ terraform {
 
 provider "aws" {
   region = var.region
+  default_tags {
+    tags = var.default_tags
+  }
 }
 
 provider "kubernetes" {
@@ -97,6 +100,26 @@ locals {
   availability_zone_names = data.aws_availability_zones.available.names
 }
 
+###################
+# GLOBAL RESOURCES
+###################
+
+resource "aws_kms_key" "kms" {
+  count = var.create_kms_key ? 1 : 0
+
+  description              = "3decision KMS CMK"
+  enable_key_rotation      = false
+  is_enabled               = true
+  key_usage                = "ENCRYPT_DECRYPT"
+  customer_master_key_spec = "SYMMETRIC_DEFAULT"
+  multi_region             = false
+  deletion_window_in_days  = 30
+}
+
+locals {
+  kms_key_id = var.create_kms_key ? aws_kms_key.kms[0].id : null
+}
+
 ############
 # MODULES
 ############
@@ -142,6 +165,7 @@ module "database" {
   delete_automated_backups = var.db_delete_automated_backups
   license_type             = var.license_type
   skip_final_snapshot      = var.skip_db_final_snapshot
+  kms_key_id               = local.kms_key_id
   # Output
   node_security_group_id = module.eks.node_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
@@ -180,6 +204,7 @@ module "volumes" {
   private_volume_snapshot = var.private_volume_snapshot
   private_final_snapshot  = var.private_final_snapshot
   public_final_snapshot   = var.public_final_snapshot
+  kms_key_id              = local.kms_key_id
 }
 
 locals {
