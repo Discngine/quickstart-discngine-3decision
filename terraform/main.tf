@@ -149,7 +149,7 @@ module "eks" {
   # Output
   vpc_cidr           = var.vpc_id != "" ? data.aws_vpc.vpc[0].cidr_block : "10.0.0.0/16"
   vpc_id             = var.create_network ? module.network[0].vpc_id : var.vpc_id
-  private_subnet_ids = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
+  private_subnet_ids = var.create_network ? module.network[0].private_subnet_ids : (length(var.eks_private_subnet_ids) > 0 ? var.eks_private_subnet_ids : var.private_subnet_ids)
 
   depends_on = [module.network]
 }

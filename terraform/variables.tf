@@ -51,6 +51,12 @@ variable "private_subnet_ids" {
   description = "List of ids of your private subnets"
 }
 
+variable "eks_private_subnet_ids" {
+  type        = set(string)
+  default     = []
+  description = "List of ids of your private eks subnets"
+}
+
 #########
 # EKS
 #########
