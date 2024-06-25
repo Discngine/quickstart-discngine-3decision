@@ -133,19 +133,20 @@ module "network" {
 module "eks" {
   source = "./modules/eks"
   # Input
-  region             = var.region
-  account_id         = local.account_id
-  keypair_name       = var.keypair_name
-  k8s_public_access  = var.k8s_public_access
-  kubernetes_version = var.kubernetes_version
-  custom_ami         = var.custom_ami
-  instance_type      = var.eks_instance_type
-  boot_volume_size   = var.boot_volume_size
-  create_cluster     = var.create_cluster
-  cluster_name       = var.eks_cluster_name
-  user_data          = var.eks_node_user_data
+  region                 = var.region
+  account_id             = local.account_id
+  keypair_name           = var.keypair_name
+  k8s_public_access      = var.k8s_public_access
+  kubernetes_version     = var.kubernetes_version
+  custom_ami             = var.custom_ami
+  instance_type          = var.eks_instance_type
+  boot_volume_size       = var.boot_volume_size
+  create_cluster         = var.create_cluster
+  create_node_group      = var.create_node_group
+  cluster_name           = var.eks_cluster_name
+  user_data              = var.eks_node_user_data
   create_openid_provider = var.create_openid_provider
-  openid_provider_arn = var.openid_provider_arn
+  openid_provider_arn    = var.openid_provider_arn
   # Output
   vpc_cidr           = var.vpc_id != "" ? data.aws_vpc.vpc[0].cidr_block : "10.0.0.0/16"
   vpc_id             = var.create_network ? module.network[0].vpc_id : var.vpc_id
@@ -194,7 +195,7 @@ module "secrets" {
   db_security_group_id = module.database.db_security_group_id
   db_name              = module.database.db_name
   db_endpoint          = module.database.db_endpoint
-  node_group_role_arn  = module.eks.node_group_role_arn
+  node_group_role_arn  = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
 }
 
 module "volumes" {
@@ -314,7 +315,7 @@ module "kubernetes" {
   db_endpoint             = module.database.db_endpoint
   cluster_name            = module.eks.cluster_name
   eks_oidc_issuer         = module.eks.oidc_issuer
-  node_group_role_arn     = module.eks.node_group_role_arn
+  node_group_role_arn     = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
 
   depends_on = [module.eks]
 }

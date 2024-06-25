@@ -66,6 +66,16 @@ variable "create_cluster" {
   description = "Whether to create the eks cluster."
 }
 
+variable "create_node_group" {
+  default     = false
+  description = "Whether to create a node group."
+}
+
+variable "node_group_arn" {
+  default     = ""
+  description = "Arn of the node group used for security groups if the node group isn't created."
+}
+
 variable "eks_cluster_name" {
   default     = ""
   description = "Name of the existing cluster if not created"

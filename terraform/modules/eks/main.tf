@@ -6,7 +6,8 @@ moved {
 }
 
 resource "aws_kms_key" "cluster_secrets_key" {
-  count       = var.create_cluster ? 1 : 0
+  count = var.create_cluster ? 1 : 0
+
   description = "EKS cluster secrets key"
 }
 
@@ -17,7 +18,8 @@ moved {
 
 # Create EKS cluster
 resource "aws_eks_cluster" "cluster" {
-  count    = var.create_cluster ? 1 : 0
+  count = var.create_cluster ? 1 : 0
+
   name     = "EKS-tdecision"
   role_arn = aws_iam_role.eks_cluster_role[0].arn
   version  = var.kubernetes_version
@@ -95,7 +97,8 @@ moved {
 }
 
 resource "aws_security_group_rule" "eks_cluster_ingress" {
-  count             = var.create_cluster ? 1 : 0
+  count = var.create_cluster ? 1 : 0
+
   type              = "ingress"
   security_group_id = aws_security_group.eks_cluster_sg[0].id
   from_port         = 0
@@ -110,7 +113,8 @@ moved {
 }
 
 resource "aws_security_group_rule" "eks_cluster_egress" {
-  count             = var.create_cluster ? 1 : 0
+  count = var.create_cluster ? 1 : 0
+
   type              = "egress"
   security_group_id = aws_security_group.eks_cluster_sg[0].id
   from_port         = 0
@@ -119,8 +123,15 @@ resource "aws_security_group_rule" "eks_cluster_egress" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+moved {
+  from = aws_iam_role.eks_node_role
+  to   = aws_iam_role.eks_node_role[0]
+}
+
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_node_role" {
+  count = var.create_node_group ? 1 : 0
+
   name_prefix = "3decision-eks-nodegroup"
 
   managed_policy_arns = [
@@ -162,7 +173,14 @@ set -o xtrace
   EOF
 }
 
+moved {
+  from = aws_launch_template.EKSLaunchTemplate
+  to   = aws_launch_template.EKSLaunchTemplate[0]
+}
+
 resource "aws_launch_template" "EKSLaunchTemplate" {
+  count = var.create_node_group ? 1 : 0
+
   image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
   instance_type           = var.instance_type
   disable_api_termination = true
@@ -191,11 +209,18 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
   }
 }
 
+moved {
+  from = aws_eks_node_group.node_group
+  to   = aws_eks_node_group.node_group[0]
+}
+
 # Create EKS node group
 resource "aws_eks_node_group" "node_group" {
+  count = var.create_node_group ? 1 : 0
+
   cluster_name    = local.cluster.name
   node_group_name = "Default"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
+  node_role_arn   = aws_iam_role.eks_node_role[0].arn
 
   scaling_config {
     min_size     = 3
@@ -203,8 +228,8 @@ resource "aws_eks_node_group" "node_group" {
     max_size     = 3
   }
   launch_template {
-    id      = aws_launch_template.EKSLaunchTemplate.id
-    version = aws_launch_template.EKSLaunchTemplate.latest_version
+    id      = aws_launch_template.EKSLaunchTemplate[0].id
+    version = aws_launch_template.EKSLaunchTemplate[0].latest_version
   }
   force_update_version = true
   subnet_ids           = var.private_subnet_ids
@@ -217,7 +242,8 @@ moved {
 
 resource "aws_iam_openid_connect_provider" "default" {
   count = var.create_openid_provider ? 1 : 0
-  url   = local.cluster.identity.0.oidc.0.issuer
+
+  url = local.cluster.identity.0.oidc.0.issuer
 
   client_id_list = [
     "sts.amazonaws.com",
@@ -242,7 +268,8 @@ moved {
 
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_csi_driver_role" {
-  count       = var.create_cluster ? 1 : 0
+  count = var.create_cluster ? 1 : 0
+
   name_prefix = "3decision-csi-driver"
 
   managed_policy_arns = [

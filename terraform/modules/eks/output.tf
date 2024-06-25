@@ -33,5 +33,5 @@ output "service_cidr" {
 }
 
 output "node_group_role_arn" {
-  value = aws_eks_node_group.node_group.node_role_arn
+  value = var.create_node_group ? aws_eks_node_group.node_group[0].node_role_arn : ""
 }
