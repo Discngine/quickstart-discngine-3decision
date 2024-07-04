@@ -73,7 +73,12 @@ variable "create_node_group" {
 
 variable "node_group_arn" {
   default     = ""
-  description = "Arn of the node group used for security groups if the node group isn't created."
+  description = "Arn of the node group used for permissions if the node group isn't created."
+}
+
+variable "node_group_security_group_id" {
+  default = ""
+  description = "Id of the node group security group use if the node group isn't created."
 }
 
 variable "eks_cluster_name" {

@@ -172,7 +172,7 @@ module "database" {
   max_allocated_storage    = var.max_allocated_storage
   storage_type             = var.db_storage_type
   # Output
-  node_security_group_id = module.eks.node_security_group_id
+  node_security_group_id = var.create_node_group ? module.eks.node_security_group_id : var.node_group_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
   private_subnet_ids     = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
 }
