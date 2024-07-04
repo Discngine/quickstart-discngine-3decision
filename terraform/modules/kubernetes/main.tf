@@ -421,7 +421,6 @@ resource "helm_release" "sentinel_release" {
   timeout          = 1200
   values           = [local.values_config]
   depends_on = [
-    kubectl_manifest.sentinel_configmap_redis,
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubernetes_config_map_v1.aws_auth,
     terraform_data.delete_sentinel_statefulsets
