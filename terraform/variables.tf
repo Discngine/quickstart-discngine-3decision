@@ -195,9 +195,15 @@ variable "skip_db_final_snapshot" {
 }
 
 variable "max_allocated_storage" {
-  default = 1000
-  type = number
+  default     = 1000
+  type        = number
   description = "Maximum autoscaled size of the database"
+}
+
+variable "db_storage_type" {
+  default     = "gp2"
+  type        = string
+  description = "Type of storage for the database"
 }
 
 #################

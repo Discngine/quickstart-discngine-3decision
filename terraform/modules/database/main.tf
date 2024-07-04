@@ -36,7 +36,7 @@ resource "aws_db_instance" "db_instance" {
   kms_key_id                = var.kms_key_id
   db_subnet_group_name      = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids    = [aws_security_group.db_security_group.id]
-  storage_type              = "gp2"
+  storage_type              = var.storage_type
   snapshot_identifier       = var.snapshot_identifier != "" ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
   publicly_accessible       = false
   delete_automated_backups  = var.delete_automated_backups

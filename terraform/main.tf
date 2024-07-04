@@ -170,6 +170,7 @@ module "database" {
   skip_final_snapshot      = var.skip_db_final_snapshot
   kms_key_id               = local.kms_key_id
   max_allocated_storage    = var.max_allocated_storage
+  storage_type             = var.db_storage_type
   # Output
   node_security_group_id = module.eks.node_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
