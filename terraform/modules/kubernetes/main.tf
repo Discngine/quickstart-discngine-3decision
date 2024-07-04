@@ -258,27 +258,6 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
 
-resource "kubectl_manifest" "sentinel_configmap_redis" {
-  for_each = toset([var.tdecision_chart.namespace, "redis-cluster"])
-
-  yaml_body = <<YAML
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: sentinel-backup-env-cm
-  namespace: ${each.key}
-data:
-  BUCKET_NAME: ${var.redis_bucket_name}
-  PROVIDER: aws
-YAML
-  depends_on = [
-    kubernetes_namespace.redis_namespace,
-    kubernetes_namespace.tdecision_namespace,
-    kubernetes_config_map_v1.aws_auth
-  ]
-}
-
 resource "kubernetes_job_v1" "af_bucket_files_push" {
 
   metadata {
@@ -372,11 +351,6 @@ locals {
   values_config = <<YAML
 global:
   storageClass: gp2-encrypted
-serviceAccount:
-  create: true
-  name: sentinel-redis
-  annotations:
-    eks.amazonaws.com/role-arn: ${var.redis_s3_role_arn}  
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -393,31 +367,11 @@ master:
     ports:
       redis: 6380
 replica:
+  replicaCount: 1
   resources:
     requests:
       cpu: 1000m
       memory: 2Gi
-  extraVolumes:
-  - name: secret-key
-    secret:
-      secretName: ssh-key-secret
-      optional: true
-  initContainers:
-    - name: redis-pull-container
-      envFrom:
-      - configMapRef:
-          name: sentinel-backup-env-cm
-          optional: true
-      image: fra.ocir.io/discngine1/3decision_kube/redis-backup:0.0.1
-      command: ["./entrypoint.sh"]
-      args: ["pull"]
-      imagePullPolicy: Always
-      volumeMounts:
-      - mountPath: /root/.ssh/
-        name: secret-key
-        readOnly: true
-      - mountPath: /data
-        name: redis-data
 global:
   redis:
     password: lapin80
@@ -524,7 +478,6 @@ resource "time_static" "tdecision_version_timestamp" {
   }
 }
 
-resource "time_static" "redis_timestamp" {}
 
 locals {
   # Update this list for any version of the 3decision helm chart needing reprocessing
@@ -534,8 +487,6 @@ locals {
   alphafold_structure_registration_version_list             = ["3.0.1"]
 
   reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
-  redis_reprocessing_timestamp = timeadd(time_static.redis_timestamp.rfc3339, "4h")
-  redis_configmap_timestamp    = timeadd(local.redis_reprocessing_timestamp, "24h")
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
@@ -584,10 +535,6 @@ nest:
       value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
     rcsb_str_reg_repro_timestamp:
       value: ${local.launch_missing_structure_registration_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
-    redis_synchro_timestamp:
-      value: ${local.redis_reprocessing_timestamp}
-    private_structures_reprocessing_event_types:
-      value: rcsbStructureRegistration,sequenceMappingAnalysis,pocketDetectionAnalysis,ligandCavityOverlapAnalysis,pocketFeaturesAnalysis,interactionRegistration
     private_structure_reprocessing_timestamp:
       value: ${local.launch_private_structure_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
     alphafold_structure_registration_timestamp:
@@ -630,10 +577,6 @@ rbac:
       serviceAccountName: s3-access
       annotations:
         eks.amazonaws.com/role-arn: ${var.alphafold_s3_role_arn}
-  cluster:
-    redisBackup:
-      annotations:
-        eks.amazonaws.com/role-arn: ${var.redis_s3_role_arn}
 redis:
   nodeSelector: null
 pocket_features:
@@ -754,111 +697,6 @@ rm clean_choral.yaml
     ignore_changes = all
   }
   depends_on = [kubectl_manifest.ClusterExternalSecret]
-}
-
-# This keeps the CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL value low in a seperate 3decision configmap until a day after redis reprocessing
-# If this is not done the reprocessing will cache for too long and break the app
-# The patch is only done once since patching the configmap restarts most pods, so it has to be rerun if the chart is updated since that will reset the value
-resource "terraform_data" "redis_synchro_configmap_change" {
-  triggers_replace = [local.redis_configmap_timestamp, helm_release.tdecision_chart.metadata.0.revision]
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<EOF
-target_time=$(date -d "${local.redis_configmap_timestamp}" +"%s")
-current_time=$(date +"%s")
-time_diff=$(($${target_time} - $${current_time}))
-if [ $${time_diff} -lt 0 ]; then
-  echo "redis synchro already passed... not launching pod."
-  exit 0
-fi
-
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-export KUBECONFIG=$HOME/.kube/config
-cat > redis_synchro.yaml << YAML
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: synchro-redis
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: synchro-redis
-rules:
-  - apiGroups:
-    - ""
-    resourceNames:
-    - nest-env-configmap
-    resources:
-    - configmaps
-    verbs:
-    - patch
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: synchro-redis
-subjects:
-- kind: ServiceAccount
-  name: synchro-redis
-roleRef:
-  kind: Role
-  name: synchro-redis
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: synchro-redis
-spec:
-  serviceAccountName: synchro-redis
-  restartPolicy: Never
-  containers:
-    - name: synchro-redis
-      image: alpine/curl:8.4.0
-      command: ["/bin/sh", "-c"]
-      args:
-        - |
-          target_time=\$(date -d \$(echo "${local.redis_configmap_timestamp}" | tr -d "TZ") +"%s")
-          current_time=\$(date +"%s")
-          time_diff=\$((\$${target_time} - \$${current_time}))
-          if [ \$${time_diff} -gt 0 ]; then
-              sec=/var/run/secrets/kubernetes.io/serviceaccount
-              curl -sS \
-                -H "Authorization: Bearer \$(cat \$${sec}/token)" \
-                -H "Content-Type: application/strategic-merge-patch+json" \
-                --cacert \$${sec}/ca.crt \
-                --request PATCH \
-                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"600"}}' \
-                https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
-
-              echo "Sleeping for \$${time_diff} seconds until ${local.redis_configmap_timestamp}"
-
-              sleep \$${time_diff}
-
-              sec=/var/run/secrets/kubernetes.io/serviceaccount
-              curl -sS \
-                -H "Authorization: Bearer \$(cat \$${sec}/token)" \
-                -H "Content-Type: application/strategic-merge-patch+json" \
-                --cacert \$${sec}/ca.crt \
-                --request PATCH \
-                --data '{"data":{"CONFORMATION_DEPENDENT_ANALYSIS_EVENT_TTL":"7890000"}}' \
-                https://"\$${KUBERNETES_SERVICE_HOST}"/api/v1/namespaces/${var.tdecision_chart.namespace}/configmaps/nest-env-configmap
-              echo "Woke up at \$(date)"
-          else
-              echo "The target time has already passed."
-          fi
-YAML
-kubectl delete -f redis_synchro.yaml -n ${var.tdecision_chart.namespace}
-kubectl apply -f redis_synchro.yaml -n ${var.tdecision_chart.namespace}
-rm -f redis_synchro.yaml
-    EOF
-  }
-  lifecycle {
-    ignore_changes = all
-  }
-  depends_on = [helm_release.tdecision_chart]
 }
 
 resource "helm_release" "tdecision_chart" {

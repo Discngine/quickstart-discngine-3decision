@@ -84,7 +84,7 @@ resource "aws_iam_role" "role" {
     ]
   })
 
-  description = "Role designed to access the Redis access point inside EKS pods"
+  description = "Role designed to access the access point inside EKS pods"
 }
 
 

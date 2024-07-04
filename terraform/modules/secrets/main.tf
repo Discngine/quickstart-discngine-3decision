@@ -235,7 +235,8 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
   rotation_lambda_arn = aws_lambda_function.secret_rotator_lambda.arn
 
   rotation_rules {
-    automatically_after_days = 30
+    # Run on the first sunday of the month at 2 AM
+    schedule_expression = "cron(0 2 ? * SUN#1 *)"
   }
   depends_on = [aws_secretsmanager_secret_version.db_passwords_version]
 }
