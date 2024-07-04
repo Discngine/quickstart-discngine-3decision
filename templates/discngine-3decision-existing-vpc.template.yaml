@@ -625,6 +625,7 @@ Resources:
                   - iam:DeletePolicyVersion
                   - iam:CreateServiceLinkedRole
                   - iam:UpdateAssumeRolePolicy
+                  - iam:UpdateRoleDescription
                 Resource:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/3decision-*
