@@ -194,6 +194,12 @@ variable "skip_db_final_snapshot" {
   description = "Whether to skip the creation of a db snpashot when deleting it"
 }
 
+variable "max_allocated_storage" {
+  default = 1000
+  type = number
+  description = "Maximum autoscaled size of the database"
+}
+
 #################
 # Load Balancing
 #################

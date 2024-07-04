@@ -14,3 +14,4 @@ variable "delete_automated_backups" {}
 variable "license_type" {}
 variable "skip_final_snapshot" {}
 variable "kms_key_id" {}
+variable "max_allocated_storage" {}
