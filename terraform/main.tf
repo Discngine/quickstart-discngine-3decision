@@ -211,7 +211,6 @@ module "volumes" {
   private_final_snapshot  = var.private_final_snapshot
   public_final_snapshot   = var.public_final_snapshot
   kms_key_id              = local.kms_key_id
-  set_volume_tags         = var.set_volume_tags
 }
 
 locals {
