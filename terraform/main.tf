@@ -180,7 +180,7 @@ module "database" {
 module "security" {
   source = "./modules/security"
   # Output
-  node_security_group_id           = module.eks.node_security_group_id
+  node_security_group_id           = var.create_node_group ? module.eks.node_security_group_id : var.node_group_security_group_id
   db_security_group_id             = module.database.db_security_group_id
   secrets_lambda_security_group_id = module.secrets.secrets_lambda_security_group_id
 }
@@ -210,6 +210,7 @@ module "volumes" {
   private_final_snapshot  = var.private_final_snapshot
   public_final_snapshot   = var.public_final_snapshot
   kms_key_id              = local.kms_key_id
+  set_volume_tags         = var.set_volume_tags
 }
 
 locals {

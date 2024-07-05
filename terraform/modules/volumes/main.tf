@@ -14,11 +14,11 @@ resource "aws_ebs_volume" "public_data" {
   type              = "gp2"
   encrypted         = true
   kms_key_id        = var.kms_key_id
-  tags = {
+  tags = var.set_volume_tags ? {
     Name = "3decision-public-data"
-  }
+  } : null
   lifecycle {
-    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot]
+    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot, tags_all]
   }
   timeouts {
     delete = "180m"
@@ -33,11 +33,11 @@ resource "aws_ebs_volume" "private_data" {
   size              = 200
   encrypted         = true
   kms_key_id        = var.kms_key_id
-  tags = {
+  tags = var.set_volume_tags ? {
     Name = "3decision-private-data"
-  }
+  } : null
   lifecycle {
-    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot]
+    ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot, tags_all]
   }
   timeouts {
     delete = "120m"

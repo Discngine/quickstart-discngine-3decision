@@ -77,7 +77,7 @@ variable "node_group_arn" {
 }
 
 variable "node_group_security_group_id" {
-  default = ""
+  default     = ""
   description = "Id of the node group security group use if the node group isn't created."
 }
 
@@ -426,6 +426,11 @@ variable "public_final_snapshot" {
 variable "private_final_snapshot" {
   default     = true
   description = "Whether to create a snapshot of the public volume when deleting it"
+}
+
+variable "set_volume_tags" {
+  default     = true
+  description = "Set to true not to set the name tag on volumes"
 }
 
 ###############
