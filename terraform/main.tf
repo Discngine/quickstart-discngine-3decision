@@ -205,6 +205,7 @@ module "volumes" {
   # Input
   region                  = var.region
   availability_zone_names = local.availability_zone_names
+  storage_type            = var.volumes_storage_type
   public_volume_snapshot  = var.public_volume_snapshot
   private_volume_snapshot = var.private_volume_snapshot
   private_final_snapshot  = var.private_final_snapshot

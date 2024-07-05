@@ -408,6 +408,12 @@ variable "google_oidc" {
 # Volumes
 ###########
 
+variable "volumes_storage_type" {
+  default     = "gp2"
+  type        = string
+  description = "Type of storage for the database"
+}
+
 variable "public_volume_snapshot" {
   default     = ""
   description = "Snapshot id of the public data volume. If left empty the public snapshot will be used."
@@ -426,11 +432,6 @@ variable "public_final_snapshot" {
 variable "private_final_snapshot" {
   default     = true
   description = "Whether to create a snapshot of the public volume when deleting it"
-}
-
-variable "set_volume_tags" {
-  default     = true
-  description = "Set to true not to set the name tag on volumes"
 }
 
 ###############
