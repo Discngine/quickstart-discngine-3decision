@@ -140,6 +140,8 @@ metadata:
   labels:
     role: help
     app: sqlcl
+  annotations:
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
@@ -486,7 +488,7 @@ locals {
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
   launch_missing_structure_registration_reprocessing  = contains(local.missing_structure_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_alphafold_structure_registration             = contains(local.alphafold_structure_registration_version_list, var.tdecision_chart.version)
-  launch_redis_to_oracle_transfer                      = contains(local.redis_to_oracle_transfer_version_list, var.tdecision_chart.version)
+  launch_redis_to_oracle_transfer                     = contains(local.redis_to_oracle_transfer_version_list, var.tdecision_chart.version)
 }
 
 locals {

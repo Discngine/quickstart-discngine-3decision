@@ -871,6 +871,8 @@ Resources:
             terraform init -backend-config=backend.conf -reconfigure -upgrade
 
             sudo yum install jq -y
+
+            terraform state rm module.storage[\"redis\"].aws_s3_bucket.bucket
             terraform state pull > terraform.tfstate
             final_snapshot_value=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.final_snapshot' terraform.tfstate)
 
