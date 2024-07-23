@@ -872,6 +872,8 @@ Resources:
 
             sudo yum install jq -y
 
+            terraform state replace-provider --auto-approve registry.terraform.io/gavinbunney/kubectl registry.terraform.io/alekc/kubectl
+
             terraform state rm module.storage[\"redis\"].aws_s3_bucket.bucket
             terraform state pull > terraform.tfstate
             final_snapshot_value=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.final_snapshot' terraform.tfstate)
