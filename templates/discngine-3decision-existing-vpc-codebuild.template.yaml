@@ -1,0 +1,866 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This sets up the Discngine 3decision infrastructure. (qs-1snm79fed)."
+Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Launch into an existing VPC"
+  LintSpellExclude:
+    - Discngine
+    - 3decision
+    - namespace
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Infrastructure deployment configuration
+        Parameters:
+          - RelaunchTerraform
+          - StackOperation
+          - PreventDestroy
+          - CreateFinalSnapshot
+          - ExecutionAmiId
+          - ExecutionRoleName
+          - BucketName
+          - GitBranch
+      - Label:
+          default: 3decision app configuration
+        Parameters:
+          - TdecisionVersion
+          - TdecisionNamespace
+      - Label:
+          default: Network configuration
+        Parameters:
+          - VPCID
+          - PrivateSubnet1ID
+          - PrivateSubnet2ID
+          - PrivateSubnet3ID
+      - Label:
+          default: Amazon EC2 configuration
+        Parameters:
+          - KeyPairName
+      - Label:
+          default: Amazon EKS configuration
+        Parameters:
+          - KubernetesVersion
+          - NodeVolumeSize
+          - NodeInstanceType
+          - AdditionalEKSAdminUserArn
+          - AdditionalEKSAdminRoleArn
+          - CustomAmiId
+      - Label:
+          default: Discngine 3decision network configuration
+        Parameters:
+          - DomainName
+          - MainSubdomain
+          - ApiSubdomain
+          - RegistrationSubdomain
+          - AdditionalMainFQDNs
+          - HostedZoneId
+          - CertificateArn
+          - LoadBalancerType
+          - InboundCidrs
+      - Label:
+          default : Discngine 3decision database configuration
+        Parameters:
+          - DBSnapshotIdentifier
+          - DBInstanceClass
+          - DBMultiZone
+          - DBBackupRetentionPeriod
+          - DBDeleteAutoBackups
+          - AdminInitialPassword
+      - Label:
+          default: Discngine 3decision azure authentication configuration
+        Parameters:
+          - AzureClientId
+          - AzureTenant
+          - AzureSecret
+      - Label:
+          default: Discngine 3decision okta authentication configuration
+        Parameters:
+          - OktaClientId
+          - OktaSecret
+          - OktaDomain
+          - OktaServerId
+      - Label:
+          default: Discngine 3decision google authentication configuration
+        Parameters:
+          - GoogleClientId
+          - GoogleSecret
+      - Label:
+          default: Disaster Recovery specific parameters
+        Parameters:
+          - PublicVolumeSnapshotId
+          - PrivateVolumeSnapshotId
+    ParameterLabels:
+      RelaunchTerraform:
+        default: Relaunch terraform operation
+      StackOperation:
+        default: Terraform stack operation
+      PreventDestroy:
+        default: Prevent destruction of resources
+      CreateFinalSnapshot:
+        default: Create final snapshot when deleting the database and volumes
+      ExecutionAmiId:
+        default: AMI id for infrastructure updates
+      ExecutionRoleName:
+        default: Name of role creating the infrastructure
+      BucketName:
+        default: Name of the S3 bucket containing the terraform state
+      GitBranch:
+        default: The branch to use to deploy the architecture
+      TdecisionVersion:
+        default: The version of the 3decision helm chart
+      TdecisionNamespace:
+        default: The namespace to deploy the 3decision helm chart in
+      KeyPairName:
+        default: SSH key name
+      PrivateSubnet1ID:
+        default: Private subnet 1 ID
+      PrivateSubnet2ID:
+        default: Private subnet 2 ID
+      PrivateSubnet3ID:
+        default: Private subnet 3 ID
+      NodeInstanceType:
+        default: Node instance type
+      AdditionalEKSAdminUserArn:
+        default: Additional EKS admin ARN (IAM user)
+      AdditionalEKSAdminRoleArn:
+        default: Additional EKS admin ARN (IAM role)
+      KubernetesVersion:
+        default: Kubernetes version
+      CustomAmiId:
+        default: Custom AMI Id
+      NodeVolumeSize:
+        default: Size of worker nodes volumes
+      DBSnapshotIdentifier:
+        default: Identifier of the database snapshot
+      DBInstanceClass:
+        default: Instance type of the database
+      DBMultiZone:
+        default: Whether the DB is highly available
+      DBBackupRetentionPeriod:
+        default: Time to keep DB backups
+      DBDeleteAutoBackups:
+        default: Whether to delete automatic backups when deleting the database
+      AdminInitialPassword:
+        default: Password of the admin user
+      HostedZoneId:
+        default: Route 53 hosted zone Id
+      DomainName:
+        default: Domain name used for load balancing
+      MainSubdomain:
+        default: Subdomain name for app landing page
+      ApiSubdomain:
+        default: Subdomain of the api
+      RegistrationSubdomain:
+        default: Subdomain used for registration
+      AdditionalMainFQDNs:
+        default: Additional FQDNs that will redirect to the landing page
+      CertificateArn:
+        default: Arns of certificates to connect to the loadbalancer
+      LoadBalancerType:
+        default: Type of loadbalancer created
+      InboundCidrs:
+        default: Inbound access to loadbalancer
+      AzureClientId:
+        default: Azure app client id
+      AzureSecret:
+        default: Azure app secret
+      AzureTenant:
+        default: Azure tenant
+      OktaClientId:
+        default: Okta app client id
+      OktaSecret:
+        default: Okta app secret
+      OktaDomain:
+        default: Okta domain
+      OktaServerId:
+        default: Okta server id
+      GoogleClientId:
+        default: Google app client id
+      GoogleSecret:
+        default: Google app secret
+      PublicVolumeSnapshotId:
+        default: Snapshot id of the public volume to recover
+      PrivateVolumeSnapshotId:
+        default: Snapshot id of the private volume to recover
+Parameters:
+  RelaunchTerraform:
+    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without changing any other app specific parameters."
+    Type: String
+    Default: ""
+  StackOperation:
+    Description: "Whether to apply (create/update) or destroy the ressources"
+    Type: String
+    Default: "apply"
+    AllowedValues:
+      - apply
+      - destroy
+  PreventDestroy:
+    Description: >
+      Whether to prevent the deletion of the database and data bucket.
+      This has to be set to false and applied before deletion if you wish to destroy all ressources.
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  CreateFinalSnapshot:
+    Description: >
+      Whether to create a snapshot of the database and data sensitive volumes when deleting the stack.
+      Note this does slow down deletion considerably and will incur cost after deletion if not cleaned up afterwards.
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  ExecutionAmiId:
+    Description: "Optional: AMI id to use for the ec2 doing the infrastructure updates. If left empty, the latest amazon2-linux ami will be used"
+    Type: String
+    Default: ""
+  ExecutionRoleName:
+    Type: String
+    Description: "Optional: Name of a role that will run the infrastructure creation. If left empty, the role will be created with all needed permissions"
+    Default: ""
+  BucketName:
+    Type: String
+    Description: "Optional: Name of an S3 bucket in which to store the terraform state. If left empty, a bucket will be created by the stack."
+    Default: ""
+  GitBranch:
+    Type: String
+    Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
+    Default: "main"
+  TdecisionVersion:
+    Type: String
+    Description: "Optional: If set, will deploy that version of the 3decision helm chart. If left empty the latest version will be deployed."
+    Default: ""
+  TdecisionNamespace:
+    Type: String
+    Description: "Required: The kubernetes namespace into which to deploy the 3decision helm chart"
+    Default: "tdecision"
+  KeyPairName:
+    Description: A public/private key pair, which allows you to connect securely to your instance after it launches.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing Keyname
+  NodeInstanceType:
+    Type: String
+    Default: t3.2xlarge
+    Description: EKS node instance type. We recommend using t3.2xlarge.
+    AllowedValues:
+      - t3.2xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - m5.24xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.18xlarge
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+      - x1.16xlarge
+      - x1.32xlarge
+      - p3.2xlarge
+      - p3.8xlarge
+      - p3.16xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.12xlarge
+      - r5.24xlarge
+      - r5d.large
+      - r5d.xlarge
+      - r5d.2xlarge
+      - r5d.4xlarge
+      - r5d.12xlarge
+      - r5d.24xlarge
+      - z1d.large
+      - z1d.xlarge
+      - z1d.2xlarge
+      - z1d.3xlarge
+      - z1d.6xlarge
+      - z1d.12xlarge
+  VPCID:
+    Description: "Required: The ID of the VPC."
+    Type: String
+  PrivateSubnet1ID:
+    Description: "Required: The ID of the private subnet located in Availability Zone 1."
+    Type: String
+  PrivateSubnet2ID:
+    Description: "Required: The ID of the private subnet located in Availability Zone 2."
+    Type: String
+  PrivateSubnet3ID:
+    Description: "Optional: The ID of the private subnet 3 located in Availability Zone 3."
+    Type: String
+  KubernetesVersion:
+  # https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-release-calendar
+    Type: String
+    Description: Kubernetes control plane version.
+    AllowedValues: ['1.25', '1.26', '1.27', '1.28', '1.29']
+    Default: '1.28'
+  NodeVolumeSize:
+    Type: String
+    Default: 50
+    Description: "Required: Size of EBS volumes attached to worker nodes.
+                  Increase this size if your pods are getting evicted with a disk pressure annotation."
+  CustomAmiId:
+    Type: String
+    Default: ""
+    Description: "Optional: If an AMI ID is specified, it is used instead of the default EKS images for cluster nodes."
+  DBSnapshotIdentifier:
+    Default: ""
+    Description: "Optionnal: the snapshot arn used for the database.
+                  If left empty, the default snapshot will be used. 
+                  But if you wish to have an encrypted database, you will have to copy the public snapshot locally and select encryption and use that arn"
+    Type: String
+  DBInstanceClass:
+    AllowedValues:
+      - db.t3.medium
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
+      - db.m5.large
+      - db.m5.xlarge
+      - db.m5.2xlarge
+      - db.m5.4xlarge
+    Default: db.t3.xlarge
+    Description: Amazon RDS instance type for the Oracle Database instance.
+                 We recommend t3.xlarge for production use as a lower shape will be rather slow.
+    Type: String
+  DBMultiZone:
+    Description: High Availability (Multi-AZ) for Oracle RDS.
+        More informtion is available here - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html
+    Type: String
+    AllowedValues: [ 'true', 'false' ]
+    Default: 'false'
+  DBBackupRetentionPeriod:
+    Default: 7
+    Description: "Required: The days to retain backups for. Must be between 0 and 35. If set to 0, automatic backups are disabled."
+    Type: Number
+    MinValue: 0
+    MaxValue: 35
+  DBDeleteAutoBackups:
+    Description: "Required: Whether to delete all created automated backups when deleting the database."
+    Type: String
+    AllowedValues: [ 'true', 'false' ]
+    Default: 'true'
+  AdminInitialPassword:
+    Description: "Optional: Password of the database admin user, change this if creating from a backup other than the official one. Note: this changes the value of the secret but not of the database schema, only change this if you know the password."
+    Type: String
+    Default: ""
+  AdditionalEKSAdminUserArn:
+    Default: ""
+    Description: >
+      Optional: IAM user Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
+      Write this as: "arn", "arn".
+    Type: String
+  AdditionalEKSAdminRoleArn:
+    Default: ""
+    Description: >
+      Optional: IAM role Amazon Resource Name (ARN) to be granted administrative access to the EKS cluster.
+      Write this as: "arn", "arn".
+      This value can't include a path. Eg if the arn is arn:aws:iam::111122223333:role/my-team/developers/role-name write arn:aws:iam::111122223333:role/role-name instead."
+    Type: String
+  HostedZoneId:
+    Default: ""
+    Description: "Optional: Creates dns records for the given route 53 hosted zone if given."
+    Type: String
+  DomainName:
+    Description: "Required: Root domain name used for load balancer rules
+                  This is only the root domain name not the fqdn, eg: example.com"
+    Type: String
+  MainSubdomain:
+    Default: "3decision"
+    Description: "Required: Name used for the main app subdomain"
+    Type: String
+  ApiSubdomain:
+    Default: "3decision-api"
+    Description: "Required: Name used for the api subdomain"
+    Type: String
+  RegistrationSubdomain:
+    Default: "3decision-reg"
+    Description: "Required: Name used for the registration subdomain"
+    Type: String
+  AdditionalMainFQDNs:
+    Default: ""
+    Description: >
+      Optional: Additional domains that will redirect to the landing page. This takes a list of fqdn without the trailing dot (e.g 3decision.example.com)
+      Write this as: "fqdn", "fqdn".
+    Type: String
+  CertificateArn:
+    Default: ""
+    Description: >
+     Optional: List of ARNs of certificates of the associated domain you want added to the load balancer. You should add several when redirecting from another domain with the additional FQDN parameter
+     Write this as: arn,arn
+    Type: String
+  LoadBalancerType:
+    AllowedValues:
+      - internet-facing
+      - internal
+    Default: "internal"
+    Description: "Type of loadbalancer created.
+                  This can either be equal to internet-facing for public loadbalancer or internal for private loadbalancers"
+    Type: String
+  InboundCidrs:
+    Default: ""
+    Description: >
+      Optional: List of cidr blocks to configure for ingress access to the loadbalancer. If left empty all incoming traffic will be accepted.
+      Write this as: cidr,cidr.
+    Type: String
+  AzureClientId:
+    Type: String
+    Default: ""
+    Description: "Optional: Will enable azure authentication if set.
+                  Client id of azure app"
+  AzureTenant:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if azure client id variable is set.
+                  Tenant id of the azure app"
+  AzureSecret:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if azure client id variable is set.
+                  Secret of the azure app"
+  OktaClientId:
+    Type: String
+    Default: ""
+    Description: "Optional: Will enable okta authentication if set.
+                  Client ID of the okta app"
+  OktaSecret:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if okta client id variable is set.
+                  Secret of the okta app"
+  OktaDomain:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if okta client id variable is set.
+                  Domain of the okta environment"
+  OktaServerId:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if okta client id variable is set.
+                  Server Id of the okta environment"
+  GoogleClientId:
+    Type: String
+    Default: ""
+    Description: "Optional: Will enable google authentication if set.
+                  Client ID of the google app"
+  GoogleSecret:
+    Type: String
+    Default: ""
+    Description: "Conditional: Should be given if google client id variable is set.
+                  Secret of the google app"
+  PublicVolumeSnapshotId:
+    Type: String
+    Default: ""
+    Description: >
+      Optional: Snapshot id of the public volume to recover.
+      This is only used on volume creation.
+  PrivateVolumeSnapshotId:
+    Type: String
+    Default: ""
+    Description: >
+      Optional: Snapshot id of the private volume to recover.
+      This is only used on volume creation.
+
+Rules:
+  DiscngineSupportedRegionRule:
+    Assertions:
+      - Assert:
+          Fn::Contains:
+            - - us-east-1
+              - eu-central-1
+            - !Ref AWS::Region
+        AssertDescription: The Quick Start is supported only in us-east-1 and eu-central-1 AWS Regions. Please contact Discngine to request support for other Regions.
+Conditions:
+  CreateExecutionRole: !Equals [!Ref ExecutionRoleName, ""]
+  CreateBucket: !Equals [!Ref BucketName, ""]
+  UseLatestAMI: !Equals [!Ref ExecutionAmiId, ""]
+  AzureUnused: !Equals [!Ref AzureClientId, ""]
+  OktaUnused: !Equals [!Ref OktaClientId, ""]
+  GoogleUnused: !Equals [!Ref GoogleClientId, ""]
+  LatestTdecisionVersion: !Equals [!Ref TdecisionVersion, ""]
+  CreateFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "true"]
+  PreventDestroy: !Equals [!Ref PreventDestroy, "true"]
+  DefaultAdminPassword: !Equals [!Ref AdminInitialPassword, ""]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Condition: CreateExecutionRole
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            - EIAMPolicyWildcardResource: "eks ListClusters, DescribeAddonVersions, RegisterCluster, CreateCluster only allow wildcard resource."
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub ec2.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2FullAccess
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AWSCloudFormationFullAccess
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/CloudWatchAgentServerPolicy
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonRDSFullAccess
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonS3FullAccess
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/SecretsManagerReadWrite
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonRoute53FullAccess
+      Policies:
+        - PolicyName: EKSFullAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - eks:ListClusters
+                  - eks:DescribeAddonVersions
+                  - eks:RegisterCluster
+                  - eks:CreateCluster
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - eks:DeleteFargateProfile
+                  - eks:UpdateClusterVersion
+                  - eks:DescribeFargateProfile
+                  - eks:ListTagsForResource
+                  - eks:UpdateAddon
+                  - eks:ListAddons
+                  - eks:UpdateClusterConfig
+                  - eks:DescribeAddon
+                  - eks:UpdateNodegroupVersion
+                  - eks:DescribeNodegroup
+                  - eks:AssociateEncryptionConfig
+                  - eks:ListUpdates
+                  - eks:ListIdentityProviderConfigs
+                  - eks:ListNodegroups
+                  - eks:DisassociateIdentityProviderConfig
+                  - eks:UntagResource
+                  - eks:CreateNodegroup
+                  - eks:DeregisterCluster
+                  - eks:DeleteCluster
+                  - eks:CreateFargateProfile
+                  - eks:ListFargateProfiles
+                  - eks:DescribeIdentityProviderConfig
+                  - eks:DeleteAddon
+                  - eks:DeleteNodegroup
+                  - eks:DescribeUpdate
+                  - eks:TagResource
+                  - eks:AccessKubernetesApi
+                  - eks:CreateAddon
+                  - eks:UpdateNodegroupConfig
+                  - eks:DescribeCluster
+                  - eks:AssociateIdentityProviderConfig
+                Resource:
+                  - !Sub arn:${AWS::Partition}:eks:*:${AWS::AccountId}:identityproviderconfig/*/*/*/*
+                  - !Sub arn:${AWS::Partition}:eks:*:${AWS::AccountId}:cluster/*
+                  - !Sub arn:${AWS::Partition}:eks:*:${AWS::AccountId}:nodegroup/*/*/*
+                  - !Sub arn:${AWS::Partition}:eks:*:${AWS::AccountId}:addon/*/*/*
+                  - !Sub arn:${AWS::Partition}:eks:*:${AWS::AccountId}:fargateprofile/*/*/*
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                  - ssm:PutParameter
+                Resource: !Sub arn:${AWS::Partition}:ssm:*:${AWS::AccountId}:parameter/*
+              - Effect: Allow
+                Action:
+                  - kms:CreateGrant
+                  - kms:DescribeKey
+                  - kms:CreateKey
+                  - kms:GetKeyPolicy
+                  - kms:GetKeyRotationStatus
+                  - kms:ListResourceTags
+                  - kms:ScheduleKeyDeletion
+                Resource: '*'
+              - Effect: Allow
+                Action: logs:PutRetentionPolicy
+                Resource: !Sub arn:${AWS::Partition}:logs:*:${AWS::AccountId}:log-group:*
+        - PolicyName: IAMLimitedAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:CreateInstanceProfile
+                  - iam:DeleteInstanceProfile
+                  - iam:GetInstanceProfile
+                  - iam:RemoveRoleFromInstanceProfile
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:AttachRolePolicy
+                  - iam:CreatePolicyVersion
+                  - iam:PutRolePolicy
+                  - iam:ListInstanceProfiles
+                  - iam:AddRoleToInstanceProfile
+                  - iam:ListInstanceProfilesForRole
+                  - iam:PassRole
+                  - iam:DetachRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:GetOpenIDConnectProvider
+                  - iam:CreateOpenIDConnectProvider
+                  - iam:DeleteOpenIDConnectProvider
+                  - iam:TagOpenIDConnectProvider
+                  - iam:ListAttachedRolePolicies
+                  - iam:TagRole
+                  - iam:GetPolicy
+                  - iam:CreatePolicy
+                  - iam:DeletePolicy
+                  - iam:ListPolicyVersions
+                  - iam:ListRolePolicies
+                  - iam:GetPolicyVersion
+                  - iam:DeletePolicyVersion
+                  - iam:CreateServiceLinkedRole
+                  - iam:UpdateAssumeRolePolicy
+                  - iam:UpdateRoleDescription
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/3decision-*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/3decision-*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
+
+              - Effect: Allow
+                Action:
+                  - iam:GetRole
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/*
+        - PolicyName: AccessStateBucket
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:ListBuckets"
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                Resource:
+                  - !If [CreateBucket, !GetAtt StateBucket.Arn, !Sub 'arn:aws:s3:::${BucketName}' ]
+                  - !If [CreateBucket, !Sub '${StateBucket.Arn}/*', !Sub 'arn:aws:s3:::${BucketName}/*' ]
+        - PolicyName: AccessLambdaFunctions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:CreateFunction"
+                  - "lambda:DeleteFunction"
+                  - "lambda:InvokeFunction"
+                  - "lambda:UpdateFunctionCode"
+                  - "lambda:UpdateFunctionConfiguration"
+                  - "lambda:GetFunction"
+                  - "lambda:ListVersionsByFunction"
+                  - "lambda:GetFunctionCodeSigningConfig"
+                  - "lambda:AddPermission"
+                  - "lambda:GetPolicy"
+                  - "lambda:PublishVersion"
+                  - "lambda:ListFunctions"
+                  - "lambda:ListTags"
+                  - "lambda:TagResource"
+                  - "lambda:UntagResource"
+                  - "lambda:RemovePermission"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
+
+  StateBucket:
+    Type: AWS::S3::Bucket
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Condition: CreateBucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+Resources:
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: "3decisionTerraformBuild"
+      ServiceRole: !GetAtt Role.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0 # Choose the appropriate image
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: AWS_DEFAULT_REGION
+            Value: !Ref AWS::Region
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 60
+      Cache:
+        Type: NO_CACHE
+      Description: "Build project for Terraform"
+      BuildSpec: |
+        version: 0.2
+
+        phases:
+          install:
+            commands:
+              - echo Installing dependencies...
+              - yum install -y unzip git jq
+              - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              - unzip awscliv2.zip
+              - sudo ./aws/install --bin-dir /usr/bin --update
+              - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              - chmod +x kubectl
+              - mv kubectl /usr/local/bin
+              - wget https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
+              - unzip terraform_1.4.6_linux_amd64.zip
+              - sudo mv terraform /usr/local/bin
+              - git clone https://github.com/Discngine/quickstart-discngine-3decision.git /opt/dng/quickstart-discngine-3decision
+          pre_build:
+            commands:
+              - echo Setting up Terraform backend configuration...
+              - |
+                cat > backend.conf << EOF
+                region = "${AWS_REGION}"
+                bucket = "${Bucket}"
+                EOF
+              - echo Setting up Terraform variables...
+              - |
+                cat > vars.tfvars << EOF
+                region = "${AWS_REGION}"
+                keypair_name = "${KeyPairName}"
+                force_destroy = ${ForceDestroy}
+                public_final_snapshot = ${CreateFinalSnapshot}
+                private_final_snapshot = ${CreateFinalSnapshot}
+                skip_db_final_snapshot = ${SkipFinalSnapshot}
+                create_network = false
+                vpc_id = "${VPCID}"
+                private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
+                custom_ami = "${CustomAmiId}"
+                db_snapshot_identifier = "${DBSnapshotIdentifier}"
+                db_high_availability = ${DBMultiZone}
+                db_backup_retention_period = ${DBBackupRetentionPeriod}
+                db_delete_automated_backups = ${DBDeleteAutoBackups}
+                load_balancer_type = "${LoadBalancerType}"
+                certificate_arn = "${CertificateArn}"
+                inbound_cidrs = "${InboundCidrs}"
+                domain = "${DomainName}"
+                main_subdomain = "${MainSubdomain}"
+                additional_main_fqdns = [${AdditionalMainFQDNs}]
+                api_subdomain = "${ApiSubdomain}"
+                registration_subdomain = "${RegistrationSubdomain}"
+                hosted_zone_id = "${HostedZoneId}"
+                azure_oidc = {
+                  client_id = "${AzureClient}"
+                  tenant    = "${AzureTenant}"
+                  secret    = "${AzureSecret}"
+                }
+                okta_oidc = {
+                  client_id = "${OktaClient}"
+                  domain    = "${OktaDomain}"
+                  server_id = "${OktaServerId}"
+                  secret    = "${OktaSecret}"
+                }
+                google_oidc = {
+                  client_id = "${GoogleClient}"
+                  secret    = "${GoogleSecret}"
+                }
+                public_volume_snapshot = "${PublicVolumeSnapshotId}"
+                private_volume_snapshot = "${PrivateVolumeSnapshotId}"
+
+                kubernetes_version = "${KubernetesVersion}"
+                db_instance_type = "${DBInstanceClass}"
+                license_type = "license-included"
+                eks_instance_type = "${NodeInstanceType}"
+                boot_volume_size = "${NodeVolumeSize}"
+
+                additional_eks_users_arn = [${AdditionalEKSAdminUserArn}]
+                additional_eks_roles_arn = [${AdditionalEKSAdminRoleArn}]
+
+                tdecision_chart = {
+                  version = ${TdecisionVersion}
+                  namespace = "${TdecisionNamespace}"
+                }
+                initial_db_passwords = {
+                  "ADMIN"                   = "${AdminPassword}"
+                  "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
+                  "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
+                }
+                EOF
+          build:
+            commands:
+              - echo Running Terraform init...
+              - terraform init -backend-config=backend.conf -reconfigure -upgrade
+              - echo Running Terraform apply...
+              - |
+                case "$ACTION" in
+                  plan)
+                    terraform plan -var-file=vars.tfvars
+                    ;;
+                  apply)
+                    terraform apply -var-file=vars.tfvars -auto-approve
+                    ;;
+                  destroy)
+                    terraform destroy -var-file=vars.tfvars -auto-approve
+                    ;;
+                  *)
+                    echo "Unknown action: $ACTION"
+                    exit 1
+                    ;;
+                esac
+        artifacts:
+          files:
+            - '**/*'
+
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties: 
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                Owner: "Discngine"
+                Repo: "quickstart-discngine-3decision"
+                Branch: !Ref GitBranch
+                PollForSourceChanges: "true"
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              RunOrder: 1
+      ArtifactStore:
+        Type: S3
+        Location: !Ref BucketName
+      Name: 3decisionPipeline
+
