@@ -856,6 +856,7 @@ Resources:
                 Owner: "Discngine"
                 Repo: "quickstart-discngine-3decision"
                 Branch: !Ref GitBranch
+                OAuthToken: ""
                 PollForSourceChanges: "true"
               RunOrder: 1
         - Name: Build
