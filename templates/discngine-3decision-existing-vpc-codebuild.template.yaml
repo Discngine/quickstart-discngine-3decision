@@ -695,10 +695,10 @@ Resources:
       Name: "3decisionTerraformBuild"
       ServiceRole: !GetAtt Role.Arn
       Artifacts:
-        Type: CODEPIPELINE
+        Type: NO_ARTIFACTS
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:5.0 # Choose the appropriate image
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
         Type: LINUX_CONTAINER
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
@@ -708,7 +708,6 @@ Resources:
         Type: NO_CACHE
       Description: "Build project for Terraform"
       Source:
-        Type: CODEPIPELINE
         BuildSpec: |
           version: 0.2
           phases:
@@ -819,63 +818,3 @@ Resources:
           artifacts:
             files:
               - '**/*'
-
-  CodePipelineRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: "CodePipelineRole"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: "codepipeline.amazonaws.com"
-            Action: "sts:AssumeRole"
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
-        - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
-        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
-
-  CodePipeline:
-    Type: AWS::CodePipeline::Pipeline
-    Properties:
-      RoleArn: !GetAtt CodePipelineRole.Arn
-      Stages:
-        - Name: Source
-          Actions:
-            - Name: SourceAction
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
-                Version: 1
-              OutputArtifacts:
-                - Name: SourceOutput
-              Configuration:
-                Owner: "Discngine"
-                Repo: "quickstart-discngine-3decision"
-                Branch: !Ref GitBranch
-                OAuthToken: ""
-                PollForSourceChanges: "true"
-              RunOrder: 1
-        - Name: Build
-          Actions:
-            - Name: BuildAction
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: 1
-              InputArtifacts:
-                - Name: SourceOutput
-              OutputArtifacts:
-                - Name: BuildOutput
-              Configuration:
-                ProjectName: !Ref CodeBuildProject
-              RunOrder: 1
-      ArtifactStore:
-        Type: S3
-        Location: !Ref BucketName
-      Name: 3decisionPipeline
-
