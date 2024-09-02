@@ -708,6 +708,7 @@ Resources:
         Type: NO_CACHE
       Description: "Build project for Terraform"
       Source:
+        Type: NO_SOURCE
         BuildSpec: |
           version: 0.2
           phases:
