@@ -703,122 +703,122 @@ Resources:
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
             Value: !Ref AWS::Region
-      Source:
-        Type: CODEPIPELINE
       TimeoutInMinutes: 60
       Cache:
         Type: NO_CACHE
       Description: "Build project for Terraform"
-      BuildSpec: |
-        version: 0.2
-        phases:
-          install:
-            commands:
-              - echo Installing dependencies...
-              - yum install -y unzip git jq
-              - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-              - unzip awscliv2.zip
-              - sudo ./aws/install --bin-dir /usr/bin --update
-              - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-              - chmod +x kubectl
-              - mv kubectl /usr/local/bin
-              - wget https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
-              - unzip terraform_1.4.6_linux_amd64.zip
-              - sudo mv terraform /usr/local/bin/
-          pre_build:
-            commands:
-              - echo Setting up Terraform backend configuration...
-              - |
-                cat > backend.conf << EOF
-                region = "${AWS_REGION}"
-                bucket = "${Bucket}"
-                EOF
-              - echo Setting up Terraform variables...
-              - |
-                cat > vars.tfvars << EOF
-                region = "${AWS_REGION}"
-                keypair_name = "${KeyPairName}"
-                force_destroy = ${ForceDestroy}
-                public_final_snapshot = ${CreateFinalSnapshot}
-                private_final_snapshot = ${CreateFinalSnapshot}
-                skip_db_final_snapshot = ${SkipFinalSnapshot}
-                create_network = false
-                vpc_id = "${VPCID}"
-                private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
-                custom_ami = "${CustomAmiId}"
-                db_snapshot_identifier = "${DBSnapshotIdentifier}"
-                db_high_availability = ${DBMultiZone}
-                db_backup_retention_period = ${DBBackupRetentionPeriod}
-                db_delete_automated_backups = ${DBDeleteAutoBackups}
-                load_balancer_type = "${LoadBalancerType}"
-                certificate_arn = "${CertificateArn}"
-                inbound_cidrs = "${InboundCidrs}"
-                domain = "${DomainName}"
-                main_subdomain = "${MainSubdomain}"
-                additional_main_fqdns = [${AdditionalMainFQDNs}]
-                api_subdomain = "${ApiSubdomain}"
-                registration_subdomain = "${RegistrationSubdomain}"
-                hosted_zone_id = "${HostedZoneId}"
-                azure_oidc = {
-                  client_id = "${AzureClient}"
-                  tenant    = "${AzureTenant}"
-                  secret    = "${AzureSecret}"
-                }
-                okta_oidc = {
-                  client_id = "${OktaClient}"
-                  domain    = "${OktaDomain}"
-                  server_id = "${OktaServerId}"
-                  secret    = "${OktaSecret}"
-                }
-                google_oidc = {
-                  client_id = "${GoogleClient}"
-                  secret    = "${GoogleSecret}"
-                }
-                public_volume_snapshot = "${PublicVolumeSnapshotId}"
-                private_volume_snapshot = "${PrivateVolumeSnapshotId}"
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - echo Installing dependencies...
+                - yum install -y unzip git jq
+                - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                - unzip awscliv2.zip
+                - sudo ./aws/install --bin-dir /usr/bin --update
+                - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                - chmod +x kubectl
+                - mv kubectl /usr/local/bin
+                - wget https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
+                - unzip terraform_1.4.6_linux_amd64.zip
+                - sudo mv terraform /usr/local/bin/
+            pre_build:
+              commands:
+                - echo Setting up Terraform backend configuration...
+                - |
+                  cat > backend.conf << EOF
+                  region = "${AWS_REGION}"
+                  bucket = "${Bucket}"
+                  EOF
+                - echo Setting up Terraform variables...
+                - |
+                  cat > vars.tfvars << EOF
+                  region = "${AWS_REGION}"
+                  keypair_name = "${KeyPairName}"
+                  force_destroy = ${ForceDestroy}
+                  public_final_snapshot = ${CreateFinalSnapshot}
+                  private_final_snapshot = ${CreateFinalSnapshot}
+                  skip_db_final_snapshot = ${SkipFinalSnapshot}
+                  create_network = false
+                  vpc_id = "${VPCID}"
+                  private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
+                  custom_ami = "${CustomAmiId}"
+                  db_snapshot_identifier = "${DBSnapshotIdentifier}"
+                  db_high_availability = ${DBMultiZone}
+                  db_backup_retention_period = ${DBBackupRetentionPeriod}
+                  db_delete_automated_backups = ${DBDeleteAutoBackups}
+                  load_balancer_type = "${LoadBalancerType}"
+                  certificate_arn = "${CertificateArn}"
+                  inbound_cidrs = "${InboundCidrs}"
+                  domain = "${DomainName}"
+                  main_subdomain = "${MainSubdomain}"
+                  additional_main_fqdns = [${AdditionalMainFQDNs}]
+                  api_subdomain = "${ApiSubdomain}"
+                  registration_subdomain = "${RegistrationSubdomain}"
+                  hosted_zone_id = "${HostedZoneId}"
+                  azure_oidc = {
+                    client_id = "${AzureClient}"
+                    tenant    = "${AzureTenant}"
+                    secret    = "${AzureSecret}"
+                  }
+                  okta_oidc = {
+                    client_id = "${OktaClient}"
+                    domain    = "${OktaDomain}"
+                    server_id = "${OktaServerId}"
+                    secret    = "${OktaSecret}"
+                  }
+                  google_oidc = {
+                    client_id = "${GoogleClient}"
+                    secret    = "${GoogleSecret}"
+                  }
+                  public_volume_snapshot = "${PublicVolumeSnapshotId}"
+                  private_volume_snapshot = "${PrivateVolumeSnapshotId}"
 
-                kubernetes_version = "${KubernetesVersion}"
-                db_instance_type = "${DBInstanceClass}"
-                license_type = "license-included"
-                eks_instance_type = "${NodeInstanceType}"
-                boot_volume_size = "${NodeVolumeSize}"
+                  kubernetes_version = "${KubernetesVersion}"
+                  db_instance_type = "${DBInstanceClass}"
+                  license_type = "license-included"
+                  eks_instance_type = "${NodeInstanceType}"
+                  boot_volume_size = "${NodeVolumeSize}"
 
-                additional_eks_users_arn = [${AdditionalEKSAdminUserArn}]
-                additional_eks_roles_arn = [${AdditionalEKSAdminRoleArn}]
+                  additional_eks_users_arn = [${AdditionalEKSAdminUserArn}]
+                  additional_eks_roles_arn = [${AdditionalEKSAdminRoleArn}]
 
-                tdecision_chart = {
-                  version = ${TdecisionVersion}
-                  namespace = "${TdecisionNamespace}"
-                }
-                initial_db_passwords = {
-                  "ADMIN"                   = "${AdminPassword}"
-                  "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
-                  "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
-                }
-                EOF
-          build:
-            commands:
-              - echo Running Terraform $ACTION...
-              - terraform init -backend-config=backend.conf -reconfigure -upgrade
-              - |
-                case "$ACTION" in
-                  plan)
-                    terraform plan -var-file=vars.tfvars
-                    ;;
-                  apply)
-                    terraform apply -var-file=vars.tfvars -auto-approve
-                    ;;
-                  destroy)
-                    terraform destroy -var-file=vars.tfvars -auto-approve
-                    ;;
-                  *)
-                    echo "Unknown action: $ACTION"
-                    exit 1
-                    ;;
-                esac
-        artifacts:
-          files:
-            - '**/*'
+                  tdecision_chart = {
+                    version = ${TdecisionVersion}
+                    namespace = "${TdecisionNamespace}"
+                  }
+                  initial_db_passwords = {
+                    "ADMIN"                   = "${AdminPassword}"
+                    "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
+                    "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
+                  }
+                  EOF
+            build:
+              commands:
+                - echo Running Terraform $ACTION...
+                - terraform init -backend-config=backend.conf -reconfigure -upgrade
+                - |
+                  case "$ACTION" in
+                    plan)
+                      terraform plan -var-file=vars.tfvars
+                      ;;
+                    apply)
+                      terraform apply -var-file=vars.tfvars -auto-approve
+                      ;;
+                    destroy)
+                      terraform destroy -var-file=vars.tfvars -auto-approve
+                      ;;
+                    *)
+                      echo "Unknown action: $ACTION"
+                      exit 1
+                      ;;
+                  esac
+          artifacts:
+            files:
+              - '**/*'
 
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
