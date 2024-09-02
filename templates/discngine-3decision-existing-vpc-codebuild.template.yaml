@@ -820,9 +820,27 @@ Resources:
             files:
               - '**/*'
 
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "CodePipelineRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "codepipeline.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodePipelineReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/AWSCodeDeployRole
+
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
-    Properties: 
+    Properties:
+      RoleArn: !GetAtt CodePipelineRole.Arn
       Stages:
         - Name: Source
           Actions:
