@@ -506,7 +506,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: !Sub ec2.${AWS::URLSuffix}
+              Service: !Sub codebuild.${AWS::URLSuffix}
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2FullAccess
