@@ -198,6 +198,7 @@ Parameters:
     AllowedValues:
       - apply
       - destroy
+      - plan
   PreventDestroy:
     Description: >
       Whether to prevent the deletion of the database and data bucket.
