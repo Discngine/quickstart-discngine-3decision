@@ -893,6 +893,16 @@ Resources:
       TimeoutInMinutes: 180
       Cache:
         Type: NO_CACHE
+      Artifacts:
+        Type: NO_ARTIFACTS 
+      VpcConfig:
+        VpcId: !Ref VPCID
+        Subnets:
+          - !Ref PrivateSubnet1ID
+          - !Ref PrivateSubnet2ID
+          - !Ref PrivateSubnet3ID
+        SecurityGroupIds:
+          - !Ref BootNodeSecurityGroup
       Description: "Build project for Terraform"
       Source:
         Type: NO_SOURCE
@@ -1005,6 +1015,3 @@ Resources:
                       exit 1
                       ;;
                   esac
-          artifacts:
-            files:
-              - '**/*'
