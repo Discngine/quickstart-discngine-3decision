@@ -811,9 +811,11 @@ Resources:
                 - wget -q https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
                 - unzip terraform_1.4.6_linux_amd64.zip
                 - sudo mv terraform /usr/local/bin/
+                - git clone https://github.com/Discngine/quickstart-discngine-3decision.git
             pre_build:
               commands:
                 - echo Setting up Terraform backend configuration...
+                - cd quickstart-discngine-3decision/terraform
                 - |
                   cat > backend.conf << EOF
                   region = "${AWS_REGION}"
