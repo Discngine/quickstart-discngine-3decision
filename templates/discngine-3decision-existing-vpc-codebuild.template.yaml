@@ -703,6 +703,92 @@ Resources:
         EnvironmentVariables:
           - Name: AWS_DEFAULT_REGION
             Value: !Ref AWS::Region
+          - Name: Bucket
+            Value : !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
+          - Name: KeyPairName
+            Value: !Ref KeyPairName
+          - Name: ForceDestroy
+            Value: !If [PreventDestroy, "false", "true"]
+          - Name: CreateFinalSnapshot
+            Value: !Ref CreateFinalSnapshot
+          - Name: SkipFinalSnapshot
+            Value: !If [CreateFinalSnapshot, "false", "true"]
+          - Name: VPCID
+            Value: !Ref VPCID
+          - Name: PrivateSubnet1ID
+            Value: !Ref PrivateSubnet1ID
+          - Name: PrivateSubnet2ID
+            Value: !Ref PrivateSubnet2ID
+          - Name: PrivateSubnet3ID
+            Value: !Ref PrivateSubnet3ID
+          - Name: CustomAmiId
+            Value: !Ref CustomAmiId
+          - Name: DBSnapshotIdentifier
+            Value: !Ref DBSnapshotIdentifier
+          - Name: DBMultiZone
+            Value: !Ref DBMultiZone
+          - Name: DBBackupRetentionPeriod
+            Value: !Ref DBBackupRetentionPeriod
+          - Name: DBDeleteAutoBackups
+            Value: !Ref DBDeleteAutoBackups
+          - Name: LoadBalancerType
+            Value: !Ref LoadBalancerType
+          - Name: CertificateArn
+            Value: !Ref CertificateArn
+          - Name: InboundCidrs
+            Value: !Ref InboundCidrs
+          - Name: DomainName
+            Value: !Ref DomainName
+          - Name: MainSubdomain
+            Value: !Ref MainSubdomain
+          - Name: AdditionalMainFQDNs
+            Value: !Ref AdditionalMainFQDNs
+          - Name: ApiSubdomain
+            Value: !Ref ApiSubdomain
+          - Name: RegistrationSubdomain
+            Value: !Ref RegistrationSubdomain
+          - Name: HostedZoneId
+            Value: !Ref HostedZoneId
+          - Name: AzureClient
+            Value: !If [ AzureUnused, "none", !Ref AzureClientId ]
+          - Name: AzureTenant
+            Value: !Ref AzureTenant
+          - Name: AzureSecret
+            Value: !Ref AzureSecret
+          - Name: OktaClient
+            Value: !If [ OktaUnused, "none", !Ref OktaClientId ]
+          - Name: OktaDomain
+            Value: !Ref OktaDomain
+          - Name: OktaServerId
+            Value: !Ref OktaServerId
+          - Name: OktaSecret
+            Value: !Ref OktaSecret
+          - Name: GoogleClient
+            Value: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
+          - Name: GoogleSecret
+            Value: !Ref GoogleSecret
+          - Name: PublicVolumeSnapshotId
+            Value: !Ref PublicVolumeSnapshotId
+          - Name: PrivateVolumeSnapshotId
+            Value: !Ref PrivateVolumeSnapshotId
+          - Name: KubernetesVersion
+            Value: !Ref KubernetesVersion
+          - Name: DBInstanceClass
+            Value: !Ref DBInstanceClass
+          - Name: NodeInstanceType
+            Value: !Ref NodeInstanceType
+          - Name: NodeVolumeSize
+            Value: !Ref NodeVolumeSize
+          - Name: AdditionalEKSAdminUserArn
+            Value: !Ref AdditionalEKSAdminUserArn
+          - Name: AdditionalEKSAdminRoleArn
+            Value: !Ref AdditionalEKSAdminRoleArn
+          - Name: TdecisionVersion
+            Value: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
+          - Name: TdecisionNamespace
+            Value: !Ref TdecisionNamespace
+          - Name: AdminPassword
+            Value: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
       TimeoutInMinutes: 60
       Cache:
         Type: NO_CACHE
@@ -717,12 +803,12 @@ Resources:
                 - echo Installing dependencies...
                 - yum install -y unzip git jq
                 - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                - unzip awscliv2.zip
+                - unzip -qq awscliv2.zip
                 - sudo ./aws/install --bin-dir /usr/bin --update
                 - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
                 - chmod +x kubectl
                 - mv kubectl /usr/local/bin
-                - wget https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
+                - wget -q https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
                 - unzip terraform_1.4.6_linux_amd64.zip
                 - sudo mv terraform /usr/local/bin/
             pre_build:
@@ -799,6 +885,7 @@ Resources:
             build:
               commands:
                 - echo Running Terraform $ACTION...
+                - cd quickstart-discngine-3decision/terraform
                 - terraform init -backend-config=backend.conf -reconfigure -upgrade
                 - |
                   case "$ACTION" in
