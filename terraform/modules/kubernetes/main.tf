@@ -497,7 +497,7 @@ locals {
   values            = <<YAML
 oracle:
   connectionString: ${local.connection_string}
-  hostString: ${local.db_endpoint}/
+  hostString: ${local.db_endpoint}
   pdbString: ${var.db_name}
 volumes:
   storageClassName: gp2-encrypted
