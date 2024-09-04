@@ -802,6 +802,8 @@ Resources:
         EnvironmentVariables:
           - Name: Action
             Value: !Ref StackOperation
+          - Name: GitBranch
+            Value: !Ref GitBranch
           - Name: AWS_DEFAULT_REGION
             Value: !Ref AWS::Region
           - Name: Bucket
@@ -922,7 +924,7 @@ Resources:
                 - wget -q https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
                 - unzip terraform_1.4.6_linux_amd64.zip
                 - sudo mv terraform /usr/local/bin/
-                - git clone https://github.com/Discngine/quickstart-discngine-3decision.git
+                - git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
             pre_build:
               commands:
                 - echo Setting up Terraform backend configuration...
