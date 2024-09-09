@@ -245,7 +245,7 @@ Parameters:
   DefaultTags:
     Description: "Comma Delimited list of tags to add to all terraform created resources. Write as TagKey=TagValue,TagKey2=TagValue2"
     Type: CommaDelimitedList
-    default: ""
+    Default: ""
   TdecisionVersion:
     Type: String
     Description: "Optional: If set, will deploy that version of the 3decision helm chart. If left empty the latest version will be deployed."
