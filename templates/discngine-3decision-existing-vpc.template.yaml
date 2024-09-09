@@ -631,11 +631,15 @@ Resources:
                   - iam:CreateOpenIDConnectProvider
                   - iam:DeleteOpenIDConnectProvider
                   - iam:TagOpenIDConnectProvider
+                  - iam:UntagOpenIDConnectProvider
                   - iam:ListAttachedRolePolicies
                   - iam:TagRole
+                  - iam:UntagRole
                   - iam:GetPolicy
                   - iam:CreatePolicy
                   - iam:DeletePolicy
+                  - iam:TagPolicy
+                  - iam:UntagPolicy
                   - iam:ListPolicyVersions
                   - iam:ListRolePolicies
                   - iam:GetPolicyVersion
