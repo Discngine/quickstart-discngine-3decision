@@ -903,8 +903,6 @@ Resources:
       TimeoutInMinutes: 180
       Cache:
         Type: NO_CACHE
-      Artifacts:
-        Type: NO_ARTIFACTS 
       VpcConfig:
         VpcId: !Ref VPCID
         Subnets:
