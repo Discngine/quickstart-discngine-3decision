@@ -13,7 +13,6 @@ Metadata:
       - Label:
           default: Infrastructure deployment configuration
         Parameters:
-          - RelaunchTerraform
           - StackOperation
           - PreventDestroy
           - CreateFinalSnapshot
@@ -22,6 +21,7 @@ Metadata:
           - BucketName
           - GitBranch
           - CreateInfraInstance
+          - DefaultTags
       - Label:
           default: 3decision app configuration
         Parameters:
@@ -92,8 +92,6 @@ Metadata:
           - PublicVolumeSnapshotId
           - PrivateVolumeSnapshotId
     ParameterLabels:
-      RelaunchTerraform:
-        default: Relaunch terraform operation
       StackOperation:
         default: Terraform stack operation
       PreventDestroy:
@@ -189,10 +187,6 @@ Metadata:
       PrivateVolumeSnapshotId:
         default: Snapshot id of the private volume to recover
 Parameters:
-  RelaunchTerraform:
-    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without changing any other app specific parameters."
-    Type: String
-    Default: ""
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
@@ -947,13 +941,17 @@ Resources:
                   for tag in "${TAGS_ARRAY[@]}"; do
                     key=$(echo $tag | cut -d'=' -f1)
                     value=$(echo $tag | cut -d'=' -f2)
-                    TAGS_MAP+="\"$key\" = \"$value\",\n"
+                    if [ -z "$TAGS_MAP" ]; then
+                      TAGS_MAP="\"$key\" = \"$value\""
+                    else
+                      TAGS_MAP="${TAGS_MAP},\n\"$key\" = \"$value\""
+                    fi
                   done
                 - |
                   cat > vars.tfvars << EOF
                   region = "${AWS_REGION}"
                   default_tags = {
-                    ${TAGS_MAP}
+                  ${TAGS_MAP}
                   }
                   keypair_name = "${KeyPairName}"
                   force_destroy = ${ForceDestroy}
@@ -1014,9 +1012,8 @@ Resources:
                     "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
                   }
 
-                  default_tags = {
-                  }
                   EOF
+                - cat vars.tfvars
             build:
               commands:
                 - echo Running Terraform ${Action}...
