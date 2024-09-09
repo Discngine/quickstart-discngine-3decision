@@ -598,6 +598,8 @@ Resources:
                   - kms:GetKeyRotationStatus
                   - kms:ListResourceTags
                   - kms:ScheduleKeyDeletion
+                  - kms:TagResource
+                  - kms:UntagResource
                 Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
