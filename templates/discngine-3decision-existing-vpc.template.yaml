@@ -110,6 +110,8 @@ Metadata:
         default: The branch to use to deploy the architecture
       CreateInfraInstance:
         default: Whether to create an instance to handle infrastructure
+      DefaultTags:
+        default: List of tags to add to all resources
       TdecisionVersion:
         default: The version of the 3decision helm chart
       TdecisionNamespace:
@@ -240,6 +242,10 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
+  DefaultTags:
+    Description: "Comma Delimited list of tags to add to all terraform created resources. Write as TagKey=TagValue,TagKey2=TagValue2"
+    Type: CommaDelimitedList
+    default: ""
   TdecisionVersion:
     Type: String
     Description: "Optional: If set, will deploy that version of the 3decision helm chart. If left empty the latest version will be deployed."
@@ -804,8 +810,10 @@ Resources:
             Value: !Ref StackOperation
           - Name: GitBranch
             Value: !Ref GitBranch
-          - Name: AWS_DEFAULT_REGION
+          - Name: AWS_REGION
             Value: !Ref AWS::Region
+          - Name: DefaultTags
+            Value: !Join [",", !Ref DefaultTags]  # Joining the CommaDelimitedList
           - Name: Bucket
             Value : !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
           - Name: KeyPairName
@@ -936,8 +944,19 @@ Resources:
                   EOF
                 - echo Setting up Terraform variables...
                 - |
+                  TAGS_ARRAY=(${DefaultTags//,/ })
+                  TAGS_MAP=""
+                  for tag in "${TAGS_ARRAY[@]}"; do
+                    key=$(echo $tag | cut -d'=' -f1)
+                    value=$(echo $tag | cut -d'=' -f2)
+                    TAGS_MAP+="\"$key\" = \"$value\",\n"
+                  done
+                - |
                   cat > vars.tfvars << EOF
                   region = "${AWS_REGION}"
+                  default_tags = {
+                    ${TAGS_MAP}
+                  }
                   keypair_name = "${KeyPairName}"
                   force_destroy = ${ForceDestroy}
                   public_final_snapshot = ${CreateFinalSnapshot}
@@ -995,6 +1014,9 @@ Resources:
                     "ADMIN"                   = "${AdminPassword}"
                     "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
                     "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
+                  }
+
+                  default_tags = {
                   }
                   EOF
             build:

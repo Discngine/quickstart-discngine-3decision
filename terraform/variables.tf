@@ -14,6 +14,11 @@ variable "region" {
   }
 }
 
+variable "default_tags" {
+  default     = {}
+  description = "Default tags to add to all resources"
+}
+
 variable "force_destroy" {
   type        = bool
   default     = true
