@@ -4,6 +4,30 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.0.7] - 2024-07-12
+### Cloudformation
+#### Added
+- Added a permission to the user to update the description of IAM roles @JonathanManass
+
+#### Changed
+- Nothing
+
+#### Removed
+- Nothing
+
+### Terraform
+#### Added
+- Added the reloader annotation to the sqlcl container @JonathanManass
+- Added a reprocessing timestamp for the transfer from redis to oracle @aphilippejolivel
+
+#### Changed
+- Updated 3decision helm chart default value to 3.0.7 @aphilippejolivel
+- Updated the time at which secrets update from every 30 days to every first sunday of the month at 2 AM @JonathanManass
+
+#### Removed
+- Removed the Redis bucket and its references @JonathanManass
+---
+
 ## [3.0.5] - 2024-05-02
 ### Cloudformation
 #### Added

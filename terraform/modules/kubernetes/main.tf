@@ -140,6 +140,8 @@ metadata:
   labels:
     role: help
     app: sqlcl
+  annotations:
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
@@ -484,21 +486,24 @@ locals {
   private_structure_reprocessing_version_list               = ["2.3.4"]
   missing_structure_registration_reprocessing_version_list  = ["2.3.7"]
   alphafold_structure_registration_version_list             = ["3.0.1"]
+  redis_to_oracle_transfer_version_list                     = ["3.0.7"]
 
-  reprocessing_timestamp       = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
+  reprocessing_timestamp = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
 
   launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
   launch_missing_structure_registration_reprocessing  = contains(local.missing_structure_registration_reprocessing_version_list, var.tdecision_chart.version)
   launch_alphafold_structure_registration             = contains(local.alphafold_structure_registration_version_list, var.tdecision_chart.version)
+  launch_redis_to_oracle_transfer                     = contains(local.redis_to_oracle_transfer_version_list, var.tdecision_chart.version)
 }
 
 locals {
-  connection_string = "${var.db_endpoint}/${var.db_name}"
+  db_endpoint=element(split(":", var.db_endpoint), 0)
+  connection_string = "${local.db_endpoint}/${var.db_name}"
   values            = <<YAML
 oracle:
   connectionString: ${local.connection_string}
-  hostString: ${var.db_endpoint}/
+  hostString: ${local.db_endpoint}
   pdbString: ${var.db_name}
 volumes:
   storageClassName: gp2-encrypted
@@ -539,6 +544,9 @@ nest:
     alphafold_structure_registration_timestamp:
       name: ALPHAFOLD_STRUCTURE_REGISTRATION_TIMESTAMP
       value: ${local.launch_alphafold_structure_registration ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
+    event_log_data_transfer_timestamp:
+      name: "EVENT_LOG_DATA_TRANSFER_TIMESTAMP"
+      value: ${local.launch_redis_to_oracle_transfer ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
   env:
     okta_client_id:
       name: OKTA_CLIENT_ID
