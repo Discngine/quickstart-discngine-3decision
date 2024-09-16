@@ -211,6 +211,10 @@ resource "random_password" "choral_password" {
   min_numeric      = 2
   min_special      = 2
   override_special = "_"
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_secretsmanager_secret_version" "db_passwords_version" {

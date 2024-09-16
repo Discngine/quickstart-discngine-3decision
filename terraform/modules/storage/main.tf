@@ -33,7 +33,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "scc_s3_bucket_lifecycle" {
   bucket = aws_s3_bucket.bucket.id
 
   rule {
-    id     = "TransitionRule-IT"
+    id     = "IntelligentTiering"
     status = "Enabled"
     transition {
       days          = "0"
