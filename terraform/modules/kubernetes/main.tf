@@ -498,9 +498,10 @@ locals {
 }
 
 locals {
-  db_endpoint=element(split(":", var.db_endpoint), 0)
+  db_endpoint       = element(split(":", var.db_endpoint), 0)
   connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
+disableNodeSelectors: true
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${local.db_endpoint}
@@ -584,12 +585,6 @@ rbac:
       serviceAccountName: s3-access
       annotations:
         eks.amazonaws.com/role-arn: ${var.alphafold_s3_role_arn}
-redis:
-  nodeSelector: null
-pocket_features:
-  nodeSelector: null
-scientific_monolith:
-  nodeSelector: null
 YAML
 
   # This makes sure the helm chart is updated if we change the deletion script
