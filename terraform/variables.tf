@@ -404,6 +404,16 @@ variable "google_oidc" {
   sensitive = true
 }
 
+variable "pingid_oidc" {
+  description = "PingID Client ID for authentication in application"
+  default = {
+    client_id    = "none"
+    secret       = ""
+    metadata_url = ""
+  }
+  sensitive = true
+}
+
 ###########
 # Volumes
 ###########

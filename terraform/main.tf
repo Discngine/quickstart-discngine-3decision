@@ -253,6 +253,7 @@ module "kubernetes" {
   okta_oidc                = var.okta_oidc
   azure_oidc               = var.azure_oidc
   google_oidc              = var.google_oidc
+  pingid_oidc              = var.pingid_oidc
   certificate_arn          = var.certificate_arn
   inbound_cidrs            = var.inbound_cidrs
   domain                   = var.domain

@@ -250,12 +250,14 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
     namespace = var.tdecision_chart.namespace
   }
   data = {
-    AZURE_TENANT   = var.azure_oidc.tenant
-    AZURE_SECRET   = var.azure_oidc.secret
-    GOOGLE_SECRET  = var.google_oidc.secret
-    OKTA_DOMAIN    = var.okta_oidc.domain
-    OKTA_SERVER_ID = var.okta_oidc.server_id
-    OKTA_SECRET    = var.okta_oidc.secret
+    AZURE_TENANT        = var.azure_oidc.tenant
+    AZURE_SECRET        = var.azure_oidc.secret
+    GOOGLE_SECRET       = var.google_oidc.secret
+    OKTA_DOMAIN         = var.okta_oidc.domain
+    OKTA_SERVER_ID      = var.okta_oidc.server_id
+    OKTA_SECRET         = var.okta_oidc.secret
+    PINGID_SECRET       = var.pingid_oidc.secret
+    PINGID_METADATA_URL = var.pingid_oidc.metadata_url
   }
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
@@ -567,6 +569,12 @@ nest:
     google_redirect_uri:
       name: GOOGLE_REDIRECT_URI
       value: https://${var.api_subdomain}.${var.domain}/auth/google/callback
+    pingid_client_id:
+      name: PINGID_CLIENT_ID
+      value: ${var.pingid_oidc.client_id}
+    pingid_redirect_uri:
+      name: PINGID_REDIRECT_URI
+      value: "https://${var.api_subdomain}.${var.domain}"
     bucket_name:
       name: "ALPHAFOLD_BUCKET_NAME"
       value: ${var.alphafold_bucket_name}
