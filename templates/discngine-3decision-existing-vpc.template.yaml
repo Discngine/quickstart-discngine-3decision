@@ -948,9 +948,9 @@ Resources:
                     key=$(echo $tag | cut -d'=' -f1)
                     value=$(echo $tag | cut -d'=' -f2)
                     if [ -z "$TAGS_MAP" ]; then
-                      TAGS_MAP="\"$key\" = \"$value\""
+                      TAGS_MAP=$(printf "\"%s\" = \"%s\"" "$key" "$value")
                     else
-                      TAGS_MAP="${TAGS_MAP},\n\"$key\" = \"$value\""
+                      TAGS_MAP="${TAGS_MAP}$(printf ",\n\"%s\" = \"%s\"" "$key" "$value")"
                     fi
                   done
                 - |
