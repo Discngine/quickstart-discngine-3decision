@@ -157,7 +157,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:1.0.1
           command: [ "/bin/bash", "-c", "--" ]
           envFrom:
           - secretRef:
@@ -166,11 +166,11 @@ spec:
             - name: CONNECTION_STRING
               value: ${local.connection_string}
             - name: sq3
-              value: /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
+              value: /home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
             - name: sqc
-              value: /root/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
+              value: /home/sqlcl/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
             - name: sqs
-              value: /root/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}
+              value: /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}
           args: [ "sleep infinity" ]
   YAML
   depends_on = [kubernetes_namespace.tools_namespace, kubectl_manifest.ClusterExternalSecret]
@@ -492,7 +492,7 @@ locals {
 }
 
 locals {
-  db_endpoint=element(split(":", var.db_endpoint), 0)
+  db_endpoint       = element(split(":", var.db_endpoint), 0)
   connection_string = "${local.db_endpoint}/${var.db_name}"
   values            = <<YAML
 oracle:
