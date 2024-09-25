@@ -706,7 +706,7 @@ resource "helm_release" "tdecision_chart" {
   chart      = var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
-  timeout    = 3600
+  timeout    = 7200
 
   values = [local.final_values]
   depends_on = [
