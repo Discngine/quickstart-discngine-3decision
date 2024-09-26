@@ -574,7 +574,7 @@ nest:
       value: ${var.pingid_oidc.client_id}
     pingid_redirect_uri:
       name: PINGID_REDIRECT_URI
-      value: "https://${var.api_subdomain}.${var.domain}"
+      value: "https://${var.api_subdomain}.${var.domain}/auth/pingid/callback"
     bucket_name:
       name: "ALPHAFOLD_BUCKET_NAME"
       value: ${var.alphafold_bucket_name}
