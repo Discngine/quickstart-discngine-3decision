@@ -493,7 +493,7 @@ locals {
 
 locals {
   db_endpoint       = element(split(":", var.db_endpoint), 0)
-  connection_string = "${local.db_endpoint}/${var.db_name}"
+  connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
 oracle:
   connectionString: ${local.connection_string}
