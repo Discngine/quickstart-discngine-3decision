@@ -40,28 +40,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "scc_s3_bucket_lifecycle" {
       storage_class = "INTELLIGENT_TIERING"
     }
   }
-
-  rule {
-    id     = "NonCurrentVersionDeletionRule"
-    status = "Enabled"
-    noncurrent_version_expiration {
-      noncurrent_days = "30"
-    }
-    expiration {
-      expired_object_delete_marker = true
-    }
-  }
-
-  rule {
-    id     = "DeleteMarkersRule"
-    status = "Enabled"
-    expiration {
-      expired_object_delete_marker = true
-    }
-    abort_incomplete_multipart_upload {
-      days_after_initiation = 7
-    }
-  }
 }
 
 resource "aws_iam_role" "role" {
