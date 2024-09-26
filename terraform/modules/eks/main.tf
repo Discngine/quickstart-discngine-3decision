@@ -208,33 +208,33 @@ resource "aws_iam_role" "eks_csi_driver_role" {
 EOF
   inline_policy {
     name = "AmazonEbsCsiDeviceEncryption"
-    policy = <<EOF
-{
-  Version = "2012-10-17"
-  Statement = [
-    {
-      Action   = ["kms:CreateGrant", "kms:ListGrants", "kms:RevokeGrant"]
-      Effect   = "Allow"
-      Resource = "arn:aws:kms:${var.region}:${var.account_id}:key/*"
-    },
-    {
-      Action = [
-        "kms:Decrypt",
-        "kms:DescribeKey",
-        "kms:Encrypt",
-        "kms:GenerateDataKey",
-        "kms:GenerateDataKeyWithoutPlaintext",
-        "kms:GenerateDataKeyPair",
-        "kms:GenerateDataKeyPairWithoutPlaintext",
-        "kms:ReEncryptFrom",
-        "kms:ReEncryptTo",
-      ]
-      Effect   = "Allow"
-      Resource = "arn:aws:kms:${var.region}:${var.account_id}:key/*"
-    }
-  ]
-}
-EOF
+    policy = jsonencode(
+      {
+        Version = "2012-10-17"
+        Statement = [
+          {
+            Action   = ["kms:CreateGrant", "kms:ListGrants", "kms:RevokeGrant"]
+            Effect   = "Allow"
+            Resource = "arn:aws:kms:${var.region}:${var.account_id}:key/*"
+          },
+          {
+            Action = [
+              "kms:Decrypt",
+              "kms:DescribeKey",
+              "kms:Encrypt",
+              "kms:GenerateDataKey",
+              "kms:GenerateDataKeyWithoutPlaintext",
+              "kms:GenerateDataKeyPair",
+              "kms:GenerateDataKeyPairWithoutPlaintext",
+              "kms:ReEncryptFrom",
+              "kms:ReEncryptTo",
+            ]
+            Effect   = "Allow"
+            Resource = "arn:aws:kms:${var.region}:${var.account_id}:key/*"
+          }
+        ]
+      }
+    )
   }
 }
 
