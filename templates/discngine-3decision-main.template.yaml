@@ -13,7 +13,6 @@ Metadata:
       - Label:
           default: Infrastructure deployment configuration
         Parameters:
-          - RelaunchTerraform
           - StackOperation
           - PreventDestroy
           - CreateFinalSnapshot
@@ -21,6 +20,8 @@ Metadata:
           - ExecutionRoleName
           - BucketName
           - GitBranch
+          - CreateInfraInstance
+          - DefaultTags
       - Label:
           default: 3decision app configuration
         Parameters:
@@ -100,8 +101,6 @@ Metadata:
           - QSS3BucketRegion
           - QSS3KeyPrefix
     ParameterLabels:
-      RelaunchTerraform:
-        default: Relaunch terraform operation
       StackOperation:
         default: Terraform stack operation
       PreventDestroy:
@@ -116,6 +115,10 @@ Metadata:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
         default: The branch to use to deploy the architecture
+      CreateInfraInstance:
+        default: Create an instance to manually handle the infrastructure
+      DefaultTags:
+        default: List of tags to add to all resources
       TdecisionVersion:
         default: The version of the 3decision helm chart
       TdecisionNamespace:
@@ -207,10 +210,6 @@ Metadata:
       PrivateVolumeSnapshotId:
         default: Snapshot id of the private volume to recover
 Parameters:
-  RelaunchTerraform:
-    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without changing any other app specific parameters."
-    Type: String
-    Default: ""
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
@@ -218,6 +217,7 @@ Parameters:
     AllowedValues:
       - apply
       - destroy
+      - plan
   PreventDestroy:
     Description: >
       Whether to prevent the deletion of the database and data bucket.
@@ -252,6 +252,17 @@ Parameters:
     Type: String
     Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
     Default: "main"
+  CreateInfraInstance:
+    Description: "Setting to true will create a small instance from which you can manually run commands from inside the VPC."
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  DefaultTags:
+    Description: "Comma Delimited list of tags to add to all terraform created resources. Write as TagKey=TagValue,TagKey2=TagValue2"
+    Type: CommaDelimitedList
+    Default: ""
   TdecisionVersion:
     Type: String
     Description: "Optional: If set, will deploy that version of the 3decision helm chart. If left empty the latest version will be deployed."
@@ -378,7 +389,7 @@ Parameters:
     Type: String
     Description: Kubernetes control plane version.
     AllowedValues: ['1.25', '1.26', '1.27', '1.28', '1.29']
-    Default: '1.28'
+    Default: '1.29'
   NodeVolumeSize:
     Type: String
     Default: 50
@@ -597,7 +608,6 @@ Resources:
         PrivateSubnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         PrivateSubnet3ID: !GetAtt VPCStack.Outputs.PrivateSubnet3AID
-        RelaunchTerraform: !Ref RelaunchTerraform
         StackOperation: !Ref StackOperation
         PreventDestroy: !Ref PreventDestroy
         CreateFinalSnapshot: !Ref CreateFinalSnapshot
@@ -605,6 +615,8 @@ Resources:
         ExecutionRoleName: !Ref ExecutionRoleName
         BucketName: !Ref BucketName
         GitBranch: !Ref GitBranch
+        CreateInfraInstance: !Ref CreateInfraInstance
+        DefaultTags: !Ref DefaultTags
         TdecisionVersion: !Ref TdecisionVersion
         TdecisionNamespace: !Ref TdecisionNamespace
         DBInstanceClass: !Ref DBInstanceClass
