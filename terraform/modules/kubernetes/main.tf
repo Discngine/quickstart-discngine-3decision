@@ -157,7 +157,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
           command: [ "/bin/bash", "-c", "--" ]
           envFrom:
           - secretRef:
@@ -166,11 +166,11 @@ spec:
             - name: CONNECTION_STRING
               value: ${local.connection_string}
             - name: sq3
-              value: /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
+              value: /home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
             - name: sqc
-              value: /root/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
+              value: /home/sqlcl/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
             - name: sqs
-              value: /root/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}
+              value: /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}
           args: [ "sleep infinity" ]
   YAML
   depends_on = [kubernetes_namespace.tools_namespace, kubectl_manifest.ClusterExternalSecret]
@@ -492,11 +492,12 @@ locals {
 }
 
 locals {
+  db_endpoint       = element(split(":", var.db_endpoint), 0)
   connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
 oracle:
   connectionString: ${local.connection_string}
-  hostString: ${var.db_endpoint}/
+  hostString: ${local.db_endpoint}
   pdbString: ${var.db_name}
 volumes:
   storageClassName: gp2-encrypted
@@ -614,7 +615,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: reset-passwords
-      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
       command: [ "/bin/bash", "-c", "--" ]
       envFrom:
       - secretRef:
@@ -627,7 +628,7 @@ spec:
           echo -ne "ALTER USER CHEMBL_29 IDENTIFIED BY \"\$${CHEMBL_DB_PASSWD}\" ACCOUNT UNLOCK;
           ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY \"\$${DB_PASSWD}\" ACCOUNT UNLOCK;
           ALTER USER CHORAL_OWNER IDENTIFIED BY \"\$${CHORAL_DB_PASSWD}\" ACCOUNT UNLOCK;" > reset_passwords.sql;
-          exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
+          exit | /home/sqlcl/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
 kubectl delete -f reset_passwords.yaml
 kubectl apply -f reset_passwords.yaml
@@ -663,7 +664,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: clean-choral
-      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:latest
+      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
       command: [ "/bin/bash", "-c", "--" ]
       envFrom:
       - secretRef:
@@ -677,16 +678,16 @@ spec:
           DROP INDEX IDX_CHOR_TAU_CMP_STRUC FORCE;
           DROP INDEX IDX_CHOR_TAUISO_CMP_STRUC FORCE;
           DROP INDEX IDX_CHOR_STRICT_CMP_STRUC FORCE;' > drop_chembl_index.sql;
-          exit | /root/sqlcl/bin/sql CHEMBL_29/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
+          exit | /home/sqlcl/sqlcl/bin/sql CHEMBL_29/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
           echo 'dropping tdec indexes';
           echo -ne 'DROP INDEX IDX_CHOR_STR_SMALL_MOL_SMILES FORCE;
           DROP INDEX IDX_CHOR_TAU_SMALL_MOL_SMILES FORCE;
           DROP INDEX IDX_CHOR_TAUISO_SMS FORCE;
           DROP INDEX IDX_CHOR_STRISO_SMS FORCE;' > drop_t1_index.sql;
-          exit | /root/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/\$${DB_PASSWD}@\$${CONNECTION_STRING} @drop_t1_index.sql;
+          exit | /home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/\$${DB_PASSWD}@\$${CONNECTION_STRING} @drop_t1_index.sql;
           echo 'dropping choral owner schema';
           echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
-          exit | /root/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
+          exit | /home/sqlcl/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
 YAML
 kubectl delete -n choral pod/clean-choral
 kubectl apply -f clean_choral.yaml
@@ -705,7 +706,7 @@ resource "helm_release" "tdecision_chart" {
   chart      = var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
-  timeout    = 3600
+  timeout    = 7200
 
   values = [local.final_values]
   depends_on = [

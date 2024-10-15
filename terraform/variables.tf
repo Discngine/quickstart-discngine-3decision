@@ -14,6 +14,11 @@ variable "region" {
   }
 }
 
+variable "default_tags" {
+  default     = {}
+  description = "Default tags to add to all resources"
+}
+
 variable "force_destroy" {
   type        = bool
   default     = true
@@ -210,7 +215,7 @@ variable "tdecision_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
     chart            = optional(string, "tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.0.7")
+    version          = optional(string, "3.1.4")
     create_namespace = optional(bool, true)
   })
   default = {}
