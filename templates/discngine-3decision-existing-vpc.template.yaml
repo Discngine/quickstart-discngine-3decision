@@ -107,7 +107,7 @@ Metadata:
       GitBranch:
         default: The branch to use to deploy the architecture
       CreateInfraInstance:
-        default: Whether to create an instance to handle infrastructure
+        default: Create an instance to manually handle the infrastructure
       DefaultTags:
         default: List of tags to add to all resources
       TdecisionVersion:
