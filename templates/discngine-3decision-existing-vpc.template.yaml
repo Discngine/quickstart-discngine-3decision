@@ -116,6 +116,8 @@ Metadata:
         default: The namespace to deploy the 3decision helm chart in
       KeyPairName:
         default: SSH key name
+      VPCID:
+        default: VPC ID
       PrivateSubnet1ID:
         default: Private subnet 1 ID
       PrivateSubnet2ID:
