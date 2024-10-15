@@ -798,7 +798,7 @@ Resources:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: "3decisionTerraformBuild"
-      ServiceRole: !If [CreateExecutionRole, !GetAtt Role.Arn, !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${ExecutionRoleName}]
+      ServiceRole: !If [CreateExecutionRole, !GetAtt Role.Arn, !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${ExecutionRoleName}"]
       Artifacts:
         Type: NO_ARTIFACTS
       Environment:
