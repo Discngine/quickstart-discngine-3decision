@@ -4,6 +4,32 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.1.4] - 2024-10-15
+### Cloudformation
+#### Added
+- Added a codebuild project to run the terraform code @JonathanManass
+- Added a parameter to make the creation of a seperate ec2 instance optional @JonathanManass
+- Added a parameter to add tags to all terraform created resources @JonathanManass
+
+#### Changed
+- Updated EKS default version to 1.29 @JonathanManass
+- Updated default role to run on codebuild and to allow tagging all resources @JonathanManass
+
+#### Removed
+- Removed the SSM Association to run terraform on an ec2 instance @JonathanManass
+
+### Terraform
+#### Added
+- Added default tags to add tags to all resources @JonathanManass
+
+#### Changed
+- Updated 3decision helm chart default value to 3.1.4 @JonathanManass
+- Updated sqlcl images tags @JonathanManass
+- Updated hoststring to match new helm chart nomenclature @JonathanManass
+
+#### Removed
+- Nothing
+---
 ## [3.0.7] - 2024-07-12
 ### Cloudformation
 #### Added
