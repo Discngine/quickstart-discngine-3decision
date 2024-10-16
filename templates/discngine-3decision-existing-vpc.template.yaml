@@ -13,7 +13,6 @@ Metadata:
       - Label:
           default: Infrastructure deployment configuration
         Parameters:
-          - RelaunchTerraform
           - StackOperation
           - PreventDestroy
           - CreateFinalSnapshot
@@ -21,6 +20,8 @@ Metadata:
           - ExecutionRoleName
           - BucketName
           - GitBranch
+          - CreateInfraInstance
+          - DefaultTags
       - Label:
           default: 3decision app configuration
         Parameters:
@@ -91,8 +92,6 @@ Metadata:
           - PublicVolumeSnapshotId
           - PrivateVolumeSnapshotId
     ParameterLabels:
-      RelaunchTerraform:
-        default: Relaunch terraform operation
       StackOperation:
         default: Terraform stack operation
       PreventDestroy:
@@ -107,12 +106,18 @@ Metadata:
         default: Name of the S3 bucket containing the terraform state
       GitBranch:
         default: The branch to use to deploy the architecture
+      CreateInfraInstance:
+        default: Create an instance to manually handle the infrastructure
+      DefaultTags:
+        default: List of tags to add to all resources
       TdecisionVersion:
         default: The version of the 3decision helm chart
       TdecisionNamespace:
         default: The namespace to deploy the 3decision helm chart in
       KeyPairName:
         default: SSH key name
+      VPCID:
+        default: VPC ID
       PrivateSubnet1ID:
         default: Private subnet 1 ID
       PrivateSubnet2ID:
@@ -184,10 +189,6 @@ Metadata:
       PrivateVolumeSnapshotId:
         default: Snapshot id of the private volume to recover
 Parameters:
-  RelaunchTerraform:
-    Description: "Optional: Arbitrary string that, when changed, will trigger the terraform job. Change this when trying to trigger terraform without changing any other app specific parameters."
-    Type: String
-    Default: ""
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
     Type: String
@@ -195,6 +196,7 @@ Parameters:
     AllowedValues:
       - apply
       - destroy
+      - plan
   PreventDestroy:
     Description: >
       Whether to prevent the deletion of the database and data bucket.
@@ -229,6 +231,17 @@ Parameters:
     Type: String
     Description: "Required: The branch to use to deploy the architecture. Do not change if not asked."
     Default: "main"
+  CreateInfraInstance:
+    Description: "Setting to true will create a small instance from which you can manually run commands from inside the VPC."
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  DefaultTags:
+    Description: "Comma Delimited list of tags to add to all terraform created resources. Write as TagKey=TagValue,TagKey2=TagValue2"
+    Type: CommaDelimitedList
+    Default: ""
   TdecisionVersion:
     Type: String
     Description: "Optional: If set, will deploy that version of the 3decision helm chart. If left empty the latest version will be deployed."
@@ -302,7 +315,7 @@ Parameters:
     Type: String
     Description: Kubernetes control plane version.
     AllowedValues: ['1.25', '1.26', '1.27', '1.28', '1.29']
-    Default: '1.28'
+    Default: '1.29'
   NodeVolumeSize:
     Type: String
     Default: 50
@@ -490,6 +503,7 @@ Conditions:
   CreateFinalSnapshot: !Equals [!Ref CreateFinalSnapshot, "true"]
   PreventDestroy: !Equals [!Ref PreventDestroy, "true"]
   DefaultAdminPassword: !Equals [!Ref AdminInitialPassword, ""]
+  CreateInfraInstance: !Equals [!Ref CreateInfraInstance, "true"]
 Resources:
   Role:
     Type: AWS::IAM::Role
@@ -506,7 +520,9 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service: !Sub ec2.${AWS::URLSuffix}
+              Service: 
+                - !Sub ec2.${AWS::URLSuffix}
+                - !Sub codebuild.${AWS::URLSuffix}
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonEC2FullAccess
@@ -517,6 +533,7 @@ Resources:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonS3FullAccess
         - !Sub arn:${AWS::Partition}:iam::aws:policy/SecretsManagerReadWrite
         - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonRoute53FullAccess
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AWSCodeBuildDeveloperAccess
       Policies:
         - PolicyName: EKSFullAccess
           PolicyDocument:
@@ -583,6 +600,8 @@ Resources:
                   - kms:GetKeyRotationStatus
                   - kms:ListResourceTags
                   - kms:ScheduleKeyDeletion
+                  - kms:TagResource
+                  - kms:UntagResource
                 Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
@@ -614,11 +633,15 @@ Resources:
                   - iam:CreateOpenIDConnectProvider
                   - iam:DeleteOpenIDConnectProvider
                   - iam:TagOpenIDConnectProvider
+                  - iam:UntagOpenIDConnectProvider
                   - iam:ListAttachedRolePolicies
                   - iam:TagRole
+                  - iam:UntagRole
                   - iam:GetPolicy
                   - iam:CreatePolicy
                   - iam:DeletePolicy
+                  - iam:TagPolicy
+                  - iam:UntagPolicy
                   - iam:ListPolicyVersions
                   - iam:ListRolePolicies
                   - iam:GetPolicyVersion
@@ -697,6 +720,7 @@ Resources:
 
   BootNodeProfile:
     Type: AWS::IAM::InstanceProfile
+    Condition: CreateInfraInstance
     Properties:
       Roles:
         - !If [CreateExecutionRole, !Ref Role, !Ref ExecutionRoleName]
@@ -704,6 +728,7 @@ Resources:
 
   BootNode:
     Type: AWS::EC2::Instance
+    Condition: CreateInfraInstance
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -771,138 +796,249 @@ Resources:
       ResourceSignal:
         Timeout: PT10M
 
-  LaunchTerraform:
-    Type: AWS::SSM::Association
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
     Properties:
-      Name: AWS-RunShellScript
-      Targets:
-      - Key: InstanceIds
-        Values:
-        - !Ref BootNode
-      Parameters:
-        commands:
-        - !Sub 
-          - |
-            #!/bin/bash
+      Name: "3decisionTerraformBuild"
+      ServiceRole: !If [CreateExecutionRole, !GetAtt Role.Arn, !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${ExecutionRoleName}"]
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: Action
+            Value: !Ref StackOperation
+          - Name: GitBranch
+            Value: !Ref GitBranch
+          - Name: AWS_REGION
+            Value: !Ref AWS::Region
+          - Name: DefaultTags
+            Value: !Join [",", !Ref DefaultTags]  # Joining the CommaDelimitedList
+          - Name: Bucket
+            Value : !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
+          - Name: KeyPairName
+            Value: !Ref KeyPairName
+          - Name: ForceDestroy
+            Value: !If [PreventDestroy, "false", "true"]
+          - Name: CreateFinalSnapshot
+            Value: !Ref CreateFinalSnapshot
+          - Name: SkipFinalSnapshot
+            Value: !If [CreateFinalSnapshot, "false", "true"]
+          - Name: VPCID
+            Value: !Ref VPCID
+          - Name: PrivateSubnet1ID
+            Value: !Ref PrivateSubnet1ID
+          - Name: PrivateSubnet2ID
+            Value: !Ref PrivateSubnet2ID
+          - Name: PrivateSubnet3ID
+            Value: !Ref PrivateSubnet3ID
+          - Name: CustomAmiId
+            Value: !Ref CustomAmiId
+          - Name: DBSnapshotIdentifier
+            Value: !Ref DBSnapshotIdentifier
+          - Name: DBMultiZone
+            Value: !Ref DBMultiZone
+          - Name: DBBackupRetentionPeriod
+            Value: !Ref DBBackupRetentionPeriod
+          - Name: DBDeleteAutoBackups
+            Value: !Ref DBDeleteAutoBackups
+          - Name: LoadBalancerType
+            Value: !Ref LoadBalancerType
+          - Name: CertificateArn
+            Value: !Ref CertificateArn
+          - Name: InboundCidrs
+            Value: !Ref InboundCidrs
+          - Name: DomainName
+            Value: !Ref DomainName
+          - Name: MainSubdomain
+            Value: !Ref MainSubdomain
+          - Name: AdditionalMainFQDNs
+            Value: !Ref AdditionalMainFQDNs
+          - Name: ApiSubdomain
+            Value: !Ref ApiSubdomain
+          - Name: RegistrationSubdomain
+            Value: !Ref RegistrationSubdomain
+          - Name: HostedZoneId
+            Value: !Ref HostedZoneId
+          - Name: AzureClient
+            Value: !If [ AzureUnused, "none", !Ref AzureClientId ]
+          - Name: AzureTenant
+            Value: !Ref AzureTenant
+          - Name: AzureSecret
+            Value: !Ref AzureSecret
+          - Name: OktaClient
+            Value: !If [ OktaUnused, "none", !Ref OktaClientId ]
+          - Name: OktaDomain
+            Value: !Ref OktaDomain
+          - Name: OktaServerId
+            Value: !Ref OktaServerId
+          - Name: OktaSecret
+            Value: !Ref OktaSecret
+          - Name: GoogleClient
+            Value: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
+          - Name: GoogleSecret
+            Value: !Ref GoogleSecret
+          - Name: PublicVolumeSnapshotId
+            Value: !Ref PublicVolumeSnapshotId
+          - Name: PrivateVolumeSnapshotId
+            Value: !Ref PrivateVolumeSnapshotId
+          - Name: KubernetesVersion
+            Value: !Ref KubernetesVersion
+          - Name: DBInstanceClass
+            Value: !Ref DBInstanceClass
+          - Name: NodeInstanceType
+            Value: !Ref NodeInstanceType
+          - Name: NodeVolumeSize
+            Value: !Ref NodeVolumeSize
+          - Name: AdditionalEKSAdminUserArn
+            Value: !Ref AdditionalEKSAdminUserArn
+          - Name: AdditionalEKSAdminRoleArn
+            Value: !Ref AdditionalEKSAdminRoleArn
+          - Name: TdecisionVersion
+            Value: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
+          - Name: TdecisionNamespace
+            Value: !Ref TdecisionNamespace
+          - Name: AdminPassword
+            Value: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
+      TimeoutInMinutes: 180
+      Cache:
+        Type: NO_CACHE
+      VpcConfig:
+        VpcId: !Ref VPCID
+        Subnets:
+          - !Ref PrivateSubnet1ID
+          - !Ref PrivateSubnet2ID
+          - !Ref PrivateSubnet3ID
+        SecurityGroupIds:
+          - !Ref BootNodeSecurityGroup
+      Description: "Build project for Terraform"
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - echo Installing dependencies...
+                - yum install -y unzip git jq
+                - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                - unzip -qq awscliv2.zip
+                - sudo ./aws/install --bin-dir /usr/bin --update
+                - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                - chmod +x kubectl
+                - mv kubectl /usr/local/bin
+                - wget -q https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
+                - unzip terraform_1.4.6_linux_amd64.zip
+                - sudo mv terraform /usr/local/bin/
+                - git clone -b ${GitBranch} https://github.com/Discngine/quickstart-discngine-3decision.git
+            pre_build:
+              commands:
+                - echo Setting up Terraform backend configuration...
+                - cd quickstart-discngine-3decision/terraform
+                - |
+                  cat > backend.conf << EOF
+                  region = "${AWS_REGION}"
+                  bucket = "${Bucket}"
+                  EOF
+                - echo Setting up Terraform variables...
+                - |
+                  TAGS_ARRAY=(${DefaultTags//,/ })
+                  TAGS_MAP=""
+                  for tag in "${TAGS_ARRAY[@]}"; do
+                    key=$(echo $tag | cut -d'=' -f1)
+                    value=$(echo $tag | cut -d'=' -f2)
+                    if [ -z "$TAGS_MAP" ]; then
+                      TAGS_MAP=$(printf "\"%s\" = \"%s\"" "$key" "$value")
+                    else
+                      TAGS_MAP="${TAGS_MAP}$(printf ",\n\"%s\" = \"%s\"" "$key" "$value")"
+                    fi
+                  done
+                - |
+                  cat > vars.tfvars << EOF
+                  region = "${AWS_REGION}"
+                  default_tags = {
+                  ${TAGS_MAP}
+                  }
+                  keypair_name = "${KeyPairName}"
+                  force_destroy = ${ForceDestroy}
+                  public_final_snapshot = ${CreateFinalSnapshot}
+                  private_final_snapshot = ${CreateFinalSnapshot}
+                  skip_db_final_snapshot = ${SkipFinalSnapshot}
+                  create_network = false
+                  vpc_id = "${VPCID}"
+                  private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
+                  custom_ami = "${CustomAmiId}"
+                  db_snapshot_identifier = "${DBSnapshotIdentifier}"
+                  db_high_availability = ${DBMultiZone}
+                  db_backup_retention_period = ${DBBackupRetentionPeriod}
+                  db_delete_automated_backups = ${DBDeleteAutoBackups}
+                  load_balancer_type = "${LoadBalancerType}"
+                  certificate_arn = "${CertificateArn}"
+                  inbound_cidrs = "${InboundCidrs}"
+                  domain = "${DomainName}"
+                  main_subdomain = "${MainSubdomain}"
+                  additional_main_fqdns = [${AdditionalMainFQDNs}]
+                  api_subdomain = "${ApiSubdomain}"
+                  registration_subdomain = "${RegistrationSubdomain}"
+                  hosted_zone_id = "${HostedZoneId}"
+                  azure_oidc = {
+                    client_id = "${AzureClient}"
+                    tenant    = "${AzureTenant}"
+                    secret    = "${AzureSecret}"
+                  }
+                  okta_oidc = {
+                    client_id = "${OktaClient}"
+                    domain    = "${OktaDomain}"
+                    server_id = "${OktaServerId}"
+                    secret    = "${OktaSecret}"
+                  }
+                  google_oidc = {
+                    client_id = "${GoogleClient}"
+                    secret    = "${GoogleSecret}"
+                  }
+                  public_volume_snapshot = "${PublicVolumeSnapshotId}"
+                  private_volume_snapshot = "${PrivateVolumeSnapshotId}"
 
-            echo ${RelaunchTerraform} > /dev/null
+                  kubernetes_version = "${KubernetesVersion}"
+                  db_instance_type = "${DBInstanceClass}"
+                  license_type = "license-included"
+                  eks_instance_type = "${NodeInstanceType}"
+                  boot_volume_size = "${NodeVolumeSize}"
 
-            if ! command -v helm; then
-              curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-              chmod 700 get_helm.sh
-              ./get_helm.sh
-            fi
+                  additional_eks_users_arn = [${AdditionalEKSAdminUserArn}]
+                  additional_eks_roles_arn = [${AdditionalEKSAdminRoleArn}]
 
-            sudo chown -R root:root /opt/dng/
-            cd /opt/dng/quickstart-discngine-3decision/terraform
+                  tdecision_chart = {
+                    version = ${TdecisionVersion}
+                    namespace = "${TdecisionNamespace}"
+                  }
+                  initial_db_passwords = {
+                    "ADMIN"                   = "${AdminPassword}"
+                    "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
+                    "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
+                  }
 
-            rm -rf .terraform/providers/
-
-            git pull
-            git checkout ${GitBranch} && git pull
-            cat > backend.conf << EOF
-            region = "${AWS::Region}"
-            bucket = "${Bucket}"
-            EOF
-
-            cat > vars.tfvars << EOF
-            region = "${AWS::Region}"
-            keypair_name = "${KeyPairName}"
-            force_destroy = ${ForceDestroy}
-            public_final_snapshot = ${CreateFinalSnapshot}
-            private_final_snapshot = ${CreateFinalSnapshot}
-            skip_db_final_snapshot = ${SkipFinalSnapshot}
-            create_network = false
-            vpc_id = "${VPCID}"
-            private_subnet_ids = ["${PrivateSubnet1ID}", "${PrivateSubnet2ID}", "${PrivateSubnet3ID}"]
-            custom_ami = "${CustomAmiId}"
-            db_snapshot_identifier = "${DBSnapshotIdentifier}"
-            db_high_availability = ${DBMultiZone}
-            db_backup_retention_period = ${DBBackupRetentionPeriod}
-            db_delete_automated_backups = ${DBDeleteAutoBackups}
-            load_balancer_type = "${LoadBalancerType}"
-            certificate_arn = "${CertificateArn}"
-            inbound_cidrs = "${InboundCidrs}"
-            domain = "${DomainName}"
-            main_subdomain = "${MainSubdomain}"
-            additional_main_fqdns = [${AdditionalMainFQDNs}]
-            api_subdomain = "${ApiSubdomain}"
-            registration_subdomain = "${RegistrationSubdomain}"
-            hosted_zone_id = "${HostedZoneId}"
-            azure_oidc = {
-              client_id = "${AzureClient}"
-              tenant    = "${AzureTenant}"
-              secret    = "${AzureSecret}"
-            }
-            okta_oidc = {
-              client_id = "${OktaClient}"
-              domain    = "${OktaDomain}"
-              server_id = "${OktaServerId}"
-              secret    = "${OktaSecret}"
-            }
-            google_oidc = {
-              client_id = "${GoogleClient}"
-              secret    = "${GoogleSecret}"
-            }
-            public_volume_snapshot = "${PublicVolumeSnapshotId}"
-            private_volume_snapshot = "${PrivateVolumeSnapshotId}"
-
-            kubernetes_version = "${KubernetesVersion}"
-            db_instance_type = "${DBInstanceClass}"
-            license_type = "license-included"
-            eks_instance_type = "${NodeInstanceType}"
-            boot_volume_size = "${NodeVolumeSize}"
-
-            additional_eks_users_arn = [${AdditionalEKSAdminUserArn}]
-            additional_eks_roles_arn = [${AdditionalEKSAdminRoleArn}]
-
-            tdecision_chart = {
-              version = ${TdecisionVersion}
-              namespace = "${TdecisionNamespace}"
-            }
-            initial_db_passwords = {
-              "ADMIN"                   = "${AdminPassword}"
-              "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
-              "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
-            }
-            EOF
-            terraform init -backend-config=backend.conf -reconfigure -upgrade
-
-            sudo yum install jq -y
-
-            terraform state replace-provider --auto-approve registry.terraform.io/gavinbunney/kubectl registry.terraform.io/alekc/kubectl
-
-            terraform state rm module.storage[\"redis\"].aws_s3_bucket.bucket
-            terraform state pull > terraform.tfstate
-            final_snapshot_value=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.final_snapshot' terraform.tfstate)
-
-            if [ "$final_snapshot_value" = "true" ]; then
-              id=$(jq -r '.resources[] | select(.name == "public_data") | .instances[0].attributes.id' terraform.tfstate)
-              terraform state rm 'module.volumes.aws_ebs_volume.public_data'
-              terraform import -var-file=vars.tfvars 'module.volumes.aws_ebs_volume.public_data' "$id"
-            else
-              echo "final_snapshot is not set to true. Doing nothing."
-            fi
-            rm terraform.tfstate
-
-            terraform ${StackOperation} -var-file=vars.tfvars -auto-approve
-
-          - OktaClient: !If [ OktaUnused, "none", !Ref OktaClientId ]
-            GoogleClient: !If [ GoogleUnused, "none", !Ref GoogleClientId ]
-            AzureClient: !If [ AzureUnused, "none", !Ref AzureClientId ]
-            Bucket: !If [ CreateBucket, !Ref StateBucket, !Ref BucketName ]
-            TdecisionVersion: !If [ LatestTdecisionVersion, "null", !Sub '"${TdecisionVersion}"' ]
-            SkipFinalSnapshot: !If [CreateFinalSnapshot, "false", "true"]
-            ForceDestroy: !If [PreventDestroy, "false", "true"]
-            AdminPassword: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
-            
-        workingDirectory:
-        - "/opt/dng"
-      OutputLocation:
-        S3Location: 
-          OutputS3BucketName: !If [CreateBucket, !Ref StateBucket, !Ref BucketName]
-          OutputS3KeyPrefix: 'logs/'
-          OutputS3Region: !Ref AWS::Region
-      WaitForSuccessTimeoutSeconds: 36000
+                  EOF
+                - cat vars.tfvars
+            build:
+              commands:
+                - echo Running Terraform ${Action}...
+                - terraform init -backend-config=backend.conf -reconfigure -upgrade
+                - |
+                  case "${Action}" in
+                    plan)
+                      terraform plan -var-file=vars.tfvars
+                      ;;
+                    apply)
+                      terraform apply -var-file=vars.tfvars -auto-approve
+                      ;;
+                    destroy)
+                      terraform destroy -var-file=vars.tfvars -auto-approve
+                      ;;
+                    *)
+                      echo "Unknown action: ${Action}"
+                      exit 1
+                      ;;
+                  esac
