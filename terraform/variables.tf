@@ -25,6 +25,11 @@ variable "force_destroy" {
   description = "Setting this to false will not allow deletion of the database / non empty s3 buckets"
 }
 
+variable "kms_key_arn" {
+  default     = null
+  description = "KMS key arn to use if create_kms_key is set to false"
+}
+
 variable "create_kms_key" {
   default     = false
   description = "Whether to create a kms key for the database and volumes"

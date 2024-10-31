@@ -117,7 +117,7 @@ resource "aws_kms_key" "kms" {
 }
 
 locals {
-  kms_key_id = var.create_kms_key ? aws_kms_key.kms[0].arn : null
+  kms_key_id = var.create_kms_key ? aws_kms_key.kms[0].arn : var.kms_key_arn
 }
 
 ############
