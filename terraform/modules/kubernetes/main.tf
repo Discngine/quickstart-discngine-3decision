@@ -161,8 +161,16 @@ resource "kubernetes_deployment" "sqlcl" {
       }
 
       spec {
+        security_context {
+          run_as_non_root = true
+          run_as_user     = 10001
+          run_as_group    = 10001
+          seccomp_profile {
+            type = "RuntimeDefault"
+          }
+        }
         container {
-          name  = "web"
+          name  = "sqlcl"
           image = "fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321"
 
           command = ["/bin/bash", "-c", "--"]
@@ -189,6 +197,18 @@ resource "kubernetes_deployment" "sqlcl" {
           env {
             name  = "sqs"
             value = "/home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}"
+          }
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "256Mi"
+            }
+          }
+          security_context {
+            allow_privilege_escalation = false
+            capabilities {
+              drop = ["ALL"]
+            }
           }
         }
       }
