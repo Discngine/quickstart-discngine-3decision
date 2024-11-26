@@ -233,17 +233,14 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
 }
 
 resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
-  for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"])
+  for_each = toset(var.enable_db_user_rotation ? ["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"] : ["ADMIN"])
 
   secret_id           = aws_secretsmanager_secret.db_passwords[each.key].id
-  rotation_lambda_arn = var.enable_db_user_rotation || each.key == "ADMIN" ? aws_lambda_function.secret_rotator_lambda.arn : null
+  rotation_lambda_arn = aws_lambda_function.secret_rotator_lambda.arn
 
-  dynamic "rotation_rules" {
-    for_each = var.enable_db_user_rotation || each.key == "ADMIN" ? [""] : []
-    content {
-      # Run on the first sunday of the month at 2 AM
-      schedule_expression = each.key == "ADMIN" ? var.db_admin_rotation_schedule : var.db_user_rotation_schedule
-    }
+  rotation_rules {
+    # Run on the first sunday of the month at 2 AM
+    schedule_expression = each.key == "ADMIN" ? var.db_admin_rotation_schedule : var.db_user_rotation_schedule
   }
   depends_on = [aws_secretsmanager_secret_version.db_passwords_version]
 }
