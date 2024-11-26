@@ -191,6 +191,9 @@ module "secrets" {
   region               = var.region
   account_id           = local.account_id
   initial_db_passwords = var.initial_db_passwords
+
+  db_user_rotation_schedule  = var.db_user_rotation_schedule
+  db_admin_rotation_schedule = var.db_admin_rotation_schedule
   # Output
   vpc_id               = var.create_network ? module.network[0].vpc_id : var.vpc_id
   private_subnet_ids   = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids

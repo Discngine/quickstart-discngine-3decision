@@ -240,7 +240,7 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
 
   rotation_rules {
     # Run on the first sunday of the month at 2 AM
-    schedule_expression = "cron(0 2 ? * SUN#1 *)"
+    schedule_expression = each.key == "ADMIN" ? var.db_admin_rotation_schedule : var.db_user_rotation_schedule
   }
   depends_on = [aws_secretsmanager_secret_version.db_passwords_version]
 }
