@@ -192,6 +192,7 @@ module "secrets" {
   account_id           = local.account_id
   initial_db_passwords = var.initial_db_passwords
 
+  enable_db_user_rotation    = var.enable_db_user_rotation
   db_user_rotation_schedule  = var.db_user_rotation_schedule
   db_admin_rotation_schedule = var.db_admin_rotation_schedule
   # Output

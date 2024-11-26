@@ -177,6 +177,12 @@ variable "initial_db_passwords" {
   description = "The passwords of the schemas present in the snapshot"
 }
 
+variable "enable_db_user_rotation" {
+  default     = true
+  type        = bool
+  description = "Setting to false will disable rotation for database users"
+}
+
 variable "db_user_rotation_schedule" {
   default     = "cron(0 2 ? * SUN#1 *)"
   description = "Schedule expression to set for db users password rotation"

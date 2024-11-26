@@ -236,7 +236,7 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
   for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"])
 
   secret_id           = aws_secretsmanager_secret.db_passwords[each.key].id
-  rotation_lambda_arn = aws_lambda_function.secret_rotator_lambda.arn
+  rotation_lambda_arn = var.enable_db_user_rotation ? aws_lambda_function.secret_rotator_lambda.arn : null
 
   rotation_rules {
     # Run on the first sunday of the month at 2 AM
