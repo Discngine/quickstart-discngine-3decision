@@ -390,6 +390,31 @@ resource "kubernetes_job_v1" "af_proteome_download" {
   wait_for_completion = false
 }
 
+resource "kubernetes_priority_class" "high_priority" {
+  metadata {
+    name = "high-priority"
+  }
+
+  value = 1000
+}
+
+resource "kubernetes_priority_class" "default_priority" {
+  metadata {
+    name = "default-priority"
+  }
+
+  value          = 500
+  global_default = true
+}
+
+resource "kubernetes_priority_class" "low_priority" {
+  metadata {
+    name = "low-priority"
+  }
+
+  value = 100
+}
+
 ######################
 #        HELM
 ######################
@@ -414,6 +439,7 @@ master:
     ports:
       redis: 6380
 replica:
+  priorityClassName: "high-priority"
   replicaCount: 1
   resources:
     requests:
@@ -470,7 +496,8 @@ resource "helm_release" "sentinel_release" {
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubernetes_config_map_v1.aws_auth,
-    terraform_data.delete_sentinel_statefulsets
+    terraform_data.delete_sentinel_statefulsets,
+    kubernetes_priority_class.high_priority
   ]
   provisioner "local-exec" {
     when    = destroy
