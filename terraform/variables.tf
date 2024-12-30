@@ -215,7 +215,7 @@ variable "tdecision_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
     chart            = optional(string, "tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.1.4")
+    version          = optional(string, "3.1.5")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -229,7 +229,7 @@ variable "choral_chart" {
     repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/helm")
     chart            = optional(string, "choral")
     namespace        = optional(string, "choral")
-    version          = optional(string, "1.2.1")
+    version          = optional(string, "1.2.4")
     create_namespace = optional(bool, true)
   })
   default = {}
