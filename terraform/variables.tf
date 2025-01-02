@@ -227,7 +227,7 @@ variable "choral_chart" {
     name             = optional(string, "choral")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
     namespace        = optional(string, "choral")
-    version          = optional(string, "1.2.4")
+    version          = optional(string, "1.3.0")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -241,7 +241,7 @@ variable "chemaxon_ms_chart" {
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/chemaxon-ms")
     namespace        = optional(string, "chemaxon-ms")
     create_namespace = optional(bool, true)
-    version          = optional(string, "1.0.6")
+    version          = optional(string, "1.1.0")
   })
   default = {}
 }
