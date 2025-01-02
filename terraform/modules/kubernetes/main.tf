@@ -171,7 +171,7 @@ resource "kubernetes_deployment" "sqlcl" {
         }
         container {
           name  = "sqlcl"
-          image = "fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321"
+          image = "fra.ocir.io/discngine1/prod/oracle/sqlcl:23.4.0.023.2321"
 
           command = ["/bin/bash", "-c", "--"]
           args    = ["sleep infinity"]
@@ -317,7 +317,7 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
       spec {
         container {
           name  = "job-af-bucket-files-push"
-          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.2"
+          image = "fra.ocir.io/discngine1/prod/3decision/alphafold_bucket_push:0.0.2"
           env {
             name  = "PROVIDER"
             value = "AWS"
@@ -369,7 +369,7 @@ resource "kubernetes_job_v1" "af_proteome_download" {
       spec {
         container {
           name  = "af-bucket-files-push-job"
-          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_proteome_downloader:0.0.1"
+          image = "fra.ocir.io/discngine1/prod/3decision/alphafold_proteome_downloader:0.0.1"
           volume_mount {
             name       = "nfs-pvc-public"
             mount_path = "/publicdata"
@@ -687,7 +687,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: reset-passwords
-      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
+      image: fra.ocir.io/discngine1/prod/oracle/sqlcl:23.4.0.023.2321
       command: [ "/bin/bash", "-c", "--" ]
       envFrom:
       - secretRef:
@@ -736,7 +736,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: clean-choral
-      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
+      image: fra.ocir.io/discngine1/prod/oracle/sqlcl:23.4.0.023.2321
       command: [ "/bin/bash", "-c", "--" ]
       envFrom:
       - secretRef:

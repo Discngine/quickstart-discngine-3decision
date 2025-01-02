@@ -212,8 +212,7 @@ variable "tdecision_chart" {
 
   type = object({
     name             = optional(string, "tdecision")
-    repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube")
-    chart            = optional(string, "tdecision")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
     version          = optional(string, "3.1.5")
     create_namespace = optional(bool, true)
@@ -226,8 +225,7 @@ variable "choral_chart" {
 
   type = object({
     name             = optional(string, "choral")
-    repository       = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/helm")
-    chart            = optional(string, "choral")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
     namespace        = optional(string, "choral")
     version          = optional(string, "1.2.4")
     create_namespace = optional(bool, true)
@@ -240,7 +238,7 @@ variable "chemaxon_ms_chart" {
 
   type = object({
     name             = optional(string, "chemaxon-ms")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/3decision_kube/chemaxon-ms")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/chemaxon-ms")
     namespace        = optional(string, "chemaxon-ms")
     create_namespace = optional(bool, true)
     version          = optional(string, "1.0.6")
