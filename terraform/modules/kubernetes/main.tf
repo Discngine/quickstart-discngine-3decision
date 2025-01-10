@@ -774,7 +774,6 @@ rm clean_choral.yaml
 
 resource "helm_release" "tdecision_chart" {
   name       = var.tdecision_chart.name
-  repository = var.tdecision_chart.repository
   chart      = var.tdecision_chart.chart
   version    = var.tdecision_chart.version
   namespace  = var.tdecision_chart.namespace
