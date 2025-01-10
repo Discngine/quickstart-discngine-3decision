@@ -4,6 +4,28 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.1.5] - 2025-01-10
+### Cloudformation
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- Added priority classes used by helm charts to prioritize pods @JonathanManass
+- Updated helm chart default versions @JonathanManass
+
+#### Changed
+- Updated registry for all images to new prod registry @JonathanManass
+
+#### Removed
+- Nothing
+---
 ## [3.1.4] - 2024-10-15
 ### Cloudformation
 #### Added
