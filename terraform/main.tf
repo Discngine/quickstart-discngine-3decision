@@ -209,6 +209,7 @@ module "volumes" {
   # Input
   region                  = var.region
   availability_zone_names = local.availability_zone_names
+  encrypt_volumes         = var.encrypt_volumes
   storage_type            = var.volumes_storage_type
   public_volume_snapshot  = var.public_volume_snapshot
   private_volume_snapshot = var.private_volume_snapshot
@@ -274,6 +275,7 @@ module "kubernetes" {
   af_file_nb               = var.af_file_nb
   initial_db_passwords     = var.initial_db_passwords
   force_destroy            = var.force_destroy
+  encrypt_volumes          = var.encrypt_volumes
   deploy_cert_manager      = var.deploy_cert_manager
   deploy_alb_chart         = var.deploy_alb_chart
   # Output

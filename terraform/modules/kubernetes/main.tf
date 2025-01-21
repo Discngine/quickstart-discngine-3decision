@@ -69,7 +69,13 @@ resource "kubernetes_config_map_v1" "aws_auth" {
   depends_on = [null_resource.delete_aws_auth]
 }
 
+moved {
+  from = kubernetes_storage_class_v1.encrypted_storage_class
+  to   = kubernetes_storage_class_v1.encrypted_storage_class[0]
+}
+
 resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
+  count = var.encrypt_volumes ? 1 : 0
   metadata {
     name = "gp2-encrypted"
   }
@@ -354,7 +360,7 @@ resource "kubernetes_job_v1" "af_proteome_download" {
 locals {
   values_config = <<YAML
 global:
-  storageClass: gp2-encrypted
+  storageClass: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -509,7 +515,7 @@ oracle:
   hostString: ${local.db_endpoint}
   pdbString: ${var.db_name}
 volumes:
-  storageClassName: gp2-encrypted
+  storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
   claimPods:
     backend:
       publicdata:
@@ -710,12 +716,11 @@ rm clean_choral.yaml
 }
 
 resource "helm_release" "tdecision_chart" {
-  name       = var.tdecision_chart.name
-  repository = var.tdecision_chart.repository
-  chart      = var.tdecision_chart.chart
-  version    = var.tdecision_chart.version
-  namespace  = var.tdecision_chart.namespace
-  timeout    = 7200
+  name      = var.tdecision_chart.name
+  chart     = var.tdecision_chart.chart
+  version   = var.tdecision_chart.version
+  namespace = var.tdecision_chart.namespace
+  timeout   = 7200
 
   values = [local.final_values]
   depends_on = [
@@ -749,12 +754,11 @@ resource "helm_release" "tdecision_chart" {
 
 resource "null_resource" "delete_resources" {
   triggers = {
-    name       = var.tdecision_chart.name
-    repository = var.tdecision_chart.repository
-    chart      = var.tdecision_chart.chart
-    version    = var.tdecision_chart.version
-    namespace  = var.tdecision_chart.namespace
-    values     = local.values
+    name      = var.tdecision_chart.name
+    chart     = var.tdecision_chart.chart
+    version   = var.tdecision_chart.version
+    namespace = var.tdecision_chart.namespace
+    values    = local.values
   }
 
   provisioner "local-exec" {
@@ -769,16 +773,15 @@ resource "null_resource" "delete_resources" {
 }
 
 resource "helm_release" "choral_chart" {
-  name       = var.choral_chart.name
-  repository = var.choral_chart.repository
-  chart      = var.choral_chart.chart
-  version    = var.choral_chart.version
-  namespace  = var.choral_chart.namespace
+  name      = var.choral_chart.name
+  chart     = var.choral_chart.chart
+  version   = var.choral_chart.version
+  namespace = var.choral_chart.namespace
   values = [<<YAML
     oracle:
       connectionString: ${local.connection_string}
     pvc:
-      storageClassName: gp2-encrypted
+      storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
   YAML
   ]
   timeout = 1200

@@ -445,6 +445,12 @@ variable "volumes_storage_type" {
   description = "Type of storage for the database"
 }
 
+variable "encrypt_volumes" {
+  type        = bool
+  default     = true
+  description = "Whether to encrypt the volumes"
+}
+
 variable "public_volume_snapshot" {
   default     = ""
   description = "Snapshot id of the public data volume. If left empty the public snapshot will be used."

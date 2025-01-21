@@ -12,7 +12,7 @@ resource "aws_ebs_volume" "public_data" {
   snapshot_id       = var.public_volume_snapshot != "" ? var.public_volume_snapshot : lookup(local.public_snapshot, var.region)
   final_snapshot    = false
   type              = var.storage_type
-  encrypted         = true
+  encrypted         = var.encrypt_volumes
   kms_key_id        = var.kms_key_id
   tags = {
     Name = "3decision-public-data"
@@ -31,7 +31,7 @@ resource "aws_ebs_volume" "private_data" {
   type              = var.storage_type
   final_snapshot    = var.private_final_snapshot
   size              = 200
-  encrypted         = true
+  encrypted         = var.encrypt_volumes
   kms_key_id        = var.kms_key_id
   tags = {
     Name = "3decision-private-data"
