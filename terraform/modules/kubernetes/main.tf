@@ -542,6 +542,9 @@ ingress:
   react:
     host: ${var.registration_subdomain}
   class: alb
+Images:
+  redis:
+    repository: fra.ocir.io/discngine1/prod/redis/redis
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:

@@ -35,7 +35,6 @@ resource "aws_db_snapshot_copy" "snapshot" {
 
 resource "aws_db_instance" "db_instance" {
   max_allocated_storage     = var.max_allocated_storage
-  character_set_name        = "AL32UTF8"
   instance_class            = var.instance_type
   db_name                   = "ORCL"
   identifier_prefix         = "db3dec"

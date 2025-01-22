@@ -396,7 +396,7 @@ variable "redis_sentinel_chart" {
 
   type = object({
     name             = optional(string, "sentinel")
-    chart            = optional(string, "oci://registry-1.docker.io/bitnamicharts/redis")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/redis")
     namespace        = optional(string, "redis-cluster")
     create_namespace = optional(bool, true)
     version          = optional(string, "18.4.0")
