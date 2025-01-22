@@ -27,6 +27,10 @@ resource "aws_db_snapshot_copy" "snapshot" {
   source_db_snapshot_identifier = local.snapshot_identifier
   target_db_snapshot_identifier = var.copied_snapshot_identifier
   kms_key_id                    = aws_kms_key.kms[0].arn
+
+  timeouts {
+    create = "60m"
+  }
 }
 
 resource "aws_db_instance" "db_instance" {
