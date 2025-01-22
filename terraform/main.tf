@@ -158,19 +158,21 @@ module "eks" {
 module "database" {
   source = "./modules/database"
   # Input
-  region                   = var.region
-  account_id               = local.account_id
-  force_destroy            = var.force_destroy
-  snapshot_identifier      = var.db_snapshot_identifier
-  high_availability        = var.db_high_availability
-  instance_type            = var.db_instance_type
-  backup_retention_period  = var.db_backup_retention_period
-  delete_automated_backups = var.db_delete_automated_backups
-  license_type             = var.license_type
-  skip_final_snapshot      = var.skip_db_final_snapshot
-  kms_key_id               = local.kms_key_id
-  max_allocated_storage    = var.max_allocated_storage
-  storage_type             = var.db_storage_type
+  region                     = var.region
+  account_id                 = local.account_id
+  force_destroy              = var.force_destroy
+  snapshot_identifier        = var.db_snapshot_identifier
+  copy_db_snapshot           = var.copy_db_snapshot
+  copied_snapshot_identifier = var.copied_snapshot_identifier
+  high_availability          = var.db_high_availability
+  instance_type              = var.db_instance_type
+  backup_retention_period    = var.db_backup_retention_period
+  delete_automated_backups   = var.db_delete_automated_backups
+  license_type               = var.license_type
+  skip_final_snapshot        = var.skip_db_final_snapshot
+  kms_key_id                 = local.kms_key_id
+  max_allocated_storage      = var.max_allocated_storage
+  storage_type               = var.db_storage_type
   # Output
   node_security_group_id = var.create_node_group ? module.eks.node_security_group_id : var.node_group_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id

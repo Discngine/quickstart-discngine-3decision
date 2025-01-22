@@ -21,6 +21,14 @@ resource "aws_security_group_rule" "db_security_group_egress" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+resource "aws_db_snapshot_copy" "snapshot" {
+  count = var.copy_db_snapshot ? 1 : 0
+
+  source_db_snapshot_identifier = local.snapshot_identifier
+  target_db_snapshot_identifier = var.copied_snapshot_identifier
+  kms_key_id                    = aws_kms_key.kms[0].arn
+}
+
 resource "aws_db_instance" "db_instance" {
   max_allocated_storage     = var.max_allocated_storage
   character_set_name        = "AL32UTF8"
@@ -37,7 +45,7 @@ resource "aws_db_instance" "db_instance" {
   db_subnet_group_name      = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids    = [aws_security_group.db_security_group.id]
   storage_type              = var.storage_type
-  snapshot_identifier       = var.snapshot_identifier != "" ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
+  snapshot_identifier       = local.final_snapshot_identifier
   publicly_accessible       = false
   delete_automated_backups  = var.delete_automated_backups
   deletion_protection       = !var.force_destroy

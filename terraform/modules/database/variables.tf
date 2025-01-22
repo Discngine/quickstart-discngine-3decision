@@ -4,6 +4,8 @@ variable "region" {}
 variable "account_id" {}
 variable "force_destroy" {}
 variable "snapshot_identifier" {}
+variable "copy_db_snapshot" {}
+variable "copied_snapshot_identifier" {}
 variable "high_availability" {}
 variable "instance_type" {}
 variable "node_security_group_id" {}

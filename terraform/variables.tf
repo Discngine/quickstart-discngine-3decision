@@ -152,6 +152,17 @@ variable "openid_provider_arn" {
 # DATABASE
 ###############
 
+variable "copy_db_snapshot" {
+  default     = false
+  description = "Will copy the db_snapshot_identifier and encrypt it"
+}
+
+variable "copied_snapshot_identifier" {
+  type        = string
+  default     = "db3dec"
+  description = "Name of the copied database snapshot"
+}
+
 variable "db_snapshot_identifier" {
   default     = ""
   description = "Arn of a database snapshot. If left empty the public unencrypted snapshot will be used."
