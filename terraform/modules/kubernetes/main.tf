@@ -136,50 +136,95 @@ resource "kubernetes_secret" "jwt_secret" {
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
 
-resource "kubectl_manifest" "sqlcl" {
-  yaml_body  = <<YAML
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: sqlcl
-  namespace: tools
-  labels:
-    role: help
-    app: sqlcl
-  annotations:
-    reloader.stakater.com/auto: "true"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: sqlcl
-  template:
-    metadata:
-      name: sqlcl
-      namespace: tools
-      labels:
-        role: help
-        app: sqlcl
-    spec:
-      containers:
-        - name: web
-          image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
-          command: [ "/bin/bash", "-c", "--" ]
-          envFrom:
-          - secretRef:
-              name: database-secrets
-          env:
-            - name: CONNECTION_STRING
-              value: ${local.connection_string}
-            - name: sq3
-              value: /home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}
-            - name: sqc
-              value: /home/sqlcl/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}
-            - name: sqs
-              value: /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}
-          args: [ "sleep infinity" ]
-  YAML
-  depends_on = [kubernetes_namespace.tools_namespace, kubectl_manifest.ClusterExternalSecret]
+resource "kubernetes_deployment" "sqlcl" {
+  metadata {
+    name      = "sqlcl"
+    namespace = "tools"
+    labels = {
+      role = "help"
+      app  = "sqlcl"
+    }
+    annotations = {
+      "reloader.stakater.com/auto" = "true"
+    }
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "sqlcl"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          role = "help"
+          app  = "sqlcl"
+        }
+      }
+
+      spec {
+        security_context {
+          run_as_non_root = true
+          run_as_user     = 10001
+          run_as_group    = 10001
+          seccomp_profile {
+            type = "RuntimeDefault"
+          }
+        }
+        container {
+          name  = "sqlcl"
+          image = "fra.ocir.io/discngine1/prod/oracle/sqlcl:23.4.0.023.2321"
+
+          command = ["/bin/bash", "-c", "--"]
+          args    = ["sleep infinity"]
+
+          env_from {
+            secret_ref {
+              name = "database-secrets"
+            }
+          }
+
+          env {
+            name  = "CONNECTION_STRING"
+            value = local.connection_string
+          }
+          env {
+            name  = "sq3"
+            value = "/home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}"
+          }
+          env {
+            name  = "sqc"
+            value = "/home/sqlcl/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}"
+          }
+          env {
+            name  = "sqs"
+            value = "/home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}"
+          }
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "256Mi"
+            }
+          }
+          security_context {
+            allow_privilege_escalation = false
+            capabilities {
+              drop = ["ALL"]
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    kubernetes_namespace.tools_namespace,
+    kubectl_manifest.ClusterExternalSecret
+  ]
 }
 
 resource "kubectl_manifest" "secretstore" {
@@ -280,7 +325,7 @@ resource "kubernetes_job_v1" "af_bucket_files_push" {
       spec {
         container {
           name  = "job-af-bucket-files-push"
-          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_bucket_push:0.0.2"
+          image = "fra.ocir.io/discngine1/prod/3decision/alphafold_bucket_push:0.0.2"
           env {
             name  = "PROVIDER"
             value = "AWS"
@@ -332,7 +377,7 @@ resource "kubernetes_job_v1" "af_proteome_download" {
       spec {
         container {
           name  = "af-bucket-files-push-job"
-          image = "fra.ocir.io/discngine1/3decision_kube/alphafold_proteome_downloader:0.0.1"
+          image = "fra.ocir.io/discngine1/prod/3decision/alphafold_proteome_downloader:0.0.1"
           volume_mount {
             name       = "nfs-pvc-public"
             mount_path = "/publicdata"
@@ -351,6 +396,31 @@ resource "kubernetes_job_v1" "af_proteome_download" {
     backoff_limit = 3
   }
   wait_for_completion = false
+}
+
+resource "kubernetes_priority_class" "high_priority" {
+  metadata {
+    name = "high-priority"
+  }
+
+  value = 1000
+}
+
+resource "kubernetes_priority_class" "default_priority" {
+  metadata {
+    name = "default-priority"
+  }
+
+  value          = 500
+  global_default = true
+}
+
+resource "kubernetes_priority_class" "low_priority" {
+  metadata {
+    name = "low-priority"
+  }
+
+  value = 100
 }
 
 ######################
@@ -377,6 +447,7 @@ master:
     ports:
       redis: 6380
 replica:
+  priorityClassName: "high-priority"
   replicaCount: 1
   resources:
     requests:
@@ -439,7 +510,8 @@ resource "helm_release" "sentinel_release" {
   depends_on = [
     kubernetes_storage_class_v1.encrypted_storage_class,
     kubernetes_config_map_v1.aws_auth,
-    terraform_data.delete_sentinel_statefulsets
+    terraform_data.delete_sentinel_statefulsets,
+    kubernetes_priority_class.high_priority
   ]
   provisioner "local-exec" {
     when    = destroy
@@ -633,7 +705,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: reset-passwords
-      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
+      image: fra.ocir.io/discngine1/prod/oracle/sqlcl:23.4.0.023.2321
       command: [ "/bin/bash", "-c", "--" ]
       envFrom:
       - secretRef:
@@ -682,7 +754,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: clean-choral
-      image: fra.ocir.io/discngine1/3decision_kube/sqlcl:23.4.0.023.2321
+      image: fra.ocir.io/discngine1/prod/oracle/sqlcl:23.4.0.023.2321
       command: [ "/bin/bash", "-c", "--" ]
       envFrom:
       - secretRef:
@@ -1088,7 +1160,9 @@ EOF
         "elasticloadbalancing:ModifyListener",
         "elasticloadbalancing:AddListenerCertificates",
         "elasticloadbalancing:RemoveListenerCertificates",
-        "elasticloadbalancing:ModifyRule"
+        "elasticloadbalancing:ModifyRule",
+        "elasticloadbalancing:DescribeListenerAttributes",
+        "elasticloadbalancing:ModifyListenerAttributes"
       ],
       "Resource": "*"
     }

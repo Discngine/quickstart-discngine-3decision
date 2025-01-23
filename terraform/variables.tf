@@ -318,6 +318,7 @@ variable "tdecision_chart" {
   type = object({
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
     version          = optional(string, "3.1.5-pingid")
     create_namespace = optional(bool, true)
@@ -331,7 +332,9 @@ variable "choral_chart" {
   type = object({
     name             = optional(string, "choral")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
     namespace        = optional(string, "choral")
+    version          = optional(string, "1.3.0")
     version          = optional(string, "1.3.0")
     create_namespace = optional(bool, true)
   })
