@@ -14,9 +14,9 @@ resource "aws_ebs_volume" "public_data" {
   type              = var.storage_type
   encrypted         = var.encrypt_volumes
   kms_key_id        = var.kms_key_id
-  tags = {
+  tags = merge({
     Name = "3decision-public-data"
-  }
+  }, var.volumes_additional_tags)
   lifecycle {
     ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot, tags, tags_all]
   }
@@ -33,9 +33,9 @@ resource "aws_ebs_volume" "private_data" {
   size              = 200
   encrypted         = var.encrypt_volumes
   kms_key_id        = var.kms_key_id
-  tags = {
+  tags = merge({
     Name = "3decision-private-data"
-  }
+  }, var.volumes_additional_tags)
   lifecycle {
     ignore_changes = [availability_zone, snapshot_id, encrypted, kms_key_id, final_snapshot, tags, tags_all]
   }

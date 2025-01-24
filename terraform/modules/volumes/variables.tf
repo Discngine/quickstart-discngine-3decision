@@ -3,6 +3,7 @@
 variable "region" {}
 variable "availability_zone_names" {}
 variable "storage_type" {}
+variable "volumes_additional_tags" {}
 variable "public_volume_snapshot" {}
 variable "private_volume_snapshot" {}
 variable "private_final_snapshot" {}

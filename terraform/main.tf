@@ -212,6 +212,7 @@ module "volumes" {
   region                  = var.region
   availability_zone_names = local.availability_zone_names
   encrypt_volumes         = var.encrypt_volumes
+  volumes_additional_tags = var.volumes_additional_tags
   storage_type            = var.volumes_storage_type
   public_volume_snapshot  = var.public_volume_snapshot
   private_volume_snapshot = var.private_volume_snapshot

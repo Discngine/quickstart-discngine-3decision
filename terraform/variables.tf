@@ -460,6 +460,12 @@ variable "volumes_storage_type" {
   description = "Type of storage for the database"
 }
 
+variable "volumes_additional_tags" {
+  default     = {}
+  type        = map(string)
+  description = "Additional tags to add to the volumes"
+}
+
 variable "encrypt_volumes" {
   type        = bool
   default     = true
