@@ -853,10 +853,11 @@ resource "helm_release" "choral_chart" {
   version   = var.choral_chart.version
   namespace = var.choral_chart.namespace
   values = [<<YAML
-    oracle:
-      connectionString: ${local.connection_string}
-    pvc:
-      storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
+${var.disable_choral_dns_resolution ? "exposeHostName: false" : ""}
+oracle:
+  connectionString: ${local.connection_string}
+pvc:
+  storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
   YAML
   ]
   timeout = 1200

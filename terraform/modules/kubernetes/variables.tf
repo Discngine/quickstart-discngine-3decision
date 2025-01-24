@@ -47,3 +47,4 @@ variable "force_destroy" {}
 variable "deploy_cert_manager" {}
 variable "deploy_alb_chart" {}
 variable "encrypt_volumes" {}
+variable "disable_choral_dns_resolution" {}

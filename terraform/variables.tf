@@ -332,7 +332,7 @@ variable "choral_chart" {
     name             = optional(string, "choral")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
     namespace        = optional(string, "choral")
-    version          = optional(string, "1.3.0")
+    version          = optional(string, "1.3.1")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -402,6 +402,12 @@ variable "redis_sentinel_chart" {
     version          = optional(string, "18.4.0")
   })
   default = {}
+}
+
+variable "disable_choral_dns_resolution" {
+  type        = bool
+  default     = false
+  description = "Set to true to expose choral ip instead of dns name"
 }
 
 variable "okta_oidc" {
