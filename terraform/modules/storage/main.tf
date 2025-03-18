@@ -39,9 +39,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "scc_s3_bucket_lifecycle" {
       days          = "0"
       storage_class = "INTELLIGENT_TIERING"
     }
-  }
-  lifecycle {
-    ignore_changes = all
+    filter {
+    }
   }
 }
 
