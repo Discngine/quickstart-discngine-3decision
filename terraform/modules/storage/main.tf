@@ -40,6 +40,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "scc_s3_bucket_lifecycle" {
       storage_class = "INTELLIGENT_TIERING"
     }
   }
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_iam_role" "role" {
