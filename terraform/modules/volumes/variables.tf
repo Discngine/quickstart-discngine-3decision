@@ -10,3 +10,5 @@ variable "private_final_snapshot" {}
 variable "public_final_snapshot" {}
 variable "kms_key_id" {}
 variable "encrypt_volumes" {}
+variable "private_volume_availability_zone" {}
+variable "public_volume_availability_zone" {}

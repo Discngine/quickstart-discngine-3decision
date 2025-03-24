@@ -482,6 +482,18 @@ variable "private_volume_snapshot" {
   description = "Used to recreate volume from snapshot in case of DR. Otherwise the volume will be empty"
 }
 
+variable "private_volume_availability_zone" {
+  type        = number
+  default     = 0
+  description = "In which Availability zone to deploy the private volume"
+}
+
+variable "public_volume_availability_zone" {
+  type        = number
+  default     = 0
+  description = "In which Availability zone to deploy the public volume"
+}
+
 variable "public_final_snapshot" {
   default     = true
   description = "Whether to create a snapshot of the public volume when deleting it"
