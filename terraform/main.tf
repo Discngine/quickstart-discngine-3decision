@@ -209,16 +209,18 @@ module "secrets" {
 module "volumes" {
   source = "./modules/volumes"
   # Input
-  region                  = var.region
-  availability_zone_names = local.availability_zone_names
-  encrypt_volumes         = var.encrypt_volumes
-  volumes_additional_tags = var.volumes_additional_tags
-  storage_type            = var.volumes_storage_type
-  public_volume_snapshot  = var.public_volume_snapshot
-  private_volume_snapshot = var.private_volume_snapshot
-  private_final_snapshot  = var.private_final_snapshot
-  public_final_snapshot   = var.public_final_snapshot
-  kms_key_id              = local.kms_key_id
+  region                           = var.region
+  availability_zone_names          = local.availability_zone_names
+  encrypt_volumes                  = var.encrypt_volumes
+  volumes_additional_tags          = var.volumes_additional_tags
+  storage_type                     = var.volumes_storage_type
+  public_volume_snapshot           = var.public_volume_snapshot
+  private_volume_snapshot          = var.private_volume_snapshot
+  private_final_snapshot           = var.private_final_snapshot
+  public_final_snapshot            = var.public_final_snapshot
+  kms_key_id                       = local.kms_key_id
+  private_volume_availability_zone = var.private_volume_availability_zone
+  public_volume_availability_zone  = var.public_volume_availability_zone
 }
 
 locals {
