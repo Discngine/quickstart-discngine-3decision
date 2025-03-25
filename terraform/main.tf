@@ -285,20 +285,22 @@ module "kubernetes" {
   deploy_alb_chart              = var.deploy_alb_chart
   disable_choral_dns_resolution = var.disable_choral_dns_resolution
   # Output
-  vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
-  jwt_ssh_private         = module.secrets.jwt_private_key
-  jwt_ssh_public          = module.secrets.jwt_public_key
-  secrets_access_role_arn = module.secrets.secrets_access_role_arn
-  alphafold_bucket_name   = module.storage["alphafold"].bucket_name
-  alphafold_s3_role_arn   = module.storage["alphafold"].s3_role_arn
-  public_volume_id        = module.volumes.public_volume_id
-  private_volume_id       = module.volumes.private_volume_id
-  eks_service_cidr        = module.eks.service_cidr
-  db_name                 = module.database.db_name
-  db_endpoint             = module.database.db_endpoint
-  cluster_name            = module.eks.cluster_name
-  eks_oidc_issuer         = module.eks.oidc_issuer
-  node_group_role_arn     = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
+  vpc_id                           = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  jwt_ssh_private                  = module.secrets.jwt_private_key
+  jwt_ssh_public                   = module.secrets.jwt_public_key
+  secrets_access_role_arn          = module.secrets.secrets_access_role_arn
+  alphafold_bucket_name            = module.storage["alphafold"].bucket_name
+  alphafold_s3_role_arn            = module.storage["alphafold"].s3_role_arn
+  public_volume_id                 = module.volumes.public_volume_id
+  private_volume_id                = module.volumes.private_volume_id
+  eks_service_cidr                 = module.eks.service_cidr
+  db_name                          = module.database.db_name
+  db_endpoint                      = module.database.db_endpoint
+  cluster_name                     = module.eks.cluster_name
+  eks_oidc_issuer                  = module.eks.oidc_issuer
+  node_group_role_arn              = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
+  public_volume_availability_zone  = var.public_volume_availability_zone
+  private_volume_availability_zone = var.private_volume_availability_zone
 
   depends_on = [module.eks]
 }

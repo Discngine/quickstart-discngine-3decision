@@ -594,12 +594,12 @@ volumes:
         awsElasticBlockStore:
           fsType: ext4
           volumeID: ${var.public_volume_id}
-          availabilityZone: ${var.availability_zone_names[0]}
+          availabilityZone: ${var.availability_zone_names[var.public_volume_availability_zone]}
       privatedata:
         awsElasticBlockStore:
           fsType: ext4
           volumeID: ${var.private_volume_id}
-          availabilityZone: ${var.availability_zone_names[0]}
+          availabilityZone: ${var.availability_zone_names[var.private_volume_availability_zone]}
 ingress:
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}
