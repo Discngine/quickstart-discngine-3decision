@@ -12,3 +12,5 @@ variable "private_subnet_ids" {}
 variable "db_name" {}
 variable "db_endpoint" {}
 variable "node_group_role_arn" {}
+variable "cluster_name" {}
+variable "external_secrets_pia" {}

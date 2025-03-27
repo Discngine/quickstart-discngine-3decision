@@ -341,3 +341,12 @@ resource "aws_eks_addon" "csi_driver" {
 
   depends_on = [aws_eks_node_group.node_group]
 }
+
+resource "aws_eks_addon" "csi_driver" {
+  count = var.add_pia_addon ? 1 : 0
+
+  cluster_name             = local.cluster.name
+  addon_name               = "eks-pod-identity-agent"
+
+  depends_on = [aws_eks_node_group.node_group]
+}

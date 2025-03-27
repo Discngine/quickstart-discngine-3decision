@@ -148,6 +148,18 @@ variable "openid_provider_arn" {
   description = "Arn of an existing openid provider used if create_openid_provider is set to false."
 }
 
+variable "external_secrets_pia" {
+  type        = bool
+  default     = false
+  description = "Set to true to use pod identity association for external secrets. Otherwise the node role user credentials are used."
+}
+
+variable "add_pia_addon" {
+  type        = bool
+  default     = false
+  description = "Set to true to add the pod identity association addon to the cluster"
+}
+
 ###############
 # DATABASE
 ###############

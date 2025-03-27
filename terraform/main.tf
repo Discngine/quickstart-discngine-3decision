@@ -147,6 +147,7 @@ module "eks" {
   user_data              = var.eks_node_user_data
   create_openid_provider = var.create_openid_provider
   openid_provider_arn    = var.openid_provider_arn
+  add_pia_addon          = var.add_pia_addon
   # Output
   vpc_cidr           = var.vpc_id != "" ? data.aws_vpc.vpc[0].cidr_block : "10.0.0.0/16"
   vpc_id             = var.create_network ? module.network[0].vpc_id : var.vpc_id
@@ -197,6 +198,8 @@ module "secrets" {
   enable_db_user_rotation    = var.enable_db_user_rotation
   db_user_rotation_schedule  = var.db_user_rotation_schedule
   db_admin_rotation_schedule = var.db_admin_rotation_schedule
+
+  external_secrets_pia = var.external_secrets_pia
   # Output
   vpc_id               = var.create_network ? module.network[0].vpc_id : var.vpc_id
   private_subnet_ids   = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
@@ -204,6 +207,7 @@ module "secrets" {
   db_name              = module.database.db_name
   db_endpoint          = module.database.db_endpoint
   node_group_role_arn  = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
+  cluster_name         = module.eks.cluster_name
 }
 
 module "volumes" {
@@ -284,6 +288,7 @@ module "kubernetes" {
   deploy_cert_manager           = var.deploy_cert_manager
   deploy_alb_chart              = var.deploy_alb_chart
   disable_choral_dns_resolution = var.disable_choral_dns_resolution
+  external_secrets_pia          = var.external_secrets_pia
   # Output
   vpc_id                           = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private                  = module.secrets.jwt_private_key

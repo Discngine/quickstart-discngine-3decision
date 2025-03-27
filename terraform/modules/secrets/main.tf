@@ -247,20 +247,48 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
 
 resource "aws_iam_role" "secrets_access_role" {
   name_prefix = "3decision-database-secrets"
-  assume_role_policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Principal" : {
-          "AWS" : ["${var.node_group_role_arn}"]
-        },
-        "Action" : ["sts:AssumeRole"]
-      }
-    ]
-  })
+  assume_role_policy = var.external_secrets_pia ? jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Sid" : "AllowEksAuthToAssumeRoleForPodIdentity",
+          "Effect" : "Allow",
+          "Principal" : {
+            "Service" : "pods.eks.amazonaws.com"
+          },
+          "Action" : [
+            "sts:AssumeRole",
+            "sts:TagSession"
+          ]
+        }
+      ]
+    }
+    ) : jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Principal" : {
+            "AWS" : ["${var.node_group_role_arn}"]
+          },
+          "Action" : ["sts:AssumeRole"]
+        }
+      ]
+    }
+  )
 
   description = "Role designed to create Kubernetes secrets from Secrets Manager for 3decision quickstart"
+}
+
+resource "aws_eks_pod_identity_association" "pod_identity_association" {
+  count = var.external_secrets_pia ? 1 : 0
+
+  cluster_name    = var.cluster_name
+  namespace       = "external-secrets"
+  service_account = "external-secrets"
+  role_arn        = aws_iam_role.secrets_access_role.arn
 }
 
 resource "aws_iam_policy" "secrets_access_policy" {

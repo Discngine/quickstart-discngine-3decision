@@ -534,6 +534,12 @@ resource "helm_release" "external_secrets_chart" {
   create_namespace = var.external_secrets_chart.create_namespace
   timeout          = 1200
 
+  values = !var.external_secrets_pia ? null : <<YAML
+serviceAccount:
+  annotations:
+  name: external-secrets
+YAML
+
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
