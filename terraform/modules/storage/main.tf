@@ -29,7 +29,7 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "scc_s3_bucket_lifecycle" {
+resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle" {
   bucket = aws_s3_bucket.bucket.id
 
   rule {
@@ -40,6 +40,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "scc_s3_bucket_lifecycle" {
       storage_class = "INTELLIGENT_TIERING"
     }
     filter {
+      object_size_greater_than = "128000"
     }
   }
 }

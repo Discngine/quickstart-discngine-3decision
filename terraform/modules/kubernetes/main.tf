@@ -239,7 +239,7 @@ spec:
     aws:
       service: SecretsManager
       region: ${var.region}
-      %{ if !var.external_secrets_pia }role: ${var.secrets_access_role_arn}%{ endif }
+      %{if !var.external_secrets_pia}role: ${var.secrets_access_role_arn}%{endif}
   YAML
   depends_on = [helm_release.external_secrets_chart, kubernetes_config_map_v1.aws_auth]
 }
@@ -534,11 +534,12 @@ resource "helm_release" "external_secrets_chart" {
   create_namespace = var.external_secrets_chart.create_namespace
   timeout          = 1200
 
-  values = !var.external_secrets_pia ? null : <<YAML
+  values = !var.external_secrets_pia ? null : [<<YAML
 serviceAccount:
   annotations:
   name: external-secrets
 YAML
+  ]
 
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
