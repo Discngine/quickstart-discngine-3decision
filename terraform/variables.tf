@@ -462,6 +462,12 @@ variable "pingid_oidc" {
   sensitive = true
 }
 
+variable "username_is_email" {
+  type        = bool
+  default     = false
+  description = "Set to true to use the email as the username in 3decision"
+}
+
 ###########
 # Volumes
 ###########

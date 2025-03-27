@@ -289,6 +289,7 @@ module "kubernetes" {
   deploy_alb_chart              = var.deploy_alb_chart
   disable_choral_dns_resolution = var.disable_choral_dns_resolution
   external_secrets_pia          = var.external_secrets_pia
+  username_is_email             = var.username_is_email
   # Output
   vpc_id                           = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private                  = module.secrets.jwt_private_key

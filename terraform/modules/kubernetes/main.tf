@@ -669,6 +669,9 @@ nest:
     aws_object_storage_region:
       name: AWS_OBJECT_STORAGE_REGION
       value: ${var.region}
+    username_is_email:
+      name: "USERNAME_IS_EMAIL"
+      value: "${var.username_is_email}"
 
 nfs:
   public:
