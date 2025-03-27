@@ -239,7 +239,7 @@ spec:
     aws:
       service: SecretsManager
       region: ${var.region}
-      role: ${var.secrets_access_role_arn}
+      %{ if !var.external_secrets_pia }role: ${var.secrets_access_role_arn}%{ endif }
   YAML
   depends_on = [helm_release.external_secrets_chart, kubernetes_config_map_v1.aws_auth]
 }
