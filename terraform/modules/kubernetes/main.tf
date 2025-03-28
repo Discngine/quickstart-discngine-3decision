@@ -878,6 +878,9 @@ pvc:
     kubernetes_config_map_v1.aws_auth,
     terraform_data.clean_choral,
   ]
+  lifecycle {
+    ignore_changes = [version, name, repository, chart]
+  }
 }
 
 resource "helm_release" "chemaxon_ms_chart" {
