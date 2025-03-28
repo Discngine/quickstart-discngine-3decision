@@ -72,7 +72,7 @@ variable "create_cluster" {
 }
 
 variable "create_node_group" {
-  default     = false
+  default     = true
   description = "Whether to create a node group."
 }
 
