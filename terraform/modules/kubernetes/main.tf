@@ -420,7 +420,7 @@ resource "kubernetes_priority_class" "low_priority" {
 ######################
 
 locals {
-  values_config = <<YAML
+  values_config       = <<YAML
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -449,6 +449,9 @@ global:
     password: lapin80
 auth:
   password: lapin80
+YAML
+  final_values_config = <<YAML
+${local.values_config}
 delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
 YAML
 }
