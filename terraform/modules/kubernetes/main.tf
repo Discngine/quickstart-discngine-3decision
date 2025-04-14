@@ -484,12 +484,13 @@ kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} -
   }
 }
 
-resource "helm_release" "redis_release" {
+resource "helm_release" "sentinel_release" {
   name             = var.redis_sentinel_chart.name
   chart            = var.redis_sentinel_chart.chart
   namespace        = var.redis_sentinel_chart.namespace
   create_namespace = var.redis_sentinel_chart.create_namespace
   version          = var.redis_sentinel_chart.version
+  force_update     = true
   timeout          = 1200
   values           = [local.values_config]
   depends_on = [
