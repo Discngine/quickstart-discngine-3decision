@@ -473,7 +473,7 @@ resource "helm_release" "cert_manager_release" {
 # Deletes statefulsets on redis upgrade to avoid patching error
 # As a security measure, the id of this resource is added to the redis helm values so redis will always be updated if this is launched (so the statefulset is recreated)
 resource "terraform_data" "delete_sentinel_statefulsets" {
-  triggers_replace = [var.redis_sentinel_chart.version]
+  triggers_replace = [var.redis_sentinel_chart.version, local.values_config]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
@@ -772,11 +772,11 @@ rm clean_choral.yaml
 }
 
 resource "helm_release" "tdecision_chart" {
-  name       = var.tdecision_chart.name
-  chart      = var.tdecision_chart.chart
-  version    = var.tdecision_chart.version
-  namespace  = var.tdecision_chart.namespace
-  timeout    = 7200
+  name      = var.tdecision_chart.name
+  chart     = var.tdecision_chart.chart
+  version   = var.tdecision_chart.version
+  namespace = var.tdecision_chart.namespace
+  timeout   = 7200
 
   values = [local.final_values]
   depends_on = [
@@ -810,11 +810,11 @@ resource "helm_release" "tdecision_chart" {
 
 resource "null_resource" "delete_resources" {
   triggers = {
-    name       = var.tdecision_chart.name
-    chart      = var.tdecision_chart.chart
-    version    = var.tdecision_chart.version
-    namespace  = var.tdecision_chart.namespace
-    values     = local.values
+    name      = var.tdecision_chart.name
+    chart     = var.tdecision_chart.chart
+    version   = var.tdecision_chart.version
+    namespace = var.tdecision_chart.namespace
+    values    = local.values
   }
 
   provisioner "local-exec" {
@@ -829,10 +829,10 @@ resource "null_resource" "delete_resources" {
 }
 
 resource "helm_release" "choral_chart" {
-  name       = var.choral_chart.name
-  chart      = var.choral_chart.chart
-  version    = var.choral_chart.version
-  namespace  = var.choral_chart.namespace
+  name      = var.choral_chart.name
+  chart     = var.choral_chart.chart
+  version   = var.choral_chart.version
+  namespace = var.choral_chart.namespace
   values = [<<YAML
     oracle:
       connectionString: ${local.connection_string}
