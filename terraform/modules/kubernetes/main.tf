@@ -420,7 +420,7 @@ resource "kubernetes_priority_class" "low_priority" {
 ######################
 
 locals {
-  values_config       = <<YAML
+  values_config = <<YAML
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -449,9 +449,6 @@ global:
     password: lapin80
 auth:
   password: lapin80
-YAML
-  final_values_config = <<YAML
-${local.values_config}
 delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
 YAML
 }
@@ -476,7 +473,7 @@ resource "helm_release" "cert_manager_release" {
 # Deletes statefulsets on redis upgrade to avoid patching error
 # As a security measure, the id of this resource is added to the redis helm values so redis will always be updated if this is launched (so the statefulset is recreated)
 resource "terraform_data" "delete_sentinel_statefulsets" {
-  triggers_replace = [var.redis_sentinel_chart.version, local.values_config]
+  triggers_replace = [var.redis_sentinel_chart.version]
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
@@ -487,7 +484,7 @@ kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} -
   }
 }
 
-resource "helm_release" "sentinel_release" {
+resource "helm_release" "redis_release" {
   name             = var.redis_sentinel_chart.name
   chart            = var.redis_sentinel_chart.chart
   namespace        = var.redis_sentinel_chart.namespace
