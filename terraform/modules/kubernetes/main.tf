@@ -444,7 +444,7 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
-  storageClass: gp2-encrypted
+  defaultStorageClass: gp2-encrypted
   redis:
     password: lapin80
 auth:
