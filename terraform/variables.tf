@@ -296,11 +296,11 @@ variable "redis_sentinel_chart" {
   description = "A map with information about the redis sentinel helm chart"
 
   type = object({
-    name             = optional(string, "sentinel")
+    name             = optional(string, "redis")
     chart            = optional(string, "oci://registry-1.docker.io/bitnamicharts/redis")
     namespace        = optional(string, "redis-cluster")
     create_namespace = optional(bool, true)
-    version          = optional(string, "18.4.0")
+    version          = optional(string, "20.11.5")
   })
   default = {}
 }
