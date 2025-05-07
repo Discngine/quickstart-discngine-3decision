@@ -69,10 +69,10 @@ resource "kubernetes_pod" "sqlplus" {
       args    = [<<-EOC
         set -e
         echo "Running export script..."
-        /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/export/export.sql
+        echo sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/export.sql
         echo "Export complete. Watching log output..."
         while true; do
-          /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} \
+          sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} \
             "SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF; SELECT text FROM table(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR','pd_t1_export.log'));"
           sleep 10
         done
