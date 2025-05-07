@@ -64,14 +64,28 @@ resource "kubernetes_pod" "sqlplus" {
       image = "fra.ocir.io/discngine1/oracle/instantclient:23"
 
       command = ["/bin/bash", "-c"]
-      args    = ["sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/export.sql && sleep infinity"]
+      args    = [<<-EOC
+        set -e
+        echo "Running export script..."
+        echo /home/sqlcl/sqlcl/bin/sql ADMIN/${SYS_DB_PASSWD}@${CONNECTION_STRING} @/export/export.sql
+        echo "Export complete. Watching log output..."
+        while true; do
+          /home/sqlcl/sqlcl/bin/sql ADMIN/${SYS_DB_PASSWD}@${CONNECTION_STRING} \
+            "SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF; SELECT text FROM table(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR','pd_t1_export.log'));"
+          sleep 10
+        done
+      EOC
+      ]
 
       env_from {
         secret_ref {
           name = "database-secrets"
         }
       }
-
+      env {
+        name  = "SYS_DB_PASSWD"
+        value = local.sys_db_passwd
+      }
       env {
         name  = "CONNECTION_STRING"
         value = local.connection_string
