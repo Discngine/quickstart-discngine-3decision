@@ -36,7 +36,7 @@ data "aws_iam_policy_document" "rds_assume_role" {
 resource "aws_iam_policy" "rds_s3_policy" {
   count = var.db_migration ? 1 : 0
 
-  name = "3dec-migration-rds-s3-access-policy"
+  name = "3decision-migration-rds-s3-access-policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -59,7 +59,7 @@ resource "aws_iam_policy" "rds_s3_policy" {
 
 resource "aws_iam_role" "rds_s3_role" {
   count              = var.db_migration ? 1 : 0
-  name               = "3dec-migration-rds-s3-access-role"
+  name               = "3decision-migration-rds-s3-access-role"
   assume_role_policy = data.aws_iam_policy_document.rds_assume_role.json
 }
 
