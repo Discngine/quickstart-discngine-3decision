@@ -1,4 +1,5 @@
 resource "kubernetes_config_map" "export_dump" {
+  count  = var.db_migration ? 1 : 0
   metadata {
     name      = "oracle-export-script"
     namespace = "tools"
@@ -49,6 +50,7 @@ resource "kubernetes_config_map" "export_dump" {
 
 
 resource "kubernetes_pod" "sqlplus" {
+  count  = var.db_migration ? 1 : 0
   metadata {
     name      = "sqlplus"
     namespace = "tools"
@@ -67,7 +69,7 @@ resource "kubernetes_pod" "sqlplus" {
       args    = [<<-EOC
         set -e
         echo "Running export script..."
-        echo /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/export/export.sql
+        /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/export/export.sql
         echo "Export complete. Watching log output..."
         while true; do
           /home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} \

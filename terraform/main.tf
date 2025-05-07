@@ -240,6 +240,7 @@ module "kubernetes" {
   af_file_nb               = var.af_file_nb
   initial_db_passwords     = var.initial_db_passwords
   force_destroy            = var.force_destroy
+  db_migration             = var.db_migration
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key
