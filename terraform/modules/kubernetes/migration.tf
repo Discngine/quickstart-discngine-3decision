@@ -83,10 +83,6 @@ resource "kubernetes_pod" "sqlplus" {
         }
       }
       env {
-        name  = "SYS_DB_PASSWD"
-        value = local.sys_db_passwd
-      }
-      env {
         name  = "CONNECTION_STRING"
         value = local.connection_string
       }
