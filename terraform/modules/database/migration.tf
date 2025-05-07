@@ -88,7 +88,7 @@ resource "aws_db_option_group" "s3_option_group" {
 
 resource "aws_db_instance_role_association" "s3_integration" {
   count         = var.db_migration ? 1 : 0
-  db_instance_identifier = aws_db_instance.db_instance.id
+  db_instance_identifier = aws_db_instance.db_instance.identifier
   feature_name           = "S3_INTEGRATION"
   role_arn               = aws_iam_role.rds_s3_role[0].arn
 }
