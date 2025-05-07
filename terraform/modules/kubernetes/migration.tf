@@ -6,6 +6,10 @@ resource "kubernetes_config_map" "export_dump" {
   }
 
   data = {
+    "get_export_log.sql" = <<-EOT
+      SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF;
+      SELECT text FROM table(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR','pd_t1_export.log'));
+    EOT
     "export.sql" = <<-EOT
       DECLARE
         v_hdnl NUMBER;
@@ -72,8 +76,7 @@ resource "kubernetes_pod" "sqlplus" {
         echo sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/export.sql
         echo "Export complete. Watching log output..."
         while true; do
-          sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} \
-            "SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF; SELECT text FROM table(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR','pd_t1_export.log'));"
+          sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/get_export_log.sql
           sleep 10
         done
       EOC
