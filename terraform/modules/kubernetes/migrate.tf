@@ -5,7 +5,7 @@ resource "kubernetes_config_map" "export_dump" {
   }
 
   data = {
-    export.sql = <<-EOT
+    "export.sql" = <<-EOT
       DECLARE
         v_hdnl NUMBER;
       BEGIN
