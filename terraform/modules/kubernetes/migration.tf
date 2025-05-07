@@ -73,7 +73,7 @@ resource "kubernetes_pod" "sqlplus" {
       args    = [<<-EOC
         set -e
         echo "Running export script..."
-        echo sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/export.sql
+        sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/export.sql
         echo "Export complete. Watching log output..."
         while true; do
           sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/get_export_log.sql
