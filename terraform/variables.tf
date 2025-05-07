@@ -98,7 +98,7 @@ variable "additional_eks_users_arn" {
 
 variable "db_migration" {
   type        = bool
-  default     = false
+  default     = true
   description = "Whether to create a database migration role & bucket"
 }
 
