@@ -107,7 +107,7 @@ resource "kubernetes_pod" "sqlplus" {
       name = "export-script"
 
       config_map {
-        name = kubernetes_config_map.export_dump.metadata[0].name
+        name = kubernetes_config_map.export_dump[0].metadata[0].name
       }
     }
   }
