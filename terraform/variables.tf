@@ -96,6 +96,12 @@ variable "additional_eks_users_arn" {
 # DATABASE
 ###############
 
+variable "db_migration" {
+  type        = bool
+  default     = false
+  description = "Whether to create a database migration role & bucket"
+}
+
 variable "db_snapshot_identifier" {
   default     = ""
   description = "Arn of a database snapshot. If left empty the public unencrypted snapshot will be used."

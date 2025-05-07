@@ -142,6 +142,8 @@ module "database" {
   delete_automated_backups = var.db_delete_automated_backups
   license_type             = var.license_type
   skip_final_snapshot      = var.skip_db_final_snapshot
+  db_migration             = var.db_migration
+
   # Output
   node_security_group_id = module.eks.node_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id

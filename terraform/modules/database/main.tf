@@ -30,7 +30,7 @@ resource "aws_db_instance" "db_instance" {
   parameter_group_name     = aws_db_parameter_group.db_param_group.name
   engine                   = "oracle-se2-cdb"
   license_model            = var.license_type
-  option_group_name        = "default:oracle-se2-cdb-19"
+option_group_name          = var.db_migration ? aws_db_option_group.s3_option_group[0].name : "default:oracle-se2-cdb-19"
   port                     = "1521"
   multi_az                 = var.high_availability
   db_subnet_group_name     = aws_db_subnet_group.subnet_group.name
