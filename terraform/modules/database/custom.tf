@@ -1,6 +1,6 @@
 locals {
   cev_bucket_name = "test-cev"
-  cev_bucket_prefix = ""
+  cev_bucket_prefix = "/"
 }
 
 resource "aws_kms_key" "rds_custom_kms" {
@@ -16,14 +16,23 @@ resource "aws_rds_custom_db_engine_version" "oracle_cev" {
   database_installation_files_s3_prefix      = local.cev_bucket_prefix
   kms_key_id = aws_kms_key.rds_custom_kms.arn
   manifest = jsonencode({
+    mediaImportTemplateVersion = "2020-08-14"
     databaseInstallationFileNames = ["V982063-01.zip"]
+    installationParameters = {
+      oracleHome     = "/rdsdbbin/oracle.19.custom.r1.SE2-CDB.1"
+      oracleBase     = "/rdsdbbin"
+      unixUid        = 61001
+      unixUname      = "rdsdb"
+      unixGroupId    = 1000
+      unixGroupName  = "rdsdb"
+    }
   })
 }
 
 resource "aws_db_instance" "rds_custom_oracle" {
   auto_minor_version_upgrade = false
-  engine          = aws_rds_custom_engine_version.oracle_cev.engine
-  engine_version          = aws_rds_custom_engine_version.oracle_cev.engine_version
+  engine          = aws_rds_custom_db_engine_version.oracle_cev.engine
+  engine_version          = aws_rds_custom_db_engine_version.oracle_cev.engine_version
   kms_key_id              = aws_kms_key.rds_custom_kms.arn
   custom_iam_instance_profile = aws_iam_instance_profile.rds_custom_instance_profile.name
   max_allocated_storage    = 1000
