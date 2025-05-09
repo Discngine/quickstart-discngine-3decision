@@ -24,6 +24,7 @@ resource "kubernetes_config_map" "export_dump" {
             p_bucket_name    =>  '${var.export_bucket_name}', 
             p_directory_name =>  'DATA_PUMP_DIR')
       AS TASK_ID FROM DUAL;
+      exit;
     EOT
     "export.sql"         = <<-EOT
       DECLARE
@@ -105,7 +106,7 @@ resource "kubernetes_job" "sqlplus" {
             echo "Checking if export dump file exists..."
 
             # Check if the dump file already exists in the DATA_PUMP_DIR directory using RDS_FILE_UTIL.LISTDIR
-            FILE_EXISTS=$(sqlplus -S ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/check_file.sql)
+            FILE_EXISTS=$(sqlplus -S ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/check_file.sql | tr -d '[:space:]')
 
             if [ "$FILE_EXISTS" = "YES" ]; then
               echo "Export dump file already exists in the database. Skipping export."
@@ -118,7 +119,7 @@ resource "kubernetes_job" "sqlplus" {
                 EXPORT_STATUS=$(sqlplus -S ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/get_export_log.sql)
 
                 # If export is complete (you can replace this condition with the actual success condition from your log)
-                if [[ "$EXPORT_STATUS" == *"Export completed"* ]]; then
+                if [[ "$EXPORT_STATUS" == *"successfully completed"* ]]; then
                   break
                 fi
 
