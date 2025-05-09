@@ -701,7 +701,7 @@ Resources:
                   - "lambda:RemovePermission"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
-        - PolicyName:
+        - PolicyName: RDSCustomEnginePolicy
           PolicyDocument:
             Version: 2012-10-17
             Statement:
