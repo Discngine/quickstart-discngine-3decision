@@ -1,6 +1,6 @@
 locals {
   cev_bucket_name   = "test-cev"
-  cev_bucket_prefix = "/"
+  cev_bucket_prefix = ""
 }
 
 resource "aws_kms_key" "rds_custom_kms" {
