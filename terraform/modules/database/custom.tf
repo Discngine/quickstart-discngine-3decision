@@ -25,12 +25,20 @@ resource "aws_rds_custom_db_engine_version" "oracle_cev" {
   })
 }
 
+resource "random_password" "password" {
+  length           = 16
+  special          = true
+  override_special = "_"
+}
+
 resource "aws_db_instance" "rds_custom_oracle" {
   auto_minor_version_upgrade  = false
   engine                      = aws_rds_custom_db_engine_version.oracle_cev.engine
   engine_version              = aws_rds_custom_db_engine_version.oracle_cev.engine_version
   kms_key_id                  = aws_kms_key.rds_custom_kms.arn
   custom_iam_instance_profile = aws_iam_instance_profile.rds_custom_instance_profile.name
+  username = "ADMIN"
+  password = random_password.password.result
   max_allocated_storage       = 1000
   character_set_name          = "AL32UTF8"
   instance_class              = var.instance_type
@@ -44,7 +52,6 @@ resource "aws_db_instance" "rds_custom_oracle" {
   db_subnet_group_name        = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids      = [aws_security_group.db_security_group.id]
   storage_type                = "gp2"
-  snapshot_identifier         = var.snapshot_identifier != "" ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
   publicly_accessible         = false
   delete_automated_backups    = var.delete_automated_backups
   deletion_protection         = !var.force_destroy
