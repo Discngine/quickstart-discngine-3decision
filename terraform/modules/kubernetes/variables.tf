@@ -45,4 +45,3 @@ variable "initial_db_passwords" {}
 variable "force_destroy" {}
 variable "db_migration" {}
 variable "export_bucket_name" {}
-variable "export_bucket_name" {}
