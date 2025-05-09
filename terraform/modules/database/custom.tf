@@ -44,7 +44,6 @@ resource "aws_db_instance" "rds_custom_oracle" {
   instance_class              = var.instance_type
   db_name                     = "ORCL"
   identifier_prefix           = "db3dec"
-  license_model               = var.license_type
   port                        = "1521"
   db_subnet_group_name        = aws_db_subnet_group.subnet_group.name
   vpc_security_group_ids      = [aws_security_group.db_security_group.id]
