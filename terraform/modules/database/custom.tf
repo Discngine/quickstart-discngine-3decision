@@ -1,6 +1,5 @@
 locals {
   cev_bucket_name   = "test-cev"
-  cev_bucket_prefix = ""
 }
 
 resource "aws_kms_key" "rds_custom_kms" {
@@ -11,7 +10,6 @@ resource "aws_rds_custom_db_engine_version" "oracle_cev" {
   engine                                     = "custom-oracle-se2-cdb"
   engine_version                             = "19.cdb_cev1"
   database_installation_files_s3_bucket_name = local.cev_bucket_name
-  database_installation_files_s3_prefix      = local.cev_bucket_prefix
   kms_key_id                                 = aws_kms_key.rds_custom_kms.arn
   manifest = jsonencode({
     mediaImportTemplateVersion    = "2020-08-14"
