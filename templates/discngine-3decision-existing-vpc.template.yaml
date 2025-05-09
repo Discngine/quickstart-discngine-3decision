@@ -655,6 +655,9 @@ Resources:
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/3decision-*
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
                   - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/AWSRDSCustom-3decision*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/AWSRDSCustom-3decision*
+                  - !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/AWSRDSCustom-3decision*
 
               - Effect: Allow
                 Action:
