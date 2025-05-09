@@ -131,6 +131,7 @@ resource "kubernetes_job" "sqlplus" {
       }
     }
   }
+  wait_for_completion = false
 
   depends_on = [
     kubernetes_namespace.tools_namespace,
