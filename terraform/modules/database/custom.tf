@@ -39,6 +39,7 @@ resource "aws_db_instance" "rds_custom_oracle" {
   custom_iam_instance_profile = aws_iam_instance_profile.rds_custom_instance_profile.name
   username = "ADMIN"
   password = random_password.password.result
+  allocated_storage = 500
   max_allocated_storage       = 1000
   character_set_name          = "AL32UTF8"
   instance_class              = var.instance_type
