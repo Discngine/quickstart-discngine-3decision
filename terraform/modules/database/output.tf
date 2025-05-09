@@ -11,3 +11,7 @@ output "db_name" {
 output "db_endpoint" {
   value = aws_db_instance.db_instance.endpoint
 }
+
+output "export_bucket_name" {
+  value = var.db_migration ? aws_s3_bucket.rds_data[0].bucket : ""
+}
