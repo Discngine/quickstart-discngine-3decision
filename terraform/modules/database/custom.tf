@@ -5,8 +5,6 @@ locals {
 
 resource "aws_kms_key" "rds_custom_kms" {
   description             = "KMS key for RDS Custom for Oracle"
-  deletion_window_in_days = 10
-  enable_key_rotation     = true
 }
 
 resource "aws_rds_custom_db_engine_version" "oracle_cev" {
