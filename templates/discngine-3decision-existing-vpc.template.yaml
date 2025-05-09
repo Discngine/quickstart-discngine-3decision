@@ -701,6 +701,22 @@ Resources:
                   - "lambda:RemovePermission"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
+        - PolicyName:
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "rds:CreateCustomDBEngineVersion"
+                  - "rds:DescribeCustomDBEngineVersions"
+                  - "rds:DescribeDBEngineVersions"
+                  - "rds:DeleteCustomDBEngineVersion"
+                  - "rds:ImportMediaToCustomDBEngine"
+                  - "rds:ListMediaImportTasks"
+                  - "rds:DescribeMediaImportTask"
+                  - "rds:ListCustomDBEngineVersions"
+                Resource: !Sub arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cev/*
+
 
   StateBucket:
     Type: AWS::S3::Bucket
