@@ -40,7 +40,6 @@ resource "aws_db_instance" "rds_custom_oracle" {
   username = "ADMIN"
   password = random_password.password.result
   allocated_storage = 500
-  max_allocated_storage       = 1000
   instance_class              = var.instance_type
   db_name                     = "ORCL"
   identifier_prefix           = "db3dec"
