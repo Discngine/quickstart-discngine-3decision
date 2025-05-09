@@ -53,8 +53,9 @@ resource "kubernetes_config_map" "export_dump" {
 }
 
 
-resource "kubernetes_pod" "sqlplus" {
-  count  = var.db_migration ? 1 : 0
+resource "kubernetes_job" "sqlplus" {
+  count = var.db_migration ? 1 : 0
+
   metadata {
     name      = "sqlplus"
     namespace = "tools"
@@ -65,52 +66,68 @@ resource "kubernetes_pod" "sqlplus" {
   }
 
   spec {
-    container {
-      name  = "sqlplus"
-      image = "fra.ocir.io/discngine1/oracle/instantclient:23"
+    backoff_limit = 0
 
-      command = ["/bin/bash", "-c"]
-      args    = [<<-EOC
-        set -e
-        echo "Running export script..."
-        sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/export.sql
-        echo "Export complete. Watching log output..."
-        while true; do
-          sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/get_export_log.sql
-          sleep 10
-        done
-      EOC
-      ]
-
-      env_from {
-        secret_ref {
-          name = "database-secrets"
+    template {
+      metadata {
+        labels = {
+          role = "help"
+          app  = "sqlplus"
         }
       }
-      env {
-        name  = "CONNECTION_STRING"
-        value = local.connection_string
-      }
 
-      volume_mount {
-        name       = "export-script"
-        mount_path = "/scripts"
-        read_only  = true
-      }
+      spec {
+        restart_policy = "Never"
 
-      resources {
-        requests = {
-          cpu    = "10m"
-          memory = "256Mi"
+        container {
+          name  = "sqlplus"
+          image = "fra.ocir.io/discngine1/oracle/instantclient:23"
+
+          command = ["/bin/bash", "-c"]
+          args    = [<<-EOC
+            set -e
+            echo "Running export script..."
+            echo sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/export.sql
+            echo "Export complete. Watching log output..."
+            while true; do
+              sqlplus ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING} @/scripts/get_export_log.sql
+              sleep 10
+            done
+          EOC
+          ]
+
+          env_from {
+            secret_ref {
+              name = "database-secrets"
+            }
+          }
+
+          env {
+            name  = "CONNECTION_STRING"
+            value = local.connection_string
+          }
+
+          volume_mount {
+            name       = "export-script"
+            mount_path = "/scripts"
+            read_only  = true
+          }
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "256Mi"
+            }
+          }
         }
-      }
-    }
 
-    volume {
-      name = "export-script"
+        volume {
+          name = "export-script"
 
-      config_map {
-        name = kubernetes_config_map.export_dump[0].metadata[0].name
+          config_map {
+            name = kubernetes_config_map.export_dump[0].metadata[0].name
+          }
+        }
       }
     }
   }
