@@ -707,15 +707,8 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "rds:CreateCustomDBEngineVersion"
-                  - "rds:DescribeCustomDBEngineVersions"
-                  - "rds:DescribeDBEngineVersions"
-                  - "rds:DeleteCustomDBEngineVersion"
-                  - "rds:ImportMediaToCustomDBEngine"
-                  - "rds:ListMediaImportTasks"
-                  - "rds:DescribeMediaImportTask"
-                  - "rds:ListCustomDBEngineVersions"
-                Resource: !Sub arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cev/*
+                  - "mediaimport:*"
+                Resource: '*'
 
 
   StateBucket:
