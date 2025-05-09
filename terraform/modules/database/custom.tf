@@ -54,7 +54,7 @@ resource "aws_db_instance" "rds_custom_oracle" {
   deletion_protection         = !var.force_destroy
   skip_final_snapshot         = var.skip_final_snapshot
   final_snapshot_identifier   = "db3dec-final-snapshot"
-  backup_retention_period     = var.backup_retention_period == 0 ? 1 : var.backup_retention_period
+  backup_retention_period     = min(max(var.backup_retention_period, 1), 354) 
   storage_encrypted = true
   lifecycle {
     ignore_changes = [
