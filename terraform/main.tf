@@ -244,7 +244,7 @@ module "kubernetes" {
   initial_db_passwords     = var.initial_db_passwords
   force_destroy            = var.force_destroy
   db_migration             = var.db_migration
-  export_bucket_name = var.export_bucket_name
+  export_bucket_name       = module.database.export_bucket_name
   # Output
   vpc_id                  = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private         = module.secrets.jwt_private_key

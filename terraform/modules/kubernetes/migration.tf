@@ -1,12 +1,12 @@
 resource "kubernetes_config_map" "export_dump" {
-  count  = var.db_migration ? 1 : 0
+  count = var.db_migration ? 1 : 0
   metadata {
     name      = "oracle-export-script"
     namespace = "tools"
   }
 
   data = {
-    "check_file.sql" = <<-EOT
+    "check_file.sql"     = <<-EOT
       SET HEADING OFF;
       SET FEEDBACK OFF;
       SELECT CASE WHEN COUNT(*) > 0 THEN 'YES' ELSE 'NO' END
@@ -19,13 +19,13 @@ resource "kubernetes_config_map" "export_dump" {
       SELECT text FROM table(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR','pd_t1_export.log'));
       exit;
     EOT
-    "upload_to_s3.sql" = <<-EOT
+    "upload_to_s3.sql"   = <<-EOT
       SELECT rdsadmin.rdsadmin_s3_tasks.upload_to_s3(
             p_bucket_name    =>  '${var.export_bucket_name}', 
             p_directory_name =>  'DATA_PUMP_DIR')
       AS TASK_ID FROM DUAL;
     EOT
-    "export.sql" = <<-EOT
+    "export.sql"         = <<-EOT
       DECLARE
         v_hdnl NUMBER;
       BEGIN
@@ -100,7 +100,7 @@ resource "kubernetes_job" "sqlplus" {
           image = "fra.ocir.io/discngine1/oracle/instantclient:23"
 
           command = ["/bin/bash", "-c"]
-          args    = [<<-EOC
+          args = [<<-EOC
             set -e
             echo "Checking if export dump file exists..."
 

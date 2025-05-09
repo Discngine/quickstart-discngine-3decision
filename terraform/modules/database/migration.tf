@@ -47,7 +47,7 @@ resource "aws_iam_policy" "rds_s3_policy" {
           "s3:PutObject",
           "s3:ListBucket"
         ],
-        Effect   = "Allow",
+        Effect = "Allow",
         Resource = [
           "arn:aws:s3:::${local.bucket_name}",
           "arn:aws:s3:::${local.bucket_name}/*"
@@ -64,7 +64,7 @@ resource "aws_iam_role" "rds_s3_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "rds_s3_attach" {
-  count      = var.db_migration ? 1 : 0
+  count = var.db_migration ? 1 : 0
 
   role       = aws_iam_role.rds_s3_role[0].name
   policy_arn = aws_iam_policy.rds_s3_policy[0].arn
@@ -87,7 +87,7 @@ resource "aws_db_option_group" "s3_option_group" {
 }
 
 resource "aws_db_instance_role_association" "s3_integration" {
-  count         = var.db_migration ? 1 : 0
+  count                  = var.db_migration ? 1 : 0
   db_instance_identifier = aws_db_instance.db_instance.identifier
   feature_name           = "S3_INTEGRATION"
   role_arn               = aws_iam_role.rds_s3_role[0].arn

@@ -161,7 +161,7 @@ resource "aws_eks_node_group" "node_group" {
     version = aws_launch_template.EKSLaunchTemplate.latest_version
   }
   force_update_version = true
-  subnet_ids = var.private_subnet_ids
+  subnet_ids           = var.private_subnet_ids
 }
 
 resource "aws_iam_openid_connect_provider" "default" {

@@ -1,58 +1,58 @@
 locals {
-  cev_bucket_name = "test-cev"
+  cev_bucket_name   = "test-cev"
   cev_bucket_prefix = "/"
 }
 
 resource "aws_kms_key" "rds_custom_kms" {
-  description             = "KMS key for RDS Custom for Oracle"
+  description = "KMS key for RDS Custom for Oracle"
 }
 
 resource "aws_rds_custom_db_engine_version" "oracle_cev" {
-  engine         = "custom-oracle-se2-cdb"
-  engine_version = "19.cdb_cev1"
+  engine                                     = "custom-oracle-se2-cdb"
+  engine_version                             = "19.cdb_cev1"
   database_installation_files_s3_bucket_name = local.cev_bucket_name
   database_installation_files_s3_prefix      = local.cev_bucket_prefix
-  kms_key_id = aws_kms_key.rds_custom_kms.arn
+  kms_key_id                                 = aws_kms_key.rds_custom_kms.arn
   manifest = jsonencode({
-    mediaImportTemplateVersion = "2020-08-14"
+    mediaImportTemplateVersion    = "2020-08-14"
     databaseInstallationFileNames = ["V982063-01.zip"]
     installationParameters = {
-      oracleHome     = "/rdsdbbin/oracle.19.custom.r1.SE2-CDB.1"
-      oracleBase     = "/rdsdbbin"
-      unixUid        = 61001
-      unixUname      = "rdsdb"
-      unixGroupId    = 1000
-      unixGroupName  = "rdsdb"
+      oracleHome    = "/rdsdbbin/oracle.19.custom.r1.SE2-CDB.1"
+      oracleBase    = "/rdsdbbin"
+      unixUid       = 61001
+      unixUname     = "rdsdb"
+      unixGroupId   = 1000
+      unixGroupName = "rdsdb"
     }
   })
 }
 
 resource "aws_db_instance" "rds_custom_oracle" {
-  auto_minor_version_upgrade = false
-  engine          = aws_rds_custom_db_engine_version.oracle_cev.engine
-  engine_version          = aws_rds_custom_db_engine_version.oracle_cev.engine_version
-  kms_key_id              = aws_kms_key.rds_custom_kms.arn
+  auto_minor_version_upgrade  = false
+  engine                      = aws_rds_custom_db_engine_version.oracle_cev.engine
+  engine_version              = aws_rds_custom_db_engine_version.oracle_cev.engine_version
+  kms_key_id                  = aws_kms_key.rds_custom_kms.arn
   custom_iam_instance_profile = aws_iam_instance_profile.rds_custom_instance_profile.name
-  max_allocated_storage    = 1000
-  character_set_name       = "AL32UTF8"
-  instance_class           = var.instance_type
-  db_name                  = "ORCL"
-  identifier_prefix        = "db3dec"
-  parameter_group_name     = aws_db_parameter_group.db_param_group.name
-  license_model            = var.license_type
-  option_group_name        = var.db_migration ? aws_db_option_group.s3_option_group[0].name : "default:oracle-se2-cdb-19"
-  port                     = "1521"
-  multi_az                 = var.high_availability
-  db_subnet_group_name     = aws_db_subnet_group.subnet_group.name
-  vpc_security_group_ids   = [aws_security_group.db_security_group.id]
-  storage_type             = "gp2"
-  snapshot_identifier      = var.snapshot_identifier != "" ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
-  publicly_accessible      = false
-  delete_automated_backups = var.delete_automated_backups
-  deletion_protection      = !var.force_destroy
-  skip_final_snapshot      = var.skip_final_snapshot
-  final_snapshot_identifier = "db3dec-final-snapshot"
-  backup_retention_period  = var.backup_retention_period
+  max_allocated_storage       = 1000
+  character_set_name          = "AL32UTF8"
+  instance_class              = var.instance_type
+  db_name                     = "ORCL"
+  identifier_prefix           = "db3dec"
+  parameter_group_name        = aws_db_parameter_group.db_param_group.name
+  license_model               = var.license_type
+  option_group_name           = var.db_migration ? aws_db_option_group.s3_option_group[0].name : "default:oracle-se2-cdb-19"
+  port                        = "1521"
+  multi_az                    = var.high_availability
+  db_subnet_group_name        = aws_db_subnet_group.subnet_group.name
+  vpc_security_group_ids      = [aws_security_group.db_security_group.id]
+  storage_type                = "gp2"
+  snapshot_identifier         = var.snapshot_identifier != "" ? var.snapshot_identifier : "arn:aws:rds:${var.region}:751149478800:snapshot:db3dec"
+  publicly_accessible         = false
+  delete_automated_backups    = var.delete_automated_backups
+  deletion_protection         = !var.force_destroy
+  skip_final_snapshot         = var.skip_final_snapshot
+  final_snapshot_identifier   = "db3dec-final-snapshot"
+  backup_retention_period     = var.backup_retention_period
   lifecycle {
     ignore_changes = [
       snapshot_identifier,
@@ -101,7 +101,7 @@ resource "aws_iam_role_policy_attachment" "rds_custom_managed_policy_attachment"
 
 resource "aws_iam_instance_profile" "rds_custom_instance_profile" {
   name_prefix = "AWSRDSCustom-3decision-rds-custom-role"
-  role = aws_iam_role.rds_custom_role.name
+  role        = aws_iam_role.rds_custom_role.name
 }
 
 resource "aws_iam_policy" "rds_custom_policy" {
