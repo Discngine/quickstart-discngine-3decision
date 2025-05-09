@@ -39,6 +39,9 @@ provider "aws" {
   default_tags {
     tags = var.default_tags
   }
+  ignore_tags {
+    key_prefixes = ["PreviousSize"]
+  }
 }
 
 provider "kubernetes" {
