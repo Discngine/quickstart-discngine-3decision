@@ -532,6 +532,7 @@ resource "helm_release" "external_secrets_chart" {
   repository       = var.external_secrets_chart.repository
   namespace        = var.external_secrets_chart.namespace
   create_namespace = var.external_secrets_chart.create_namespace
+  version          = var.external_secrets_chart.version
   timeout          = 1200
 
   values = !var.external_secrets_pia ? null : [<<YAML
