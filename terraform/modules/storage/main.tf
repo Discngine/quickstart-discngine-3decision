@@ -29,6 +29,10 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
+moved {
+  from = aws_s3_bucket_lifecycle_configuration.scc_s3_bucket_lifecycle
+  to = aws_s3_bucket_lifecycle_configuration.s3_bucket_lifecycle
+}
 resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle" {
   bucket = aws_s3_bucket.bucket.id
 
