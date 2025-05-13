@@ -233,7 +233,7 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
 }
 
 resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
-  for_each = toset(var.enable_db_user_rotation ? ["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"] : ["ADMIN"])
+  for_each = toset(var.enable_db_user_rotation ? ["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"] : [])
 
   secret_id           = aws_secretsmanager_secret.db_passwords[each.key].id
   rotation_lambda_arn = aws_lambda_function.secret_rotator_lambda.arn
