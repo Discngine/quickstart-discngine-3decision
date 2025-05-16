@@ -875,7 +875,7 @@ pvc:
     terraform_data.clean_choral,
   ]
   lifecycle {
-    ignore_changes = [version, name, repository, chart]
+    ignore_changes = all
   }
 }
 
