@@ -1,19 +1,9 @@
 # oke Module - Main file for the oke module
 
-moved {
-  from = aws_kms_key.cluster_secrets_key
-  to   = aws_kms_key.cluster_secrets_key[0]
-}
-
 resource "aws_kms_key" "cluster_secrets_key" {
   count = var.create_cluster ? 1 : 0
 
   description = "EKS cluster secrets key"
-}
-
-moved {
-  from = aws_eks_cluster.cluster
-  to   = aws_eks_cluster.cluster[0]
 }
 
 # Create EKS cluster
@@ -49,11 +39,6 @@ locals {
   cluster = var.create_cluster ? aws_eks_cluster.cluster[0] : data.aws_eks_cluster.cluster[0]
 }
 
-moved {
-  from = aws_iam_role.eks_cluster_role
-  to   = aws_iam_role.eks_cluster_role[0]
-}
-
 # Create IAM role for EKS cluster
 resource "aws_iam_role" "eks_cluster_role" {
   count       = var.create_cluster ? 1 : 0
@@ -77,11 +62,6 @@ resource "aws_iam_role" "eks_cluster_role" {
 EOF
 }
 
-moved {
-  from = aws_security_group.eks_cluster_sg
-  to   = aws_security_group.eks_cluster_sg[0]
-}
-
 # Create security group for EKS cluster
 resource "aws_security_group" "eks_cluster_sg" {
   count       = var.create_cluster ? 1 : 0
@@ -89,11 +69,6 @@ resource "aws_security_group" "eks_cluster_sg" {
   description = "Security group for EKS cluster"
 
   vpc_id = var.vpc_id
-}
-
-moved {
-  from = aws_security_group_rule.eks_cluster_ingress
-  to   = aws_security_group_rule.eks_cluster_ingress[0]
 }
 
 resource "aws_security_group_rule" "eks_cluster_ingress" {
@@ -107,11 +82,6 @@ resource "aws_security_group_rule" "eks_cluster_ingress" {
   cidr_blocks       = [var.vpc_cidr]
 }
 
-moved {
-  from = aws_security_group_rule.eks_cluster_egress
-  to   = aws_security_group_rule.eks_cluster_egress[0]
-}
-
 resource "aws_security_group_rule" "eks_cluster_egress" {
   count = var.create_cluster ? 1 : 0
 
@@ -121,11 +91,6 @@ resource "aws_security_group_rule" "eks_cluster_egress" {
   to_port           = 0
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
-}
-
-moved {
-  from = aws_iam_role.eks_node_role
-  to   = aws_iam_role.eks_node_role[0]
 }
 
 # Create IAM role for EKS cluster
@@ -173,11 +138,6 @@ set -o xtrace
   EOF
 }
 
-moved {
-  from = aws_launch_template.EKSLaunchTemplate
-  to   = aws_launch_template.EKSLaunchTemplate[0]
-}
-
 resource "aws_launch_template" "EKSLaunchTemplate" {
   count = var.create_node_group ? 1 : 0
 
@@ -209,11 +169,6 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
   }
 }
 
-moved {
-  from = aws_eks_node_group.node_group
-  to   = aws_eks_node_group.node_group[0]
-}
-
 # Create EKS node group
 resource "aws_eks_node_group" "node_group" {
   count = var.create_node_group ? 1 : 0
@@ -235,11 +190,6 @@ resource "aws_eks_node_group" "node_group" {
   subnet_ids           = var.private_subnet_ids
 }
 
-moved {
-  from = aws_iam_openid_connect_provider.default
-  to   = aws_iam_openid_connect_provider.default[0]
-}
-
 resource "aws_iam_openid_connect_provider" "default" {
   count = var.create_openid_provider ? 1 : 0
 
@@ -259,11 +209,6 @@ locals {
 
 locals {
   oidc_issuer = element(split("https://", local.cluster.identity.0.oidc.0.issuer), 1)
-}
-
-moved {
-  from = aws_iam_role.eks_csi_driver_role
-  to   = aws_iam_role.eks_csi_driver_role[0]
 }
 
 # Create IAM role for EKS cluster
@@ -325,11 +270,6 @@ EOF
       }
     )
   }
-}
-
-moved {
-  from = aws_eks_addon.csi_driver
-  to   = aws_eks_addon.csi_driver[0]
 }
 
 resource "aws_eks_addon" "csi_driver" {

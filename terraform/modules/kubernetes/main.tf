@@ -69,11 +69,6 @@ resource "kubernetes_config_map_v1" "aws_auth" {
   depends_on = [null_resource.delete_aws_auth]
 }
 
-moved {
-  from = kubernetes_storage_class_v1.encrypted_storage_class
-  to   = kubernetes_storage_class_v1.encrypted_storage_class[0]
-}
-
 resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
   count = var.encrypt_volumes ? 1 : 0
   metadata {
@@ -300,16 +295,20 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
     name      = "nest-authentication-secrets"
     namespace = var.tdecision_chart.namespace
   }
-  data = {
-    AZURE_TENANT        = var.azure_oidc.tenant
-    AZURE_SECRET        = var.azure_oidc.secret
-    GOOGLE_SECRET       = var.google_oidc.secret
-    OKTA_DOMAIN         = var.okta_oidc.domain
-    OKTA_SERVER_ID      = var.okta_oidc.server_id
-    OKTA_SECRET         = var.okta_oidc.secret
-    PINGID_SECRET       = var.pingid_oidc.secret
-    PINGID_METADATA_URL = var.pingid_oidc.metadata_url
-  }
+  data = merge(
+    {
+      AZURE_TENANT        = var.azure_oidc.tenant
+      AZURE_SECRET        = var.azure_oidc.secret
+      GOOGLE_SECRET       = var.google_oidc.secret
+      OKTA_DOMAIN         = var.okta_oidc.domain
+      OKTA_SERVER_ID      = var.okta_oidc.server_id
+      OKTA_SECRET         = var.okta_oidc.secret
+    },
+    var.pingid_oidc.client_id == "none" ? {} : {
+      PINGID_SECRET       = var.pingid_oidc.secret
+      PINGID_METADATA_URL = var.pingid_oidc.metadata_url
+    }
+  )
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
 
@@ -462,10 +461,6 @@ delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
 YAML
 }
 
-moved {
-  from = helm_release.cert_manager_release
-  to   = helm_release.cert_manager_release[0]
-}
 resource "helm_release" "cert_manager_release" {
   count = var.deploy_cert_manager ? 1 : 0
 
@@ -657,13 +652,13 @@ nest:
       value: ${var.google_oidc.client_id}
     google_redirect_uri:
       name: GOOGLE_REDIRECT_URI
-      value: https://${var.api_subdomain}.${var.domain}/auth/google/callback
+      value: https://${var.api_subdomain}.${var.domain}/auth/google/callback%{if var.pingid_oidc.client_id != "none"}
     pingid_client_id:
       name: PINGID_CLIENT_ID
       value: ${var.pingid_oidc.client_id}
     pingid_redirect_uri:
       name: PINGID_REDIRECT_URI
-      value: "https://${var.api_subdomain}.${var.domain}/auth/pingid/callback"
+      value: "https://${var.api_subdomain}.${var.domain}/auth/pingid/callback"%{endif}
     bucket_name:
       name: "ALPHAFOLD_BUCKET_NAME"
       value: ${var.alphafold_bucket_name}
@@ -897,10 +892,6 @@ locals {
   oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)
 }
 
-moved {
-  from = aws_iam_role.load_balancer_controller
-  to   = aws_iam_role.load_balancer_controller[0]
-}
 resource "aws_iam_role" "load_balancer_controller" {
   count       = var.deploy_alb_chart ? 1 : 0
   name_prefix = "3decision-load-balancer-controller"
@@ -1182,11 +1173,6 @@ EOF
 }
 EOF
   }
-}
-
-moved {
-  from = helm_release.aws_load_balancer_controller
-  to   = helm_release.aws_load_balancer_controller[0]
 }
 
 resource "helm_release" "aws_load_balancer_controller" {
