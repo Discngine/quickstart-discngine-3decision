@@ -499,7 +499,6 @@ resource "helm_release" "sentinel_release" {
   namespace        = var.redis_sentinel_chart.namespace
   create_namespace = var.redis_sentinel_chart.create_namespace
   version          = var.redis_sentinel_chart.version
-  force_update     = true
   timeout          = 1200
   values           = [local.values_config]
   depends_on = [
