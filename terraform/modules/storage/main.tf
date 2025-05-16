@@ -29,6 +29,22 @@ resource "aws_s3_bucket_public_access_block" "public_access_block" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle" {
+  bucket = aws_s3_bucket.bucket.id
+
+  rule {
+    id     = "IntelligentTiering"
+    status = "Enabled"
+    transition {
+      days          = "0"
+      storage_class = "INTELLIGENT_TIERING"
+    }
+    filter {
+      object_size_greater_than = "128000"
+    }
+  }
+}
+
 resource "aws_iam_role" "role" {
   name_prefix = "3decision-${var.name}-s3"
   assume_role_policy = jsonencode({
