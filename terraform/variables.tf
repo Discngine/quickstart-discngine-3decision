@@ -25,6 +25,16 @@ variable "force_destroy" {
   description = "Setting this to false will not allow deletion of the database / non empty s3 buckets"
 }
 
+variable "kms_key_arn" {
+  default     = null
+  description = "KMS key arn to use if create_kms_key is set to false"
+}
+
+variable "create_kms_key" {
+  default     = false
+  description = "Whether to create a kms key for the database and volumes"
+}
+
 ###########
 # NETWORK
 ###########
@@ -46,9 +56,45 @@ variable "private_subnet_ids" {
   description = "List of ids of your private subnets"
 }
 
+variable "eks_private_subnet_ids" {
+  type        = set(string)
+  default     = []
+  description = "List of ids of your private eks subnets"
+}
+
 #########
 # EKS
 #########
+
+variable "create_cluster" {
+  default     = true
+  description = "Whether to create the eks cluster."
+}
+
+variable "create_node_group" {
+  default     = true
+  description = "Whether to create a node group."
+}
+
+variable "node_group_arn" {
+  default     = ""
+  description = "Arn of the node group used for permissions if the node group isn't created."
+}
+
+variable "node_group_security_group_id" {
+  default     = ""
+  description = "Id of the node group security group use if the node group isn't created."
+}
+
+variable "eks_cluster_name" {
+  default     = ""
+  description = "Name of the existing cluster if not created"
+}
+
+variable "eks_node_user_data" {
+  default     = ""
+  description = "User data to pass to nodes instead of default"
+}
 
 variable "keypair_name" {
   default     = ""
@@ -92,9 +138,42 @@ variable "additional_eks_users_arn" {
   default     = []
 }
 
+variable "create_openid_provider" {
+  default     = true
+  description = "Whether to create an iam openid provider connected to EKS. Set openid_provider_arn if set to false"
+}
+
+variable "openid_provider_arn" {
+  default     = ""
+  description = "Arn of an existing openid provider used if create_openid_provider is set to false."
+}
+
+variable "external_secrets_pia" {
+  type        = bool
+  default     = false
+  description = "Set to true to use pod identity association for external secrets. Otherwise the node role user credentials are used."
+}
+
+variable "add_pia_addon" {
+  type        = bool
+  default     = false
+  description = "Set to true to add the pod identity association addon to the cluster"
+}
+
 ###############
 # DATABASE
 ###############
+
+variable "copy_db_snapshot" {
+  default     = false
+  description = "Will copy the db_snapshot_identifier and encrypt it"
+}
+
+variable "copied_snapshot_identifier" {
+  type        = string
+  default     = "db3dec"
+  description = "Name of the copied database snapshot"
+}
 
 variable "db_snapshot_identifier" {
   default     = ""
@@ -119,6 +198,22 @@ variable "initial_db_passwords" {
     "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
   }
   description = "The passwords of the schemas present in the snapshot"
+}
+
+variable "enable_db_user_rotation" {
+  default     = true
+  type        = bool
+  description = "Setting to false will disable rotation for database users"
+}
+
+variable "db_user_rotation_schedule" {
+  default     = "cron(0 2 ? * SUN#1 *)"
+  description = "Schedule expression to set for db users password rotation"
+}
+
+variable "db_admin_rotation_schedule" {
+  default     = "cron(0 2 ? * SUN#1 *)"
+  description = "Schedule expression to set for db admin user password rotation"
 }
 
 variable "db_backup_retention_period" {
@@ -146,6 +241,18 @@ variable "license_type" {
 variable "skip_db_final_snapshot" {
   default     = false
   description = "Whether to skip the creation of a db snpashot when deleting it"
+}
+
+variable "max_allocated_storage" {
+  default     = 1000
+  type        = number
+  description = "Maximum autoscaled size of the database"
+}
+
+variable "db_storage_type" {
+  default     = "gp2"
+  type        = string
+  description = "Type of storage for the database"
 }
 
 #################
@@ -207,6 +314,16 @@ variable "hosted_zone_id" {
 # KUBERNETES
 ###############
 
+variable "deploy_cert_manager" {
+  default     = true
+  description = "Whether to deploy the cert manager"
+}
+
+variable "deploy_alb_chart" {
+  default     = true
+  description = "Whether to deploy the alb chart"
+}
+
 variable "tdecision_chart" {
   description = "A map with information about the cert manager helm chart"
 
@@ -214,7 +331,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.1.5")
+    version          = optional(string, "3.2.0-pingid")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -227,7 +344,7 @@ variable "choral_chart" {
     name             = optional(string, "choral")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
     namespace        = optional(string, "choral")
-    version          = optional(string, "1.3.0")
+    version          = optional(string, "1.3.1")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -269,6 +386,7 @@ variable "external_secrets_chart" {
     chart            = optional(string, "external-secrets")
     namespace        = optional(string, "external-secrets")
     create_namespace = optional(bool, true)
+    version          = optional(string, "0.16.2")
   })
   default = {}
 }
@@ -291,12 +409,18 @@ variable "redis_sentinel_chart" {
 
   type = object({
     name             = optional(string, "redis")
-    chart            = optional(string, "oci://registry-1.docker.io/bitnamicharts/redis")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/redis")
     namespace        = optional(string, "redis-cluster")
     create_namespace = optional(bool, true)
-    version          = optional(string, "20.11.5")
+    version          = optional(string, "21.1.3")
   })
   default = {}
+}
+
+variable "disable_choral_dns_resolution" {
+  type        = bool
+  default     = false
+  description = "Set to true to expose choral ip instead of dns name"
 }
 
 variable "okta_oidc" {
@@ -329,9 +453,43 @@ variable "google_oidc" {
   sensitive = true
 }
 
+variable "pingid_oidc" {
+  description = "PingID Client ID for authentication in application"
+  default = {
+    client_id    = "none"
+    secret       = ""
+    metadata_url = ""
+  }
+  sensitive = true
+}
+
+variable "username_is_email" {
+  type        = bool
+  default     = false
+  description = "Set to true to use the email as the username in 3decision"
+}
+
 ###########
 # Volumes
 ###########
+
+variable "volumes_storage_type" {
+  default     = "gp2"
+  type        = string
+  description = "Type of storage for the database"
+}
+
+variable "volumes_additional_tags" {
+  default     = {}
+  type        = map(string)
+  description = "Additional tags to add to the volumes"
+}
+
+variable "encrypt_volumes" {
+  type        = bool
+  default     = true
+  description = "Whether to encrypt the volumes"
+}
 
 variable "public_volume_snapshot" {
   default     = ""
@@ -341,6 +499,18 @@ variable "public_volume_snapshot" {
 variable "private_volume_snapshot" {
   default     = ""
   description = "Used to recreate volume from snapshot in case of DR. Otherwise the volume will be empty"
+}
+
+variable "private_volume_availability_zone" {
+  type        = number
+  default     = 0
+  description = "In which Availability zone to deploy the private volume"
+}
+
+variable "public_volume_availability_zone" {
+  type        = number
+  default     = 0
+  description = "In which Availability zone to deploy the public volume"
 }
 
 variable "public_final_snapshot" {

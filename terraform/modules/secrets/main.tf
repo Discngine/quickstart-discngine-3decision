@@ -198,6 +198,10 @@ resource "aws_secretsmanager_secret" "db_passwords" {
 
   name                    = "3dec-${lower(each.key)}-db"
   recovery_window_in_days = 0
+
+  tags = {
+    "Name" = each.key
+  }
 }
 
 resource "random_password" "choral_password" {
@@ -207,6 +211,10 @@ resource "random_password" "choral_password" {
   min_numeric      = 2
   min_special      = 2
   override_special = "_"
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "aws_secretsmanager_secret_version" "db_passwords_version" {
@@ -225,34 +233,62 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
 }
 
 resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
-  for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"])
+  for_each = toset(var.enable_db_user_rotation ? ["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"] : [])
 
   secret_id           = aws_secretsmanager_secret.db_passwords[each.key].id
   rotation_lambda_arn = aws_lambda_function.secret_rotator_lambda.arn
 
   rotation_rules {
     # Run on the first sunday of the month at 2 AM
-    schedule_expression = "cron(0 2 ? * SUN#1 *)"
+    schedule_expression = each.key == "ADMIN" ? var.db_admin_rotation_schedule : var.db_user_rotation_schedule
   }
   depends_on = [aws_secretsmanager_secret_version.db_passwords_version]
 }
 
 resource "aws_iam_role" "secrets_access_role" {
   name_prefix = "3decision-database-secrets"
-  assume_role_policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Statement" : [
-      {
-        "Effect" : "Allow",
-        "Principal" : {
-          "AWS" : ["${var.node_group_role_arn}"]
-        },
-        "Action" : ["sts:AssumeRole"]
-      }
-    ]
-  })
+  assume_role_policy = var.external_secrets_pia ? jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Sid" : "AllowEksAuthToAssumeRoleForPodIdentity",
+          "Effect" : "Allow",
+          "Principal" : {
+            "Service" : "pods.eks.amazonaws.com"
+          },
+          "Action" : [
+            "sts:AssumeRole",
+            "sts:TagSession"
+          ]
+        }
+      ]
+    }
+    ) : jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Principal" : {
+            "AWS" : ["${var.node_group_role_arn}"]
+          },
+          "Action" : ["sts:AssumeRole"]
+        }
+      ]
+    }
+  )
 
   description = "Role designed to create Kubernetes secrets from Secrets Manager for 3decision quickstart"
+}
+
+resource "aws_eks_pod_identity_association" "pod_identity_association" {
+  count = var.external_secrets_pia ? 1 : 0
+
+  cluster_name    = var.cluster_name
+  namespace       = "external-secrets"
+  service_account = "external-secrets"
+  role_arn        = aws_iam_role.secrets_access_role.arn
 }
 
 resource "aws_iam_policy" "secrets_access_policy" {
