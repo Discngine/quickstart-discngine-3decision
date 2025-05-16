@@ -70,6 +70,7 @@ resource "kubernetes_config_map_v1" "aws_auth" {
 }
 
 resource "kubernetes_storage_class_v1" "encrypted_storage_class" {
+  count = var.encrypt_volumes ? 1 : 0
   metadata {
     name = "gp2-encrypted"
   }
@@ -233,7 +234,7 @@ spec:
     aws:
       service: SecretsManager
       region: ${var.region}
-      role: ${var.secrets_access_role_arn}
+      %{if !var.external_secrets_pia}role: ${var.secrets_access_role_arn}%{endif}
   YAML
   depends_on = [helm_release.external_secrets_chart, kubernetes_config_map_v1.aws_auth]
 }
@@ -294,14 +295,20 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
     name      = "nest-authentication-secrets"
     namespace = var.tdecision_chart.namespace
   }
-  data = {
-    AZURE_TENANT   = var.azure_oidc.tenant
-    AZURE_SECRET   = var.azure_oidc.secret
-    GOOGLE_SECRET  = var.google_oidc.secret
-    OKTA_DOMAIN    = var.okta_oidc.domain
-    OKTA_SERVER_ID = var.okta_oidc.server_id
-    OKTA_SECRET    = var.okta_oidc.secret
-  }
+  data = merge(
+    {
+      AZURE_TENANT        = var.azure_oidc.tenant
+      AZURE_SECRET        = var.azure_oidc.secret
+      GOOGLE_SECRET       = var.google_oidc.secret
+      OKTA_DOMAIN         = var.okta_oidc.domain
+      OKTA_SERVER_ID      = var.okta_oidc.server_id
+      OKTA_SECRET         = var.okta_oidc.secret
+    },
+    var.pingid_oidc.client_id == "none" ? {} : {
+      PINGID_SECRET       = var.pingid_oidc.secret
+      PINGID_METADATA_URL = var.pingid_oidc.metadata_url
+    }
+  )
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
 
@@ -422,7 +429,7 @@ resource "kubernetes_priority_class" "low_priority" {
 locals {
   values_config = <<YAML
 global:
-  storageClass: gp2-encrypted
+  storageClass: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -455,6 +462,8 @@ YAML
 }
 
 resource "helm_release" "cert_manager_release" {
+  count = var.deploy_cert_manager ? 1 : 0
+
   name             = var.cert_manager_chart.name
   chart            = var.cert_manager_chart.chart
   repository       = var.cert_manager_chart.repository
@@ -518,7 +527,15 @@ resource "helm_release" "external_secrets_chart" {
   repository       = var.external_secrets_chart.repository
   namespace        = var.external_secrets_chart.namespace
   create_namespace = var.external_secrets_chart.create_namespace
+  version          = var.external_secrets_chart.version
   timeout          = 1200
+
+  values = !var.external_secrets_pia ? null : [<<YAML
+serviceAccount:
+  annotations:
+  name: external-secrets
+YAML
+  ]
 
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
@@ -567,24 +584,25 @@ locals {
   db_endpoint       = element(split(":", var.db_endpoint), 0)
   connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
+disableNodeSelectors: true
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${local.db_endpoint}
   pdbString: ${var.db_name}
 volumes:
-  storageClassName: gp2-encrypted
+  storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
   claimPods:
     backend:
       publicdata:
         awsElasticBlockStore:
           fsType: ext4
           volumeID: ${var.public_volume_id}
-          availabilityZone: ${var.availability_zone_names[0]}
+          availabilityZone: ${var.availability_zone_names[var.public_volume_availability_zone]}
       privatedata:
         awsElasticBlockStore:
           fsType: ext4
           volumeID: ${var.private_volume_id}
-          availabilityZone: ${var.availability_zone_names[0]}
+          availabilityZone: ${var.availability_zone_names[var.private_volume_availability_zone]}
 ingress:
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}
@@ -599,6 +617,9 @@ ingress:
   react:
     host: ${var.registration_subdomain}
   class: alb
+Images:
+  redis:
+    repository: fra.ocir.io/discngine1/prod/redis/redis
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
@@ -631,13 +652,22 @@ nest:
       value: ${var.google_oidc.client_id}
     google_redirect_uri:
       name: GOOGLE_REDIRECT_URI
-      value: https://${var.api_subdomain}.${var.domain}/auth/google/callback
+      value: https://${var.api_subdomain}.${var.domain}/auth/google/callback%{if var.pingid_oidc.client_id != "none"}
+    pingid_client_id:
+      name: PINGID_CLIENT_ID
+      value: ${var.pingid_oidc.client_id}
+    pingid_redirect_uri:
+      name: PINGID_REDIRECT_URI
+      value: "https://${var.api_subdomain}.${var.domain}/auth/pingid/callback"%{endif}
     bucket_name:
       name: "ALPHAFOLD_BUCKET_NAME"
       value: ${var.alphafold_bucket_name}
     aws_object_storage_region:
       name: AWS_OBJECT_STORAGE_REGION
       value: ${var.region}
+    username_is_email:
+      name: "USERNAME_IS_EMAIL"
+      value: "${var.username_is_email}"
 
 nfs:
   public:
@@ -650,12 +680,6 @@ rbac:
       serviceAccountName: s3-access
       annotations:
         eks.amazonaws.com/role-arn: ${var.alphafold_s3_role_arn}
-redis:
-  nodeSelector: null
-pocket_features:
-  nodeSelector: null
-scientific_monolith:
-  nodeSelector: null
 YAML
 
   # This makes sure the helm chart is updated if we change the deletion script
@@ -773,11 +797,11 @@ rm clean_choral.yaml
 }
 
 resource "helm_release" "tdecision_chart" {
-  name       = var.tdecision_chart.name
-  chart      = var.tdecision_chart.chart
-  version    = var.tdecision_chart.version
-  namespace  = var.tdecision_chart.namespace
-  timeout    = 7200
+  name      = var.tdecision_chart.name
+  chart     = var.tdecision_chart.chart
+  version   = var.tdecision_chart.version
+  namespace = var.tdecision_chart.namespace
+  timeout   = 7200
 
   values = [local.final_values]
   depends_on = [
@@ -811,11 +835,11 @@ resource "helm_release" "tdecision_chart" {
 
 resource "null_resource" "delete_resources" {
   triggers = {
-    name       = var.tdecision_chart.name
-    chart      = var.tdecision_chart.chart
-    version    = var.tdecision_chart.version
-    namespace  = var.tdecision_chart.namespace
-    values     = local.values
+    name      = var.tdecision_chart.name
+    chart     = var.tdecision_chart.chart
+    version   = var.tdecision_chart.version
+    namespace = var.tdecision_chart.namespace
+    values    = local.values
   }
 
   provisioner "local-exec" {
@@ -830,15 +854,16 @@ resource "null_resource" "delete_resources" {
 }
 
 resource "helm_release" "choral_chart" {
-  name       = var.choral_chart.name
-  chart      = var.choral_chart.chart
-  version    = var.choral_chart.version
-  namespace  = var.choral_chart.namespace
+  name      = var.choral_chart.name
+  chart     = var.choral_chart.chart
+  version   = var.choral_chart.version
+  namespace = var.choral_chart.namespace
   values = [<<YAML
-    oracle:
-      connectionString: ${local.connection_string}
-    pvc:
-      storageClassName: gp2-encrypted
+${var.disable_choral_dns_resolution ? "exposeHostName: false" : ""}
+oracle:
+  connectionString: ${local.connection_string}
+pvc:
+  storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
   YAML
   ]
   timeout = 1200
@@ -850,7 +875,7 @@ resource "helm_release" "choral_chart" {
     terraform_data.clean_choral,
   ]
   lifecycle {
-    ignore_changes = [version, name, repository, chart]
+    ignore_changes = all
   }
 }
 
@@ -868,6 +893,7 @@ locals {
 }
 
 resource "aws_iam_role" "load_balancer_controller" {
+  count       = var.deploy_alb_chart ? 1 : 0
   name_prefix = "3decision-load-balancer-controller"
 
   assume_role_policy = <<EOF
@@ -1150,6 +1176,8 @@ EOF
 }
 
 resource "helm_release" "aws_load_balancer_controller" {
+  count = var.deploy_alb_chart ? 1 : 0
+
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
@@ -1170,7 +1198,7 @@ resource "helm_release" "aws_load_balancer_controller" {
         memory: 80Mi
     serviceAccount:
       annotations:
-        eks.amazonaws.com/role-arn: ${aws_iam_role.load_balancer_controller.arn}
+        eks.amazonaws.com/role-arn: ${aws_iam_role.load_balancer_controller[0].arn}
       create: true
       name: aws-load-balancer-controller
     vpcId: ${var.vpc_id}

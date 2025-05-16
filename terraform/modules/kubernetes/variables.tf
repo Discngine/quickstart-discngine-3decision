@@ -16,6 +16,7 @@ variable "jwt_ssh_public" {}
 variable "okta_oidc" {}
 variable "azure_oidc" {}
 variable "google_oidc" {}
+variable "pingid_oidc" {}
 variable "certificate_arn" {}
 variable "inbound_cidrs" {}
 variable "domain" {}
@@ -43,3 +44,11 @@ variable "af_ftp_link" {}
 variable "af_file_nb" {}
 variable "initial_db_passwords" {}
 variable "force_destroy" {}
+variable "deploy_cert_manager" {}
+variable "deploy_alb_chart" {}
+variable "encrypt_volumes" {}
+variable "disable_choral_dns_resolution" {}
+variable "private_volume_availability_zone" {}
+variable "public_volume_availability_zone" {}
+variable "external_secrets_pia" {}
+variable "username_is_email" {}

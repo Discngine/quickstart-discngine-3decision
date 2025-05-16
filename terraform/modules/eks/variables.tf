@@ -11,3 +11,10 @@ variable "instance_type" {}
 variable "boot_volume_size" {}
 variable "private_subnet_ids" {}
 variable "vpc_cidr" {}
+variable "create_cluster" {}
+variable "create_node_group" {}
+variable "user_data" {}
+variable "cluster_name" {}
+variable "create_openid_provider" {}
+variable "openid_provider_arn" {}
+variable "add_pia_addon" {}
