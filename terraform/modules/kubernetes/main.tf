@@ -421,8 +421,6 @@ resource "kubernetes_priority_class" "low_priority" {
 
 locals {
   values_config = <<YAML
-global:
-  storageClass: gp2-encrypted
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -446,6 +444,7 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
+  defaultStorageClass: gp2-encrypted
   redis:
     password: lapin80
 auth:
@@ -491,6 +490,7 @@ resource "helm_release" "sentinel_release" {
   namespace        = var.redis_sentinel_chart.namespace
   create_namespace = var.redis_sentinel_chart.create_namespace
   version          = var.redis_sentinel_chart.version
+  force_update     = true
   timeout          = 1200
   values           = [local.values_config]
   depends_on = [
@@ -773,11 +773,11 @@ rm clean_choral.yaml
 }
 
 resource "helm_release" "tdecision_chart" {
-  name       = var.tdecision_chart.name
-  chart      = var.tdecision_chart.chart
-  version    = var.tdecision_chart.version
-  namespace  = var.tdecision_chart.namespace
-  timeout    = 7200
+  name      = var.tdecision_chart.name
+  chart     = var.tdecision_chart.chart
+  version   = var.tdecision_chart.version
+  namespace = var.tdecision_chart.namespace
+  timeout   = 7200
 
   values = [local.final_values]
   depends_on = [
@@ -811,11 +811,11 @@ resource "helm_release" "tdecision_chart" {
 
 resource "null_resource" "delete_resources" {
   triggers = {
-    name       = var.tdecision_chart.name
-    chart      = var.tdecision_chart.chart
-    version    = var.tdecision_chart.version
-    namespace  = var.tdecision_chart.namespace
-    values     = local.values
+    name      = var.tdecision_chart.name
+    chart     = var.tdecision_chart.chart
+    version   = var.tdecision_chart.version
+    namespace = var.tdecision_chart.namespace
+    values    = local.values
   }
 
   provisioner "local-exec" {
@@ -830,10 +830,10 @@ resource "null_resource" "delete_resources" {
 }
 
 resource "helm_release" "choral_chart" {
-  name       = var.choral_chart.name
-  chart      = var.choral_chart.chart
-  version    = var.choral_chart.version
-  namespace  = var.choral_chart.namespace
+  name      = var.choral_chart.name
+  chart     = var.choral_chart.chart
+  version   = var.choral_chart.version
+  namespace = var.choral_chart.namespace
   values = [<<YAML
     oracle:
       connectionString: ${local.connection_string}
