@@ -428,8 +428,6 @@ resource "kubernetes_priority_class" "low_priority" {
 
 locals {
   values_config = <<YAML
-global:
-  storageClass: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -453,6 +451,7 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
+  defaultStorageClass: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
   redis:
     password: lapin80
 auth:
