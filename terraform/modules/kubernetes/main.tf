@@ -427,6 +427,7 @@ resource "kubernetes_priority_class" "low_priority" {
 ######################
 
 locals {
+  storage_class = var.encrypt_volumes ? "gp2-encrypted" : "gp2"
   values_config = <<YAML
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
@@ -451,7 +452,7 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
-  defaultStorageClass: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
+  defaultStorageClass: ${local.storage_class}
   redis:
     password: lapin80
 auth:
@@ -480,6 +481,7 @@ resource "helm_release" "cert_manager_release" {
 }
 
 # Deletes statefulsets on redis upgrade to avoid patching error
+# Also deletes PVCs with a different storage class
 # As a security measure, the id of this resource is added to the redis helm values so redis will always be updated if this is launched (so the statefulset is recreated)
 resource "terraform_data" "delete_sentinel_statefulsets" {
   triggers_replace = [var.redis_sentinel_chart.version]
@@ -489,6 +491,10 @@ resource "terraform_data" "delete_sentinel_statefulsets" {
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
+# Delete PVCs with a different storage class
+kubectl get pvc -n ${var.redis_sentinel_chart.namespace} -o json | \
+  jq -r '.items[] | select(.spec.storageClassName != "'${local.storage_class}'") | .metadata.name' | \
+  xargs -r -n1 kubectl delete pvc -n ${var.redis_sentinel_chart.namespace}
     EOF
   }
 }
@@ -589,7 +595,7 @@ oracle:
   hostString: ${local.db_endpoint}
   pdbString: ${var.db_name}
 volumes:
-  storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
+  storageClassName: ${local.storage_class}
   claimPods:
     backend:
       publicdata:
@@ -862,7 +868,7 @@ ${var.disable_choral_dns_resolution ? "exposeHostName: false" : ""}
 oracle:
   connectionString: ${local.connection_string}
 pvc:
-  storageClassName: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
+  storageClassName: ${local.storage_class}
   YAML
   ]
   timeout = 1200
