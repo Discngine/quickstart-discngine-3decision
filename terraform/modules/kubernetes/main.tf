@@ -481,6 +481,7 @@ resource "helm_release" "cert_manager_release" {
 }
 
 # Deletes statefulsets on redis upgrade to avoid patching error
+# Also deletes PVCs with a different storage class
 # As a security measure, the id of this resource is added to the redis helm values so redis will always be updated if this is launched (so the statefulset is recreated)
 resource "terraform_data" "delete_sentinel_statefulsets" {
   triggers_replace = [var.redis_sentinel_chart.version]
