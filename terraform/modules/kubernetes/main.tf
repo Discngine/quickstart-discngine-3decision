@@ -451,7 +451,8 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
-  defaultStorageClass: ${var.encrypt_volumes ? "gp2-encrypted" : "gp2"}
+  defaultStorageClass: ${var.encrypt_volumes ? "gp2" : "gp2-encrypted"}
+  storageClass: ${var.encrypt_volumes ? "gp2" : "gp2-encrypted"}
   redis:
     password: lapin80
 auth:
@@ -489,6 +490,10 @@ resource "terraform_data" "delete_sentinel_statefulsets" {
 aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
+# Delete PVCs with a different storage class
+kubectl get pvc -n ${var.redis_sentinel_chart.namespace} -o json | \
+  jq -r '.items[] | select(.spec.storageClassName != "'${var.encrypt_volumes ? "gp2" : "gp2-encrypted"}'") | .metadata.name' | \
+  xargs -r -n1 kubectl delete pvc -n ${var.redis_sentinel_chart.namespace}
     EOF
   }
 }
