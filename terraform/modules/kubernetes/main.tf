@@ -102,14 +102,6 @@ resource "kubernetes_namespace" "redis_namespace" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
-resource "kubernetes_namespace" "choral_namespace" {
-  metadata {
-    name = "choral"
-  }
-
-  depends_on = [kubernetes_config_map_v1.aws_auth]
-}
-
 resource "kubernetes_namespace" "tools_namespace" {
   metadata {
     name = "tools"
@@ -192,10 +184,6 @@ resource "kubernetes_deployment" "sqlcl" {
             value = "/home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}"
           }
           env {
-            name  = "sqc"
-            value = "/home/sqlcl/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}"
-          }
-          env {
             name  = "sqs"
             value = "/home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}"
           }
@@ -250,7 +238,7 @@ spec:
   externalSecretName: database-secrets
   namespaceSelector:
     matchExpressions:
-      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, choral, tools]}
+      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, tools]}
   refreshTime: 1m
   externalSecretSpec:
     refreshInterval: 1m
@@ -273,19 +261,10 @@ spec:
       remoteRef:
         key: 3dec-pd_t1_dng_threedecision-db
         property: password
-    - secretKey: CHEMBL_DB_PASSWD
-      remoteRef:
-        key: 3dec-chembl_29-db
-        property: password
-    - secretKey: CHORAL_DB_PASSWD
-      remoteRef:
-        key: 3dec-choral_owner-db
-        property: password
   YAML
   depends_on = [
     kubectl_manifest.secretstore,
     kubernetes_namespace.tdecision_namespace,
-    kubernetes_namespace.choral_namespace,
     kubernetes_config_map_v1.aws_auth
   ]
 }
@@ -694,7 +673,7 @@ aws_destroy_resources: ${null_resource.delete_resources.id}
 YAML
 }
 
-# This resets the passwords of schemas CHEMBL_29 and PD_T1_DNG_THREEDECISION
+# This resets the passwords of schema PD_T1_DNG_THREEDECISION
 # It is aimed to be used on new environments that have unknown passwords set in the backup
 resource "terraform_data" "reset_passwords" {
   count = var.initial_db_passwords["ADMIN"] != "Ch4ng3m3f0rs3cur3p4ss" ? 1 : 0
@@ -726,9 +705,7 @@ spec:
           value: ${local.connection_string}
       args:
         - echo "resetting passwords";
-          echo -ne "ALTER USER CHEMBL_29 IDENTIFIED BY \"\$${CHEMBL_DB_PASSWD}\" ACCOUNT UNLOCK;
           ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY \"\$${DB_PASSWD}\" ACCOUNT UNLOCK;
-          ALTER USER CHORAL_OWNER IDENTIFIED BY \"\$${CHORAL_DB_PASSWD}\" ACCOUNT UNLOCK;" > reset_passwords.sql;
           exit | /home/sqlcl/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
 kubectl delete -f reset_passwords.yaml
@@ -738,65 +715,6 @@ kubectl delete -f reset_passwords.yaml
 kubectl apply -f reset_passwords.yaml
 rm reset_passwords.yaml
     EOF
-  }
-  depends_on = [kubectl_manifest.ClusterExternalSecret]
-}
-
-# This deletes both the CHORAL_OWNER user and choral indexes
-# It is aimed to be used on new environments that would retrieve this data from a backup when it has to be installed
-resource "terraform_data" "clean_choral" {
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<EOF
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-export KUBECONFIG=$HOME/.kube/config
-if kubectl get deploy -n choral | grep choral &> /dev/null; then
-  echo "choral already running, cleaning aborted."
-  exit 0
-fi
-cat > clean_choral.yaml << YAML
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: clean-choral
-  namespace: choral
-spec:
-  restartPolicy: Never
-  containers:
-    - name: clean-choral
-      image: fra.ocir.io/discngine1/prod/oracle/sqlcl:23.4.0.023.2321
-      command: [ "/bin/bash", "-c", "--" ]
-      envFrom:
-      - secretRef:
-          name: database-secrets
-      env:
-        - name: CONNECTION_STRING
-          value: ${local.connection_string}
-      args:
-        - echo 'dropping chembl indexes';
-          echo -ne 'DROP INDEX IDX_CHOR_STR_CMP_STRUC FORCE;
-          DROP INDEX IDX_CHOR_TAU_CMP_STRUC FORCE;
-          DROP INDEX IDX_CHOR_TAUISO_CMP_STRUC FORCE;
-          DROP INDEX IDX_CHOR_STRICT_CMP_STRUC FORCE;' > drop_chembl_index.sql;
-          exit | /home/sqlcl/sqlcl/bin/sql CHEMBL_29/\$${CHEMBL_DB_PASSWD}@\$${CONNECTION_STRING} @drop_chembl_index.sql;
-          echo 'dropping tdec indexes';
-          echo -ne 'DROP INDEX IDX_CHOR_STR_SMALL_MOL_SMILES FORCE;
-          DROP INDEX IDX_CHOR_TAU_SMALL_MOL_SMILES FORCE;
-          DROP INDEX IDX_CHOR_TAUISO_SMS FORCE;
-          DROP INDEX IDX_CHOR_STRISO_SMS FORCE;' > drop_t1_index.sql;
-          exit | /home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/\$${DB_PASSWD}@\$${CONNECTION_STRING} @drop_t1_index.sql;
-          echo 'dropping choral owner schema';
-          echo -ne 'DROP USER CHORAL_OWNER CASCADE;' > drop_choral_owner.sql;
-          exit | /home/sqlcl/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @drop_choral_owner.sql
-YAML
-kubectl delete -n choral pod/clean-choral
-kubectl apply -f clean_choral.yaml
-rm clean_choral.yaml
-    EOF
-  }
-  lifecycle {
-    ignore_changes = all
   }
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
@@ -858,40 +776,160 @@ resource "null_resource" "delete_resources" {
   }
 }
 
-resource "helm_release" "choral_chart" {
-  name      = var.choral_chart.name
-  chart     = var.choral_chart.chart
-  version   = var.choral_chart.version
-  namespace = var.choral_chart.namespace
-  values = [<<YAML
-${var.disable_choral_dns_resolution ? "exposeHostName: false" : ""}
-oracle:
-  connectionString: ${local.connection_string}
-pvc:
-  storageClassName: ${local.storage_class}
-  YAML
+resource "helm_release" "postgres_chart" {
+  name             = var.postgres_chart.name
+  chart            = var.postgres_chart.chart
+  namespace        = var.postgres_chart.namespace
+  create_namespace = var.postgres_chart.create_namespace
+  version          = var.postgres_chart.version
+  timeout          = 1200
+
+  values = [
+    <<EOT
+image:
+  tag: 14.18.0
+
+primary:
+  resources:
+    limits:
+      memory: 1Gi
+    requests:
+      memory: 1Gi
+      cpu: 200m
+  persistence:
+    enabled: false
+  extraVolumeMounts:
+    - name: export-volume
+      mountPath: /export
+    - name: bingo-volume
+      mountPath: /bingo
+
+  initContainers:
+    - name: export-from-oracle
+      image: fra.ocir.io/discngine1/oracle/instantclient:23
+      command:
+        - /bin/bash
+        - -c
+        - |
+            set -e
+            sqlplus -s PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@${local.connection_string} <<SQL > /dev/null
+            SET HEADING OFF
+            SET FEEDBACK OFF
+            SET PAGESIZE 0
+            SET LINESIZE 10000
+            SET TRIMSPOOL ON
+            SET TERMOUT OFF
+            SET ECHO OFF
+            SET COLSEP ','
+            SPOOL export.csv
+            SELECT SMALL_MOL_ID || ',' || SMILES FROM STRUCTURE_SMALL_MOL;
+            SPOOL OFF
+            EXIT
+            SQL
+            sed '1d;$d' export.csv > /export/export.csv
+
+      volumeMounts:
+        - name: export-volume
+          mountPath: /export
+      envFrom:
+        - secretRef:
+            name: database-secrets
+        - secretRef:
+            name: connection-string
+    - name: bingo-fetch
+      image: alpine:3.21
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          apk add unzip tar wget
+          mkdir -p /bingo
+          wget "https://lifescience.opensource.epam.com/downloads/bingo-1.29.0/bingo-postgres-14-linux-x86_64.zip" -O /bingo/bingo.zip
+          cd /bingo
+          unzip -o bingo.zip
+          tar -xzf bingo*.tgz
+          chown -R 1001:1001 /bingo
+      volumeMounts:
+        - name: bingo-volume
+          mountPath: /bingo
+
+  sidecars:
+    - name: analyze-runner
+      image: bitnami/postgresql:14.18.0
+      command:
+        - /bin/bash
+        - -c
+        - |
+          until pg_isready -h localhost -U $POSTGRES_USER -d $POSTGRES_DB; do sleep 1; done
+          echo "Waiting for Postgres to listen on 0.0.0.0:5432..."
+          while ! grep -q '00000000:1538' /proc/net/tcp; do
+            sleep 1
+          done
+
+          echo "Running ANALYZE..."
+          PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ANALYZE;"
+
+          echo "Done. Idling to avoid restart..."
+          sleep infinity
+      env:
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_DB
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql
+              key: postgres-password
+
+  initdb:
+    scripts:
+      bingo.sh: |
+        #!/bin/bash
+        set -e
+
+        echo "Starting bingo init script at $(date)"
+
+        start_time=$(date +%s)
+
+        bingo_dir=$(find /bingo/ -maxdepth 1 -type d -name 'bingo*' ! -path /bingo/ | head -n1)
+        cd "$bingo_dir"
+        chmod +x bingo-pg-install.sh
+        echo -e "y\n" | ./bingo-pg-install.sh
+        PGPASSWORD="$${POSTGRESQL_PASSWORD}" psql -U "$${POSTGRESQL_USERNAME}" -d "$${POSTGRESQL_DATABASE}" -f bingo_install.sql
+        PGPASSWORD="$${POSTGRESQL_PASSWORD}" psql -U "$${POSTGRESQL_USERNAME}" -d "$${POSTGRESQL_DATABASE}" <<'EOF'
+        CREATE SCHEMA IF NOT EXISTS PD_T1_DNG_THREEDECISION;
+        CREATE TABLE PD_T1_DNG_THREEDECISION.STRUCTURE_SMALL_MOL (
+          small_mol_id INTEGER NOT NULL,
+          smiles TEXT
+        );
+        CREATE TABLE PD_T1_DNG_THREEDECISION.TEMP_STRUCTURE_SMALL_MOL (
+          small_mol_id INTEGER NOT NULL,
+          smiles TEXT
+        );
+        \copy pd_t1_dng_threedecision.temp_structure_small_mol(small_mol_id, smiles) FROM '/export/export.csv' DELIMITER ',' CSV
+        INSERT INTO PD_T1_DNG_THREEDECISION.STRUCTURE_SMALL_MOL (small_mol_id, smiles)
+        SELECT small_mol_id, smiles
+        FROM PD_T1_DNG_THREEDECISION.temp_structure_small_mol
+        WHERE Bingo.CheckMolecule(smiles) IS NULL;
+        create index BINGO_SEARCH_INDEX on pd_t1_dng_threedecision.structure_small_mol using bingo_idx (SMILES bingo.molecule);
+        EOF
+        end_time=$(date +%s)
+        duration=$(( end_time - start_time ))
+
+        echo "Finished bingo init script at $(date)"
+        echo "Total duration: $${duration} seconds"
+
+  extraVolumes:
+    - name: export-volume
+      emptyDir: {}
+    - name: bingo-volume
+      emptyDir: {}
+      EOT
   ]
-  timeout = 1200
-  depends_on = [
-    kubernetes_storage_class_v1.encrypted_storage_class,
-    kubectl_manifest.ClusterExternalSecret,
-    helm_release.aws_load_balancer_controller,
-    kubernetes_config_map_v1.aws_auth,
-    terraform_data.clean_choral,
-  ]
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
-resource "helm_release" "chemaxon_ms_chart" {
-  name             = var.chemaxon_ms_chart.name
-  chart            = var.chemaxon_ms_chart.chart
-  namespace        = var.chemaxon_ms_chart.namespace
-  create_namespace = var.chemaxon_ms_chart.create_namespace
-  version          = var.chemaxon_ms_chart.version
-  timeout          = 1200
-}
 
 locals {
   oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)

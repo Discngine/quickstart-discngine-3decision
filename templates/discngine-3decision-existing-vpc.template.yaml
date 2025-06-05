@@ -1016,7 +1016,6 @@ Resources:
                   }
                   initial_db_passwords = {
                     "ADMIN"                   = "${AdminPassword}"
-                    "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
                     "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
                   }
 

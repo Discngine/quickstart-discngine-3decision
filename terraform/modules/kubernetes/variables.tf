@@ -5,9 +5,8 @@ variable "availability_zone_names" {}
 variable "account_id" {}
 variable "vpc_id" {}
 variable "tdecision_chart" {}
-variable "choral_chart" {}
+variable "postgres_chart" {}
 variable "redis_sentinel_chart" {}
-variable "chemaxon_ms_chart" {}
 variable "cert_manager_chart" {}
 variable "external_secrets_chart" {}
 variable "reloader_chart" {}
@@ -47,7 +46,6 @@ variable "force_destroy" {}
 variable "deploy_cert_manager" {}
 variable "deploy_alb_chart" {}
 variable "encrypt_volumes" {}
-variable "disable_choral_dns_resolution" {}
 variable "private_volume_availability_zone" {}
 variable "public_volume_availability_zone" {}
 variable "external_secrets_pia" {}

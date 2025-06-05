@@ -194,7 +194,6 @@ variable "db_instance_type" {
 variable "initial_db_passwords" {
   default = {
     "ADMIN"                   = "Ch4ng3m3f0rs3cur3p4ss"
-    "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
     "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
   }
   description = "The passwords of the schemas present in the snapshot"
@@ -337,28 +336,15 @@ variable "tdecision_chart" {
   default = {}
 }
 
-variable "choral_chart" {
-  description = "A map with information about the cert manager helm chart"
+variable "postgres_chart" {
+  description = "A map with information about the redis sentinel helm chart"
 
   type = object({
-    name             = optional(string, "choral")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
-    namespace        = optional(string, "choral")
-    version          = optional(string, "1.3.1")
+    name             = optional(string, "postgresql")
+    chart            = optional(string, "oci://registry-1.docker.io/bitnamicharts/postgresql")
+    namespace        = optional(string, "postgres")
     create_namespace = optional(bool, true)
-  })
-  default = {}
-}
-
-variable "chemaxon_ms_chart" {
-  description = "A map with information about the chemaxon microservices helm chart"
-
-  type = object({
-    name             = optional(string, "chemaxon-ms")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/chemaxon-ms")
-    namespace        = optional(string, "chemaxon-ms")
-    create_namespace = optional(bool, true)
-    version          = optional(string, "1.1.0")
+    version          = optional(string, "16.7.3")
   })
   default = {}
 }
@@ -415,12 +401,6 @@ variable "redis_sentinel_chart" {
     version          = optional(string, "21.1.3")
   })
   default = {}
-}
-
-variable "disable_choral_dns_resolution" {
-  type        = bool
-  default     = false
-  description = "Set to true to expose choral ip instead of dns name"
 }
 
 variable "okta_oidc" {

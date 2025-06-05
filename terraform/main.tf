@@ -258,8 +258,7 @@ module "kubernetes" {
   availability_zone_names       = local.availability_zone_names
   account_id                    = local.account_id
   tdecision_chart               = var.tdecision_chart
-  choral_chart                  = var.choral_chart
-  chemaxon_ms_chart             = var.chemaxon_ms_chart
+  postgres_chart                = var.postgres_chart
   redis_sentinel_chart          = var.redis_sentinel_chart
   cert_manager_chart            = var.cert_manager_chart
   external_secrets_chart        = var.external_secrets_chart
@@ -287,7 +286,6 @@ module "kubernetes" {
   encrypt_volumes               = var.encrypt_volumes
   deploy_cert_manager           = var.deploy_cert_manager
   deploy_alb_chart              = var.deploy_alb_chart
-  disable_choral_dns_resolution = var.disable_choral_dns_resolution
   external_secrets_pia          = var.external_secrets_pia
   username_is_email             = var.username_is_email
   # Output
