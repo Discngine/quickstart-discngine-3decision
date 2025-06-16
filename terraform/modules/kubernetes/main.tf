@@ -936,6 +936,15 @@ primary:
   ]
 }
 
+resource "helm_release" "kubernetes_reflector" {
+
+  name             = var.kubernetes_reflector_chart.name
+  chart            = var.kubernetes_reflector_chart.chart_name
+  repository       = var.kubernetes_reflector_chart.repository
+  version          = var.kubernetes_reflector_chart.version
+  namespace        = var.kubernetes_reflector_chart.namespace
+  create_namespace = var.kubernetes_reflector_chart.create_namespace
+}
 
 locals {
   oidc_issuer = element(split("https://", var.eks_oidc_issuer), 1)

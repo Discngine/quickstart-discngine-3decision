@@ -263,6 +263,7 @@ module "kubernetes" {
   cert_manager_chart            = var.cert_manager_chart
   external_secrets_chart        = var.external_secrets_chart
   reloader_chart                = var.reloader_chart
+  kubernetes_reflector_chart    = var.kubernetes_reflector_chart
   okta_oidc                     = var.okta_oidc
   azure_oidc                    = var.azure_oidc
   google_oidc                   = var.google_oidc

@@ -23,6 +23,7 @@ variable "main_subdomain" {}
 variable "additional_main_fqdns" {}
 variable "api_subdomain" {}
 variable "registration_subdomain" {}
+variable "kubernetes_reflector_chart" {}
 variable "load_balancer_type" {}
 variable "additional_eks_roles_arn" {}
 variable "additional_eks_users_arn" {}

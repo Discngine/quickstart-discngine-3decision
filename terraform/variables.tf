@@ -363,6 +363,29 @@ variable "cert_manager_chart" {
   default = {}
 }
 
+variable "kubernetes_reflector_chart" {
+  description = "A map with information about the reflector helm chart"
+
+  type = object({
+    name             = optional(string, "kubernetes-reflector")
+    chart_name       = optional(string, "reflector")
+    repository       = optional(string, "https://emberstack.github.io/helm-charts")
+    namespace        = optional(string, "kubernetes-reflector")
+    timeout          = optional(string, 300)
+    create_namespace = optional(bool, true)
+    version          = optional(string, "7.1.256")
+  })
+  default = {
+    name             = "kubernetes-reflector"
+    chart_name       = "reflector"
+    repository       = "https://emberstack.github.io/helm-charts"
+    namespace        = "kubernetes-reflector"
+    timeout          = 300
+    create_namespace = true
+    version          = "7.1.256"
+  }
+}
+
 variable "external_secrets_chart" {
   description = "A map with information about the external secrets operator helm chart"
 
