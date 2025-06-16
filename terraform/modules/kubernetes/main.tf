@@ -788,8 +788,15 @@ resource "helm_release" "postgres_chart" {
     <<EOT
 image:
   tag: 14.18.0
-
+secretAnnotations:
+  reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+  reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 primary:
+  extendedConfiguration: |-
+    shared_buffers = 500MB
+  extraEnvVars:
+    - name: "POSTGRESQL_STATEMENT_TIMEOUT"
+      value: "300000"
   resources:
     limits:
       memory: 1Gi
@@ -855,7 +862,7 @@ primary:
           mountPath: /bingo
 
   sidecars:
-    - name: analyze-runner
+    - name: post-init
       image: bitnami/postgresql:14.18.0
       command:
         - /bin/bash
@@ -867,8 +874,12 @@ primary:
             sleep 1
           done
 
-          echo "Running ANALYZE..."
-          PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ANALYZE;"
+          echo "Running POST-INIT Script..."
+          PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
+          SET statement_timeout = 0;
+          create index index_bingo_mol on structure_small_mol using bingo_idx (bingo_mol bingo.bmolecule);
+          ANALYZE;
+          EOF
 
           echo "Done. Idling to avoid restart..."
           sleep infinity
@@ -882,7 +893,6 @@ primary:
             secretKeyRef:
               name: postgresql
               key: postgres-password
-
   initdb:
     scripts:
       bingo.sh: |
@@ -899,21 +909,17 @@ primary:
         echo -e "y\n" | ./bingo-pg-install.sh
         PGPASSWORD="$${POSTGRESQL_PASSWORD}" psql -U "$${POSTGRESQL_USERNAME}" -d "$${POSTGRESQL_DATABASE}" -f bingo_install.sql
         PGPASSWORD="$${POSTGRESQL_PASSWORD}" psql -U "$${POSTGRESQL_USERNAME}" -d "$${POSTGRESQL_DATABASE}" <<'EOF'
-        CREATE SCHEMA IF NOT EXISTS PD_T1_DNG_THREEDECISION;
-        CREATE TABLE PD_T1_DNG_THREEDECISION.STRUCTURE_SMALL_MOL (
+
+        CREATE TABLE TEMP_STRUCTURE_SMALL_MOL (
           small_mol_id INTEGER NOT NULL,
           smiles TEXT
         );
-        CREATE TABLE PD_T1_DNG_THREEDECISION.TEMP_STRUCTURE_SMALL_MOL (
-          small_mol_id INTEGER NOT NULL,
-          smiles TEXT
-        );
-        \copy pd_t1_dng_threedecision.temp_structure_small_mol(small_mol_id, smiles) FROM '/export/export.csv' DELIMITER ',' CSV
-        INSERT INTO PD_T1_DNG_THREEDECISION.STRUCTURE_SMALL_MOL (small_mol_id, smiles)
-        SELECT small_mol_id, smiles
-        FROM PD_T1_DNG_THREEDECISION.temp_structure_small_mol
-        WHERE Bingo.CheckMolecule(smiles) IS NULL;
-        create index BINGO_SEARCH_INDEX on pd_t1_dng_threedecision.structure_small_mol using bingo_idx (SMILES bingo.molecule);
+        \copy temp_structure_small_mol(small_mol_id, smiles) FROM '/export/export.csv' DELIMITER ',' CSV
+        create table STRUCTURE_SMALL_MOL as (select small_mol_id, bingo.compactmolecule(SMILES, false) as bingo_mol from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null);
+
+        UPDATE bingo.bingo_config
+        SET cvalue = '300000'
+        WHERE cname = 'TIMEOUT';
         EOF
         end_time=$(date +%s)
         duration=$(( end_time - start_time ))
