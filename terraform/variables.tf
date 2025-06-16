@@ -194,6 +194,7 @@ variable "db_instance_type" {
 variable "initial_db_passwords" {
   default = {
     "ADMIN"                   = "Ch4ng3m3f0rs3cur3p4ss"
+    "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
     "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
   }
   description = "The passwords of the schemas present in the snapshot"

@@ -184,6 +184,10 @@ resource "kubernetes_deployment" "sqlcl" {
             value = "/home/sqlcl/sqlcl/bin/sql PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING}"
           }
           env {
+            name  = "sqc"
+            value = "/home/sqlcl/sqlcl/bin/sql CHEMBL_29/$${CHEMBL_DB_PASSWD}@$${CONNECTION_STRING}"
+          }
+          env {
             name  = "sqs"
             value = "/home/sqlcl/sqlcl/bin/sql ADMIN/$${SYS_DB_PASSWD}@$${CONNECTION_STRING}"
           }
@@ -260,6 +264,10 @@ spec:
     - secretKey: ORACLE_PASSWORD
       remoteRef:
         key: 3dec-pd_t1_dng_threedecision-db
+        property: password
+    - secretKey: CHEMBL_DB_PASSWD
+      remoteRef:
+        key: 3dec-chembl_29-db
         property: password
   YAML
   depends_on = [
@@ -705,6 +713,7 @@ spec:
           value: ${local.connection_string}
       args:
         - echo "resetting passwords";
+          echo -ne "ALTER USER CHEMBL_29 IDENTIFIED BY \"\$${CHEMBL_DB_PASSWD}\" ACCOUNT UNLOCK;
           ALTER USER PD_T1_DNG_THREEDECISION IDENTIFIED BY \"\$${DB_PASSWD}\" ACCOUNT UNLOCK;
           exit | /home/sqlcl/sqlcl/bin/sql ADMIN/\$${SYS_DB_PASSWD}@\$${CONNECTION_STRING} @reset_passwords.sql;
 YAML
