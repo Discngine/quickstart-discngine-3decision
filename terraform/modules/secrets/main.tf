@@ -71,7 +71,7 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   source_code_hash = filebase64sha256("${path.root}/function/package.zip")
 
   runtime = "python3.9"
-  timeout = 30
+  timeout = 120
 
   environment {
     variables = {
@@ -194,7 +194,7 @@ resource "aws_iam_role_policy_attachment" "secret_rotator_lambda_role_policy_att
 
 
 resource "aws_secretsmanager_secret" "db_passwords" {
-  for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29", "CHORAL_OWNER"])
+  for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"])
 
   name                    = "3dec-${lower(each.key)}-db"
   recovery_window_in_days = 0
@@ -204,27 +204,14 @@ resource "aws_secretsmanager_secret" "db_passwords" {
   }
 }
 
-resource "random_password" "choral_password" {
-  length           = 30
-  min_lower        = 2
-  min_upper        = 2
-  min_numeric      = 2
-  min_special      = 2
-  override_special = "_"
-
-  lifecycle {
-    ignore_changes = all
-  }
-}
-
 resource "aws_secretsmanager_secret_version" "db_passwords_version" {
-  for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29", "CHORAL_OWNER"])
+  for_each = toset(["ADMIN", "PD_T1_DNG_THREEDECISION", "CHEMBL_29"])
 
   secret_id = aws_secretsmanager_secret.db_passwords[each.key].id
   secret_string = jsonencode(
     {
       username = each.key
-      password = each.key != "CHORAL_OWNER" ? var.initial_db_passwords[each.key] : random_password.choral_password.result
+      password = var.initial_db_passwords[each.key]
       engine   = "oracle"
       host     = element(split(":", var.db_endpoint), 0)
       dbname   = var.db_name
