@@ -816,7 +816,7 @@ resource "helm_release" "postgres_chart" {
   timeout          = 1200
 
   values = [
-    <<EOT
+    <<YAML
 image:
   tag: 14.18.0
 secretAnnotations:
@@ -915,7 +915,7 @@ primary:
           echo "Running POST-INIT Script..."
           PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
           SET statement_timeout = 0;
-          create index index_bingo_mol on structure_small_mol using bingo_idx (bingo_mol bingo.bmolecule);
+          create index index_bingo_mol on structure_small_mol using bingo_idx (smiles bingo.bmolecule);
           ANALYZE;
           EOF
 
@@ -970,7 +970,7 @@ primary:
       emptyDir: {}
     - name: bingo-volume
       emptyDir: {}
-      EOT
+YAML
   ]
   depends_on = [kubernetes_secret.connection_string_postgres]
 }
