@@ -838,7 +838,7 @@ primary:
         - -c
         - |
             set -e
-            sqlplus -s PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@${local.connection_string} <<SQL > /dev/null
+            sqlplus -s PD_T1_DNG_THREEDECISION/$${DB_PASSWD}@$${CONNECTION_STRING} <<SQL > /dev/null
             SET HEADING OFF
             SET FEEDBACK OFF
             SET PAGESIZE 0
@@ -863,19 +863,24 @@ primary:
         - secretRef:
             name: connection-string
     - name: bingo-fetch
-      image: alpine:3.21
+      image: fra.ocir.io/discngine1/prod/alpine/wget-unzip-tar:3.22.0
       command:
         - sh
         - -c
         - |
           set -e
-          apk add unzip tar wget
           mkdir -p /bingo
           wget "https://lifescience.opensource.epam.com/downloads/bingo-1.29.0/bingo-postgres-14-linux-x86_64.zip" -O /bingo/bingo.zip
           cd /bingo
           unzip -o bingo.zip
           tar -xzf bingo*.tgz
-          chown -R 1001:1001 /bingo
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
       volumeMounts:
         - name: bingo-volume
           mountPath: /bingo
@@ -893,6 +898,8 @@ primary:
             sleep 1
           done
 
+          sleep 10
+          until pg_isready -h localhost -U $POSTGRES_USER -d $POSTGRES_DB; do sleep 1; done
           echo "Running POST-INIT Script..."
           PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
           SET statement_timeout = 0;
