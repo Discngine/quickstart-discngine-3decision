@@ -428,45 +428,49 @@ variable "redis_sentinel_chart" {
 }
 
 variable "okta_oidc" {
-  default = {
-    client_id = "none"
-    domain    = ""
-    server_id = ""
-    secret    = ""
-  }
+  type = object({
+    client_id = optional(string, "none")
+    domain    = optional(string, "")
+    server_id = optional(string, "")
+    secret    = optional(string, "")
+  })
+  default = {}
   description = "Okta Client ID for OKTA integration"
   sensitive   = true
 }
 
 variable "azure_oidc" {
   description = "Azure Client ID for authentication in application"
-  default = {
-    client_id              = "none"
-    tenant                 = ""
-    secret                 = ""
-    certificate_key        = ""
-    certificate_thumbprint = ""
-    certificate_key_path   = ""
-  }
+  type = object({
+    client_id              = optional(string, "none")
+    tenant                 = optional(string, "")
+    secret                 = optional(string, "")
+    certificate_key        = optional(string, "")
+    certificate_thumbprint = optional(string, "")
+    certificate_key_path   = optional(string, "")
+  })
+  default = {}
   sensitive = true
 }
 
 variable "google_oidc" {
   description = "Google Client ID for authentication in application"
-  default = {
-    client_id = "none"
-    secret    = ""
-  }
+  type = object({
+    client_id = optional(string, "none")
+    secret    = optional(string, "")
+  })
+  default = {}
   sensitive = true
 }
 
 variable "pingid_oidc" {
   description = "PingID Client ID for authentication in application"
-  default = {
-    client_id    = "none"
-    secret       = ""
-    metadata_url = ""
-  }
+  type = object({
+    client_id    = optional(string, "none")
+    secret       = optional(string, "")
+    metadata_url = optional(string, "")
+  })
+  default = {}
   sensitive = true
 }
 
