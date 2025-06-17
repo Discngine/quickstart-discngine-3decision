@@ -4,6 +4,40 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.4.2] - 2025-06-17
+### Cloudformation
+#### Added
+- Support for EKS Kubernetes versions 1.30–1.32 (default is now 1.32).
+
+#### Changed
+- Updated allowed and default EKS Kubernetes versions in templates.
+- Minor formatting and whitespace adjustments for consistency.
+
+#### Removed
+- Support for EKS Kubernetes versions 1.25–1.28.
+
+### Terraform
+#### Added
+- Added postgres helm_release with bingo cartridge
+- Optional KMS key creation and related variables for encryption in main and database modules.
+- Optional snapshot copy logic and variables in the database module.
+- Made resource creation for EKS, node groups, and OIDC provider conditional to create in an existing cluster.
+- Helm release and PVC deletion logic for cert-manager and Redis upgrades.
+- Additional variables for flexibility in EKS and database modules.
+- Added possibility to control external secrets via the pod identity association addon
+- Added possibility to disable secret rotation
+
+#### Changed
+- Refactored EKS, database, and secrets modules to use conditional resource creation and locals for cluster references.
+- Updated outputs to use local cluster references and conditional logic.
+- Updated storage class handling and made it conditional on encryption.
+- Updated secret and OIDC handling for PingID authentication.
+- Update redis chart version
+
+#### Removed
+- Removed choral & chemaxon release and related resources (database secrets, kubernetes resources)
+
+---
 ## [3.1.5] - 2025-01-10
 ### Cloudformation
 #### Added
