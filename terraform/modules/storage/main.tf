@@ -94,3 +94,27 @@ resource "aws_iam_role_policy_attachment" "policy_attachment" {
   role       = aws_iam_role.role.id
   policy_arn = aws_iam_policy.policy.arn
 }
+
+resource "aws_s3_bucket_policy" "enforce_ssl" {
+  bucket = aws_s3_bucket.bucket.id
+
+  policy = jsonencode({
+    Id = "ExamplePolicy"
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid = "AllowSSLRequestsOnly"
+        Action = "s3:*"
+        Effect = "Deny"
+        Resource = [
+          aws_s3_bucket.bucket.arn,
+          "${aws_s3_bucket.bucket.arn}/*"
+        ]
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+        Principal = "*"
+      }
+    ]
+  })
+}
