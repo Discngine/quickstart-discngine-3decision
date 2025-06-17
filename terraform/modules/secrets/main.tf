@@ -71,7 +71,7 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   source_code_hash = filebase64sha256("${path.root}/function/package.zip")
 
   runtime = "python3.9"
-  timeout = 30
+  timeout = 120
 
   environment {
     variables = {
