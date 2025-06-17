@@ -785,6 +785,16 @@ resource "null_resource" "delete_resources" {
   }
 }
 
+resource "kubernetes_secret" "connection_string_postgres" {
+  metadata {
+    name      = "connection-string"
+    namespace = "postgres"
+  }
+  data = {
+    CONNECTION_STRING = local.connection_string
+  }
+}
+
 resource "helm_release" "postgres_chart" {
   name             = var.postgres_chart.name
   chart            = var.postgres_chart.chart
@@ -943,6 +953,7 @@ primary:
       emptyDir: {}
       EOT
   ]
+  depends_on = [kubernetes_secret.connection_string_postgres]
 }
 
 resource "helm_release" "kubernetes_reflector" {
