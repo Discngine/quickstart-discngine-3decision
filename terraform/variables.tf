@@ -337,28 +337,15 @@ variable "tdecision_chart" {
   default = {}
 }
 
-variable "choral_chart" {
-  description = "A map with information about the cert manager helm chart"
+variable "postgres_chart" {
+  description = "A map with information about the redis sentinel helm chart"
 
   type = object({
-    name             = optional(string, "choral")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/choral")
-    namespace        = optional(string, "choral")
-    version          = optional(string, "1.3.1")
+    name             = optional(string, "postgresql")
+    chart            = optional(string, "oci://registry-1.docker.io/bitnamicharts/postgresql")
+    namespace        = optional(string, "postgres")
     create_namespace = optional(bool, true)
-  })
-  default = {}
-}
-
-variable "chemaxon_ms_chart" {
-  description = "A map with information about the chemaxon microservices helm chart"
-
-  type = object({
-    name             = optional(string, "chemaxon-ms")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/chemaxon-ms")
-    namespace        = optional(string, "chemaxon-ms")
-    create_namespace = optional(bool, true)
-    version          = optional(string, "1.1.0")
+    version          = optional(string, "16.7.3")
   })
   default = {}
 }
@@ -375,6 +362,29 @@ variable "cert_manager_chart" {
     version          = optional(string, "1.8.0")
   })
   default = {}
+}
+
+variable "kubernetes_reflector_chart" {
+  description = "A map with information about the reflector helm chart"
+
+  type = object({
+    name             = optional(string, "kubernetes-reflector")
+    chart_name       = optional(string, "reflector")
+    repository       = optional(string, "https://emberstack.github.io/helm-charts")
+    namespace        = optional(string, "kubernetes-reflector")
+    timeout          = optional(string, 300)
+    create_namespace = optional(bool, true)
+    version          = optional(string, "7.1.256")
+  })
+  default = {
+    name             = "kubernetes-reflector"
+    chart_name       = "reflector"
+    repository       = "https://emberstack.github.io/helm-charts"
+    namespace        = "kubernetes-reflector"
+    timeout          = 300
+    create_namespace = true
+    version          = "7.1.256"
+  }
 }
 
 variable "external_secrets_chart" {
@@ -417,49 +427,50 @@ variable "redis_sentinel_chart" {
   default = {}
 }
 
-variable "disable_choral_dns_resolution" {
-  type        = bool
-  default     = false
-  description = "Set to true to expose choral ip instead of dns name"
-}
-
 variable "okta_oidc" {
-  default = {
-    client_id = "none"
-    domain    = ""
-    server_id = ""
-    secret    = ""
-  }
+  type = object({
+    client_id = optional(string, "none")
+    domain    = optional(string, "")
+    server_id = optional(string, "")
+    secret    = optional(string, "")
+  })
+  default = {}
   description = "Okta Client ID for OKTA integration"
   sensitive   = true
 }
 
 variable "azure_oidc" {
   description = "Azure Client ID for authentication in application"
-  default = {
-    client_id = "none"
-    tenant    = ""
-    secret    = ""
-  }
+  type = object({
+    client_id              = optional(string, "none")
+    tenant                 = optional(string, "")
+    secret                 = optional(string, "")
+    certificate_key        = optional(string, "")
+    certificate_thumbprint = optional(string, "")
+    certificate_key_path   = optional(string, "")
+  })
+  default = {}
   sensitive = true
 }
 
 variable "google_oidc" {
   description = "Google Client ID for authentication in application"
-  default = {
-    client_id = "none"
-    secret    = ""
-  }
+  type = object({
+    client_id = optional(string, "none")
+    secret    = optional(string, "")
+  })
+  default = {}
   sensitive = true
 }
 
 variable "pingid_oidc" {
   description = "PingID Client ID for authentication in application"
-  default = {
-    client_id    = "none"
-    secret       = ""
-    metadata_url = ""
-  }
+  type = object({
+    client_id    = optional(string, "none")
+    secret       = optional(string, "")
+    metadata_url = optional(string, "")
+  })
+  default = {}
   sensitive = true
 }
 

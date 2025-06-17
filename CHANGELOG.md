@@ -4,6 +4,41 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.4.2] - 2025-06-17
+### Cloudformation
+#### Added
+- Support for EKS Kubernetes versions 1.30–1.32 (default is now 1.32). @JonathanManass
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- Added postgres helm_release with bingo cartridge. @JonathanManass
+- Optional KMS key creation and related variables for encryption in main and database modules. @JonathanManass
+- Optional snapshot copy logic and variables in the database module. @JonathanManass
+- Made resource creation for EKS, node groups, and OIDC provider conditional to create in an existing cluster. @JonathanManass
+- Helm release and PVC deletion logic for cert-manager and Redis upgrades. @JonathanManass
+- Additional variables for flexibility in EKS and database modules. @JonathanManass
+- Added possibility to control external secrets via the pod identity association addon. @JonathanManass
+- Added possibility to disable secret rotation. @JonathanManass
+
+#### Changed
+- Lowered externalSecrets update interval to minimize the chance of user locks. @JonathanManass
+- Updated Oracle rotation lambda to unlock user after a minute if not accessible to avoid the application locking it during the update. @JonathanManass
+- Refactored EKS, database, and secrets modules to use conditional resource creation and locals for cluster references. @JonathanManass
+- Updated outputs to use local cluster references and conditional logic. @JonathanManass
+- Updated storage class handling and made it conditional on encryption. @JonathanManass
+- Updated secret and OIDC handling for PingID authentication. @JonathanManass
+- Update redis chart version. @JonathanManass
+
+#### Removed
+- Removed choral & chemaxon release and related resources (database secrets, kubernetes resources) @JonathanManass
+
+---
 ## [3.1.5] - 2025-01-10
 ### Cloudformation
 #### Added
