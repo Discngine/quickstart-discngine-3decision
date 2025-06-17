@@ -953,7 +953,7 @@ primary:
           smiles TEXT
         );
         \copy temp_structure_small_mol(small_mol_id, smiles) FROM '/export/export.csv' DELIMITER ',' CSV
-        create table STRUCTURE_SMALL_MOL as (select small_mol_id, bingo.compactmolecule(SMILES, false) as bingo_mol from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null);
+        create table STRUCTURE_SMALL_MOL as (select small_mol_id, bingo.compactmolecule(SMILES, false) as smiles from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null);
 
         UPDATE bingo.bingo_config
         SET cvalue = '300000'
