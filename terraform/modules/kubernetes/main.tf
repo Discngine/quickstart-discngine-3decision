@@ -242,7 +242,7 @@ spec:
   externalSecretName: database-secrets
   namespaceSelector:
     matchExpressions:
-      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, tools]}
+      - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, tools, postgres]}
   refreshTime: 1m
   externalSecretSpec:
     refreshInterval: 1m
