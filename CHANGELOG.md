@@ -28,6 +28,7 @@ Add a `-0` with incrementing numbers in case of a terraform / cloudformation cha
 - Added possibility to disable secret rotation
 
 #### Changed
+- Lowered externalSecrets update interval to minimize the chance of user locks
 - Refactored EKS, database, and secrets modules to use conditional resource creation and locals for cluster references.
 - Updated outputs to use local cluster references and conditional logic.
 - Updated storage class handling and made it conditional on encryption.

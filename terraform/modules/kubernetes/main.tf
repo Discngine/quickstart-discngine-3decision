@@ -243,9 +243,9 @@ spec:
   namespaceSelector:
     matchExpressions:
       - {key: kubernetes.io/metadata.name, operator: In, values: [${var.tdecision_chart.namespace}, tools, postgres]}
-  refreshTime: 1m
+  refreshTime: 1s
   externalSecretSpec:
-    refreshInterval: 1m
+    refreshInterval: 1s
     secretStoreRef:
       name: aws-secret-store
       kind: ClusterSecretStore
