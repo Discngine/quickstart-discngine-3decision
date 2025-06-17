@@ -441,9 +441,12 @@ variable "okta_oidc" {
 variable "azure_oidc" {
   description = "Azure Client ID for authentication in application"
   default = {
-    client_id = "none"
-    tenant    = ""
-    secret    = ""
+    client_id              = "none"
+    tenant                 = ""
+    secret                 = ""
+    certificate_key        = ""
+    certificate_thumbprint = ""
+    certificate_key_path   = ""
   }
   sensitive = true
 }

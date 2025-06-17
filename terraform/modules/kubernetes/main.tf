@@ -284,12 +284,14 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
   }
   data = merge(
     {
-      AZURE_TENANT        = var.azure_oidc.tenant
-      AZURE_SECRET        = var.azure_oidc.secret
-      GOOGLE_SECRET       = var.google_oidc.secret
-      OKTA_DOMAIN         = var.okta_oidc.domain
-      OKTA_SERVER_ID      = var.okta_oidc.server_id
-      OKTA_SECRET         = var.okta_oidc.secret
+      AZURE_TENANT                 = var.azure_oidc.tenant
+      AZURE_SECRET                 = var.azure_oidc.secret
+      AZURE_CERTIFICATE_THUMBPRINT = var.azure_oidc.certificate_thumbprint
+      AZURE_CERTIFICATE_KEY        = var.azure_oidc.certificate_key_path
+      GOOGLE_SECRET                = var.google_oidc.secret
+      OKTA_DOMAIN                  = var.okta_oidc.domain
+      OKTA_SERVER_ID               = var.okta_oidc.server_id
+      OKTA_SECRET                  = var.okta_oidc.secret
     },
     var.pingid_oidc.client_id == "none" ? {} : {
       PINGID_SECRET       = var.pingid_oidc.secret
@@ -297,6 +299,16 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
     }
   )
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
+}
+
+resource "kubernetes_secret" "azure_certificate_key" {
+  metadata {
+    name      = "certificate-key"
+    namespace = "tdecision"
+  }
+  data = {
+    "key.pem" = "${var.azure_oidc.certificate_key}"
+  }
 }
 
 resource "kubernetes_job_v1" "af_bucket_files_push" {
