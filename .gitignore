@@ -4,4 +4,7 @@
 taskcat_outputs
 .DS_Store
 screen-logs.txt
-cx_Oracle*
+# Ignore everything under any function directory
+function/**
+# But do not ignore zip files
+!function/**/*.zip
