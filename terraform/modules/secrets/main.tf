@@ -212,7 +212,7 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
   secret_id = aws_secretsmanager_secret.db_passwords[each.key].id
   secret_string = jsonencode(
     {
-      username = each.key
+      username = each.key == "ADMIN" ? var.admin_username : each.key
       password = var.initial_db_passwords[each.key]
       engine   = "oracle"
       host     = element(split(":", var.db_endpoint), 0)
