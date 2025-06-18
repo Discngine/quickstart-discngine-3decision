@@ -13,7 +13,7 @@ output "db_endpoint" {
 }
 
 output "db_instance_identifier" {
-  value = aws_db_instance.db_instance.id
+  value = aws_db_instance.db_instance.identifier
 }
 
 output "admin_username" {
