@@ -712,6 +712,26 @@ Resources:
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
 
+  StateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateBucket
+    Properties:
+      Bucket: !Ref StateBucket
+      PolicyDocument:
+        Id: BucketPolicy
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt StateBucket.Arn
+              - !Sub "${StateBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
   BootNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties: 
