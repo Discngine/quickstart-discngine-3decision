@@ -787,11 +787,14 @@ Resources:
       KeyName: !Ref KeyPairName
       SecurityGroupIds: 
         - !Ref BootNodeSecurityGroup
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
       UserData:
         Fn::Base64:
           !Sub |
             #!/bin/bash
-
+            
             ret=0
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource BootNode --configsets Required --region ${AWS::Region}
             i=0
