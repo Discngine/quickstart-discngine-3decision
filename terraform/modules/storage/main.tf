@@ -98,7 +98,7 @@ resource "aws_iam_role_policy_attachment" "policy_attachment" {
   count = length(var.allowed_service_accounts) > 0 ? 1 : 0
 
   role       = aws_iam_role.role[0].id
-  policy_arn = aws_iam_policy.policy.arn
+  policy_arn = aws_iam_policy.policy[0].arn
 }
 
 resource "aws_s3_bucket_policy" "policy" {

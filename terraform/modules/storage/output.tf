@@ -5,5 +5,5 @@ output "bucket_name" {
 }
 
 output "s3_role_arn" {
-  value = aws_iam_role.role.arn
+  value = try(aws_iam_role.role[0].arn, "")
 }
