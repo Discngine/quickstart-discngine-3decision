@@ -602,6 +602,8 @@ Resources:
                   - kms:ScheduleKeyDeletion
                   - kms:TagResource
                   - kms:UntagResource
+                  - kms:EnableKeyRotation
+                  - kms:DisableKeyRotation
                 Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
