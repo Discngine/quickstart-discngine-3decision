@@ -4,7 +4,7 @@
 taskcat_outputs
 .DS_Store
 screen-logs.txt
-# Ignore everything under any function directory
-function/**
-# But do not ignore zip files
-!function/**/*.zip
+# Ignore everything under any function directory, at any depth
+**/function/**
+# But do not ignore zip files in any function directory
+!**/function/**/*.zip
