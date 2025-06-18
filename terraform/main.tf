@@ -8,23 +8,23 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = ">=2.10.1"
+      version = "~> 2"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = ">=2.12.1"
+      version = "~> 2"
     }
     kubectl = {
       source  = "alekc/kubectl"
-      version = ">=1.14.0"
+      version = "~> 2"
     }
     tls = {
       source  = "hashicorp/tls"
-      version = ">=4.0.1"
+      version = "~> 4"
     }
     random = {
       source  = "hashicorp/random"
-      version = ">=3.3.2"
+      version = "~> 3"
     }
   }
   backend "s3" {
