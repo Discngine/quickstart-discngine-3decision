@@ -219,6 +219,9 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
       dbname   = var.db_name
     }
   )
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
 }
 
 resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
