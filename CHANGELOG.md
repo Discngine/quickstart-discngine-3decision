@@ -29,6 +29,7 @@ Add a `-0` with incrementing numbers in case of a terraform / cloudformation cha
 - Set k8s_public_access default to false. @JonathanManass
 - Updated outputs and variables for secrets and kubernetes modules to support new features. @JonathanManass
 - Updated allowed_service_accounts logic in storage module. @JonathanManass
+- Updated provider constraints to majors
 
 #### Removed
 - NA
