@@ -108,7 +108,7 @@ resource "aws_kms_key" "kms" {
   count = var.create_kms_key ? 1 : 0
 
   description              = "3decision KMS CMK"
-  enable_key_rotation      = false
+  enable_key_rotation      = true
   is_enabled               = true
   key_usage                = "ENCRYPT_DECRYPT"
   customer_master_key_spec = "SYMMETRIC_DEFAULT"
