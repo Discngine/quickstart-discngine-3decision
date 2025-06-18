@@ -241,6 +241,7 @@ module "storage" {
   source   = "./modules/storage"
 
   # Input
+  account_id               = local.account_id
   name                     = each.key
   region                   = var.region
   force_destroy            = each.key == "alphafold" ? true : var.force_destroy

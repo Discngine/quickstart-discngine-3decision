@@ -315,26 +315,22 @@ def unlock_admin_password_if_needed(secret_dict):
     dbname = secret_dict['dbname']
     db_instance_id = os.environ.get('DB_INSTANCE_IDENTIFIER') or secret_dict.get('db_instance_identifier')
     admin_username_env = os.environ.get('ADMIN_USERNAME')
-    try:
-        conn = cx_Oracle.connect(username, password, host + ':' + port + '/' + dbname)
-        conn.close()
-        logger.info(f"finishSecret: Admin account ({username}) connection successful, no unlock/reset needed.")
-    except Exception as e:
-        logger.warning(f"finishSecret: Admin account ({username}) connection failed, attempting RDS password reset: {str(e)}")
-        import boto3
-        rds_client = boto3.client('rds')
-        if not db_instance_id:
-            logger.error("finishSecret: DB_INSTANCE_IDENTIFIER not set in environment or secret for admin password reset.")
-        else:
-            try:
-                rds_client.modify_db_instance(
-                    DBInstanceIdentifier=db_instance_id,
-                    MasterUserPassword=password,
-                    ApplyImmediately=True
-                )
-                logger.info(f"finishSecret: RDS password reset issued for admin account ({username}) on instance {db_instance_id}.")
-            except Exception as rds_e:
-                logger.error(f"finishSecret: Failed to reset admin password via RDS API: {str(rds_e)}")
+    conn = cx_Oracle.connect(username, password, host + ':' + port + '/' + dbname)
+    conn.close()
+    logger.info(f"finishSecret: Admin account ({username}) connection successful, no unlock/reset needed.")
+    rds_client = boto3.client('rds')
+    if not db_instance_id:
+        logger.error("finishSecret: DB_INSTANCE_IDENTIFIER not set in environment or secret for admin password reset.")
+    else:
+        try:
+            rds_client.modify_db_instance(
+                DBInstanceIdentifier=db_instance_id,
+                MasterUserPassword=password,
+                ApplyImmediately=True
+            )
+            logger.info(f"finishSecret: RDS password reset issued for admin account ({username}) on instance {db_instance_id}.")
+        except Exception as rds_e:
+            logger.error(f"finishSecret: Failed to reset admin password via RDS API: {str(rds_e)}")
 
 
 def get_connection(secret_dict):
