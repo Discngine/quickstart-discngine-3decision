@@ -102,7 +102,7 @@ variable "keypair_name" {
 }
 
 variable "k8s_public_access" {
-  default     = true
+  default     = false
   description = "Whether we can connect to the k8s control plane through the internet"
 }
 
