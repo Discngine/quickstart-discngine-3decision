@@ -201,13 +201,15 @@ module "secrets" {
 
   external_secrets_pia = var.external_secrets_pia
   # Output
-  vpc_id               = var.create_network ? module.network[0].vpc_id : var.vpc_id
-  private_subnet_ids   = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
-  db_security_group_id = module.database.db_security_group_id
-  db_name              = module.database.db_name
-  db_endpoint          = module.database.db_endpoint
-  node_group_role_arn  = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
-  cluster_name         = module.eks.cluster_name
+  vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  private_subnet_ids     = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
+  db_security_group_id   = module.database.db_security_group_id
+  db_name                = module.database.db_name
+  db_endpoint            = module.database.db_endpoint
+  node_group_role_arn    = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
+  cluster_name           = module.eks.cluster_name
+  admin_username         = module.database.admin_username
+  db_instance_identifier = module.database.db_instance_identifier
 }
 
 module "volumes" {

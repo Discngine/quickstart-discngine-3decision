@@ -95,15 +95,15 @@ resource "aws_iam_role_policy_attachment" "policy_attachment" {
   policy_arn = aws_iam_policy.policy.arn
 }
 
-resource "aws_s3_bucket_policy" "enforce_ssl" {
+resource "aws_s3_bucket_policy" "policy" {
   bucket = aws_s3_bucket.bucket.id
 
   policy = jsonencode({
-    Id = "ExamplePolicy"
+    Id      = "BucketPolicy"
     Version = "2012-10-17"
     Statement = [
       {
-        Sid = "AllowSSLRequestsOnly"
+        Sid    = "AllowSSLRequestsOnly"
         Action = "s3:*"
         Effect = "Deny"
         Resource = [

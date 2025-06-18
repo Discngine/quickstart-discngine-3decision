@@ -434,7 +434,7 @@ variable "okta_oidc" {
     server_id = optional(string, "")
     secret    = optional(string, "")
   })
-  default = {}
+  default     = {}
   description = "Okta Client ID for OKTA integration"
   sensitive   = true
 }
@@ -449,7 +449,7 @@ variable "azure_oidc" {
     certificate_thumbprint = optional(string, "")
     certificate_key_path   = optional(string, "")
   })
-  default = {}
+  default   = {}
   sensitive = true
 }
 
@@ -459,7 +459,7 @@ variable "google_oidc" {
     client_id = optional(string, "none")
     secret    = optional(string, "")
   })
-  default = {}
+  default   = {}
   sensitive = true
 }
 
@@ -470,7 +470,7 @@ variable "pingid_oidc" {
     secret       = optional(string, "")
     metadata_url = optional(string, "")
   })
-  default = {}
+  default   = {}
   sensitive = true
 }
 

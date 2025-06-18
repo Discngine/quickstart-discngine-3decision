@@ -75,8 +75,10 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
 
   environment {
     variables = {
-      SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.${var.region}.amazonaws.com",
+      SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.${var.region}.amazonaws.com"
       EXCLUDE_CHARACTERS       = "' ! \" # $ % & ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ ` { | } ~"
+      ADMIN_USERNAME           = var.admin_username
+      DB_INSTANCE_IDENTIFIER   = var.db_instance_identifier
     }
   }
 
