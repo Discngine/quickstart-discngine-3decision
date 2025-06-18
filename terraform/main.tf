@@ -210,6 +210,7 @@ module "secrets" {
   cluster_name           = module.eks.cluster_name
   admin_username         = module.database.admin_username
   db_instance_identifier = module.database.db_instance_identifier
+  database_arn           = module.database.database_arn
 }
 
 module "volumes" {

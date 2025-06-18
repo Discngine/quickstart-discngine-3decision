@@ -184,6 +184,14 @@ resource "aws_iam_policy" "secret_rotator_lambda_policy" {
         Resource = [
           "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/3decision-rotator-lambda:*"
         ]
+      },
+      # Used to update the database in case we need to unlock the admin account
+      {
+        Effect = "Allow",
+        Action = [
+          "rds:ModifyDBInstance"
+        ],
+        Resource = var.database_arn
       }
     ]
   })
