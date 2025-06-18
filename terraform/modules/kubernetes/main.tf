@@ -613,6 +613,9 @@ ingress:
   visibility: ${var.load_balancer_type}
   inboundCidrs: ${var.inbound_cidrs == "" ? "null" : var.inbound_cidrs}
   deletionProtection: ${!var.force_destroy}
+  logging:
+    enabled: true
+    bucket: ${var.app_bucket_name}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]

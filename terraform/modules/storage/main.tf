@@ -46,6 +46,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle" {
 }
 
 resource "aws_iam_role" "role" {
+  count = length(var.allowed_service_accounts) > 0 ? 1 : 0
+
   name_prefix = "3decision-${var.name}-s3"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
@@ -70,6 +72,8 @@ resource "aws_iam_role" "role" {
 
 
 resource "aws_iam_policy" "policy" {
+  count = length(var.allowed_service_accounts) > 0 ? 1 : 0
+
   name_prefix = "3decision-${var.name}-s3"
   policy = jsonencode({
     "Version" : "2012-10-17",
@@ -91,7 +95,9 @@ resource "aws_iam_policy" "policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "policy_attachment" {
-  role       = aws_iam_role.role.id
+  count = length(var.allowed_service_accounts) > 0 ? 1 : 0
+
+  role       = aws_iam_role.role[0].id
   policy_arn = aws_iam_policy.policy.arn
 }
 

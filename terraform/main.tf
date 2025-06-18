@@ -230,7 +230,7 @@ module "volumes" {
 }
 
 locals {
-  buckets = toset(["alphafold"])
+  buckets = toset(["alphafold", "app"])
   allowed_service_accounts = {
     "alphafold" = ["system:serviceaccount:tdecision:*"]
   }
@@ -298,6 +298,7 @@ module "kubernetes" {
   secrets_access_role_arn          = module.secrets.secrets_access_role_arn
   alphafold_bucket_name            = module.storage["alphafold"].bucket_name
   alphafold_s3_role_arn            = module.storage["alphafold"].s3_role_arn
+  app_bucket_name                  = module.storage["app"].bucket_name
   public_volume_id                 = module.volumes.public_volume_id
   private_volume_id                = module.volumes.private_volume_id
   eks_service_cidr                 = module.eks.service_cidr
