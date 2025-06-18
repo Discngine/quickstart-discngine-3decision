@@ -17,5 +17,5 @@ output "db_instance_identifier" {
 }
 
 output "admin_username" {
-  value = aws_db_instance.db_instance.username
+  value = upper(aws_db_instance.db_instance.username)
 }
