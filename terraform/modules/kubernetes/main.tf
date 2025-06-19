@@ -102,6 +102,14 @@ resource "kubernetes_namespace" "redis_namespace" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
+resource "kubernetes_namespace" "postgres_namespace" {
+  metadata {
+    name = "postgres"
+  }
+
+  depends_on = [kubernetes_config_map_v1.aws_auth]
+}
+
 resource "kubernetes_namespace" "tools_namespace" {
   metadata {
     name = "tools"
@@ -760,6 +768,7 @@ resource "helm_release" "tdecision_chart" {
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,
     terraform_data.reset_passwords,
+    helm_release.postgres_chart
   ]
 
   provisioner "local-exec" {
@@ -809,15 +818,15 @@ resource "kubernetes_secret" "connection_string_postgres" {
   data = {
     CONNECTION_STRING = local.connection_string
   }
+  depends_on = [kubernetes_namespace.postgres_namespace]
 }
 
 resource "helm_release" "postgres_chart" {
-  name             = var.postgres_chart.name
-  chart            = var.postgres_chart.chart
-  namespace        = var.postgres_chart.namespace
-  create_namespace = var.postgres_chart.create_namespace
-  version          = var.postgres_chart.version
-  timeout          = 1200
+  name      = var.postgres_chart.name
+  chart     = var.postgres_chart.chart
+  namespace = var.postgres_chart.namespace
+  version   = var.postgres_chart.version
+  timeout   = 1200
 
   values = [
     <<YAML
@@ -977,7 +986,11 @@ primary:
       emptyDir: {}
 YAML
   ]
-  depends_on = [kubernetes_secret.connection_string_postgres]
+  depends_on = [
+    kubernetes_namespace.postgres_namespace,
+    kubernetes_secret.connection_string_postgres,
+    helm_release.kubernetes_reflector
+  ]
 }
 
 resource "helm_release" "kubernetes_reflector" {

@@ -121,24 +121,24 @@ resource "aws_s3_bucket_policy" "policy" {
         }
         Principal = "*"
       }
-    ], 
-    var.name == "app" ? [
-      {
-        Sid      = "AllowELBAccessToAppBucket"
-        Effect   = "Allow"
-        Principal = "*"
-        Action   = ["s3:GetObject", "s3:PutObject"]
-        Resource = [
-          aws_s3_bucket.bucket.arn,
-          "${aws_s3_bucket.bucket.arn}/*"
-        ]
-        Condition = {
-          ArnLike = {
-            "aws:SourceArn" = "arn:aws:elasticloadbalancing:${var.region}:${var.account_id}:loadbalancer/*"
+      ],
+      var.name == "app" ? [
+        {
+          Sid       = "AllowELBAccessToAppBucket"
+          Effect    = "Allow"
+          Principal = "*"
+          Action    = ["s3:GetObject", "s3:PutObject"]
+          Resource = [
+            aws_s3_bucket.bucket.arn,
+            "${aws_s3_bucket.bucket.arn}/*"
+          ]
+          Condition = {
+            ArnLike = {
+              "aws:SourceArn" = "arn:aws:elasticloadbalancing:${var.region}:${var.account_id}:loadbalancer/*"
+            }
           }
         }
-      }
-    ] : []
-  )
-})
+      ] : []
+    )
+  })
 }
