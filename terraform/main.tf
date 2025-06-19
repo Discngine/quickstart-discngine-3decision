@@ -4,27 +4,27 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "= 5.100.0"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2"
+      version = "= 2.17.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2"
+      version = "= 2.37.1"
     }
     kubectl = {
       source  = "alekc/kubectl"
-      version = "~> 2"
+      version = "=2.1.3"
     }
     tls = {
       source  = "hashicorp/tls"
-      version = "~> 4"
+      version = "=4.1.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3"
+      version = "=3.7.2"
     }
   }
   backend "s3" {
