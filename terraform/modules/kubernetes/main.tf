@@ -833,6 +833,7 @@ resource "helm_release" "postgres_chart" {
   values = [
     <<YAML
 image:
+  registry: fra.ocir.io/discngine1
   tag: 17.5.0
 secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
