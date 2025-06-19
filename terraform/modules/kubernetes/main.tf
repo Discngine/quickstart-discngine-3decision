@@ -436,6 +436,8 @@ resource "kubernetes_priority_class" "low_priority" {
 locals {
   storage_class = var.encrypt_volumes ? "gp2-encrypted" : "gp2"
   values_config = <<YAML
+image:
+  registry: fra.ocir.io/discngine1
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -1001,6 +1003,13 @@ resource "helm_release" "kubernetes_reflector" {
   version          = var.kubernetes_reflector_chart.version
   namespace        = var.kubernetes_reflector_chart.namespace
   create_namespace = var.kubernetes_reflector_chart.create_namespace
+
+  values = [
+    <<YAML
+image:
+  repository: fra.ocir.io/discngine1/emberstack/kubernetes-reflector
+YAML
+  ]
 }
 
 locals {
