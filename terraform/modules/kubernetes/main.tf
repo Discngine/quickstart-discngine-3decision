@@ -833,6 +833,9 @@ resource "helm_release" "postgres_chart" {
 
   values = [
     <<YAML
+global:
+  security:
+    allowInsecureImages: true
 image:
   registry: fra.ocir.io/discngine1
   tag: 17.5.0
