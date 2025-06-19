@@ -46,6 +46,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle" {
 }
 
 resource "aws_iam_role" "role" {
+  count = length(var.allowed_service_accounts) > 0 ? 1 : 0
+
   name_prefix = "3decision-${var.name}-s3"
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
@@ -70,6 +72,8 @@ resource "aws_iam_role" "role" {
 
 
 resource "aws_iam_policy" "policy" {
+  count = length(var.allowed_service_accounts) > 0 ? 1 : 0
+
   name_prefix = "3decision-${var.name}-s3"
   policy = jsonencode({
     "Version" : "2012-10-17",
@@ -91,6 +95,50 @@ resource "aws_iam_policy" "policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "policy_attachment" {
-  role       = aws_iam_role.role.id
-  policy_arn = aws_iam_policy.policy.arn
+  count = length(var.allowed_service_accounts) > 0 ? 1 : 0
+
+  role       = aws_iam_role.role[0].id
+  policy_arn = aws_iam_policy.policy[0].arn
+}
+
+resource "aws_s3_bucket_policy" "policy" {
+  bucket = aws_s3_bucket.bucket.id
+
+  policy = jsonencode({
+    Id      = "BucketPolicy"
+    Version = "2012-10-17"
+    Statement = concat([
+      {
+        Sid    = "AllowSSLRequestsOnly"
+        Action = "s3:*"
+        Effect = "Deny"
+        Resource = [
+          aws_s3_bucket.bucket.arn,
+          "${aws_s3_bucket.bucket.arn}/*"
+        ]
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+        Principal = "*"
+      }
+      ],
+      var.name == "app" ? [
+        {
+          Sid       = "AllowELBAccessToAppBucket"
+          Effect    = "Allow"
+          Principal = "*"
+          Action    = ["s3:GetObject", "s3:PutObject"]
+          Resource = [
+            aws_s3_bucket.bucket.arn,
+            "${aws_s3_bucket.bucket.arn}/*"
+          ]
+          Condition = {
+            ArnLike = {
+              "aws:SourceArn" = "arn:aws:elasticloadbalancing:${var.region}:${var.account_id}:loadbalancer/*"
+            }
+          }
+        }
+      ] : []
+    )
+  })
 }

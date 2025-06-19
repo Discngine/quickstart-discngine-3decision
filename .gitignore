@@ -4,4 +4,9 @@
 taskcat_outputs
 .DS_Store
 screen-logs.txt
-cx_Oracle*
+# Ignore everything under any function directory, at any depth
+**/function/**
+# But do not ignore zip & python files in any function directory
+!**/function/**/*.zip
+!**/function/**/*.py
+!**/function/**/README.md

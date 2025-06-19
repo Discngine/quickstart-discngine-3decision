@@ -31,6 +31,7 @@ variable "custom_ami" {}
 variable "secrets_access_role_arn" {}
 variable "alphafold_bucket_name" {}
 variable "alphafold_s3_role_arn" {}
+variable "app_bucket_name" {}
 variable "public_volume_id" {}
 variable "private_volume_id" {}
 variable "eks_service_cidr" {}

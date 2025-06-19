@@ -11,3 +11,15 @@ output "db_name" {
 output "db_endpoint" {
   value = aws_db_instance.db_instance.endpoint
 }
+
+output "db_instance_identifier" {
+  value = aws_db_instance.db_instance.identifier
+}
+
+output "admin_username" {
+  value = upper(aws_db_instance.db_instance.username)
+}
+
+output "database_arn" {
+  value = aws_db_instance.db_instance.arn
+}

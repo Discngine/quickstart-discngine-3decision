@@ -102,6 +102,14 @@ resource "kubernetes_namespace" "redis_namespace" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
+resource "kubernetes_namespace" "postgres_namespace" {
+  metadata {
+    name = "postgres"
+  }
+
+  depends_on = [kubernetes_config_map_v1.aws_auth]
+}
+
 resource "kubernetes_namespace" "tools_namespace" {
   metadata {
     name = "tools"
@@ -217,7 +225,7 @@ resource "kubernetes_deployment" "sqlcl" {
 resource "kubectl_manifest" "secretstore" {
   yaml_body  = <<YAML
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: aws-secret-store
@@ -234,7 +242,7 @@ spec:
 resource "kubectl_manifest" "ClusterExternalSecret" {
   yaml_body = <<YAML
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterExternalSecret
 metadata:
   name: database-secrets
@@ -613,6 +621,9 @@ ingress:
   visibility: ${var.load_balancer_type}
   inboundCidrs: ${var.inbound_cidrs == "" ? "null" : var.inbound_cidrs}
   deletionProtection: ${!var.force_destroy}
+  logging:
+    enabled: true
+    bucket: ${var.app_bucket_name}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]
@@ -757,6 +768,7 @@ resource "helm_release" "tdecision_chart" {
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,
     terraform_data.reset_passwords,
+    helm_release.postgres_chart
   ]
 
   provisioner "local-exec" {
@@ -769,6 +781,7 @@ resource "helm_release" "tdecision_chart" {
       kubectl delete -n ${self.namespace} cronjob --all --force
       kubectl delete -n ${self.namespace} job --all --force
       kubectl delete deployments -n ${self.namespace} --all --force
+      sleep 10
       kubectl delete pods -n ${self.namespace} --all --force
       kubectl delete ingress -n ${self.namespace} --all --force
       kubectl get all -n ${self.namespace}
@@ -805,20 +818,20 @@ resource "kubernetes_secret" "connection_string_postgres" {
   data = {
     CONNECTION_STRING = local.connection_string
   }
+  depends_on = [kubernetes_namespace.postgres_namespace]
 }
 
 resource "helm_release" "postgres_chart" {
-  name             = var.postgres_chart.name
-  chart            = var.postgres_chart.chart
-  namespace        = var.postgres_chart.namespace
-  create_namespace = var.postgres_chart.create_namespace
-  version          = var.postgres_chart.version
-  timeout          = 1200
+  name      = var.postgres_chart.name
+  chart     = var.postgres_chart.chart
+  namespace = var.postgres_chart.namespace
+  version   = var.postgres_chart.version
+  timeout   = 1200
 
   values = [
     <<YAML
 image:
-  tag: 14.18.0
+  tag: 17.5.0
 secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
   reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
@@ -882,7 +895,7 @@ primary:
         - |
           set -e
           mkdir -p /bingo
-          wget "https://lifescience.opensource.epam.com/downloads/bingo-1.29.0/bingo-postgres-14-linux-x86_64.zip" -O /bingo/bingo.zip
+          wget "https://lifescience.opensource.epam.com/downloads/bingo-1.32.0/bingo-postgres-17-linux-x86_64.zip" -O /bingo/bingo.zip
           cd /bingo
           unzip -o bingo.zip
           tar -xzf bingo*.tgz
@@ -899,7 +912,7 @@ primary:
 
   sidecars:
     - name: post-init
-      image: bitnami/postgresql:14.18.0
+      image: bitnami/postgresql:17.5.0
       command:
         - /bin/bash
         - -c
@@ -915,7 +928,8 @@ primary:
           echo "Running POST-INIT Script..."
           PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
           SET statement_timeout = 0;
-          create index index_bingo_mol on structure_small_mol using bingo_idx (smiles bingo.bmolecule);
+          update bingo.bingo_config set cvalue='8' where cname='NTHREADS';
+          create index index_bingo_mol on structure_small_mol using bingo_idx (smiles bingo.molecule);
           ANALYZE;
           EOF
 
@@ -953,7 +967,7 @@ primary:
           smiles TEXT
         );
         \copy temp_structure_small_mol(small_mol_id, smiles) FROM '/export/export.csv' DELIMITER ',' CSV
-        create table STRUCTURE_SMALL_MOL as (select small_mol_id, bingo.compactmolecule(SMILES, false) as smiles from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null);
+        create table STRUCTURE_SMALL_MOL as (select small_mol_id, smiles as smiles from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null and bingo.getmass(smiles)>200 and smiles NOT LIKE '%\%%' ESCAPE '\');
 
         UPDATE bingo.bingo_config
         SET cvalue = '300000'
@@ -972,7 +986,11 @@ primary:
       emptyDir: {}
 YAML
   ]
-  depends_on = [kubernetes_secret.connection_string_postgres]
+  depends_on = [
+    kubernetes_namespace.postgres_namespace,
+    kubernetes_secret.connection_string_postgres,
+    helm_release.kubernetes_reflector
+  ]
 }
 
 resource "helm_release" "kubernetes_reflector" {
@@ -1279,6 +1297,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
+  version    = "1.13.3"
 
   values = [<<YAML
     clusterName: ${var.cluster_name}

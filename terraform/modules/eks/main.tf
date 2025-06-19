@@ -3,7 +3,8 @@
 resource "aws_kms_key" "cluster_secrets_key" {
   count = var.create_cluster ? 1 : 0
 
-  description = "EKS cluster secrets key"
+  description         = "EKS cluster secrets key"
+  enable_key_rotation = true
 }
 
 # Create EKS cluster
@@ -27,6 +28,8 @@ resource "aws_eks_cluster" "cluster" {
     }
     resources = ["secrets"]
   }
+
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 }
 
 data "aws_eks_cluster" "cluster" {

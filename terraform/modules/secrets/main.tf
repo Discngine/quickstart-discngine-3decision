@@ -75,8 +75,10 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
 
   environment {
     variables = {
-      SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.${var.region}.amazonaws.com",
+      SECRETS_MANAGER_ENDPOINT = "https://secretsmanager.${var.region}.amazonaws.com"
       EXCLUDE_CHARACTERS       = "' ! \" # $ % & ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ ` { | } ~"
+      ADMIN_USERNAME           = var.admin_username
+      DB_INSTANCE_IDENTIFIER   = var.db_instance_identifier
     }
   }
 
@@ -182,6 +184,14 @@ resource "aws_iam_policy" "secret_rotator_lambda_policy" {
         Resource = [
           "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/3decision-rotator-lambda:*"
         ]
+      },
+      # Used to update the database in case we need to unlock the admin account
+      {
+        Effect = "Allow",
+        Action = [
+          "rds:ModifyDBInstance"
+        ],
+        Resource = var.database_arn
       }
     ]
   })
@@ -210,13 +220,16 @@ resource "aws_secretsmanager_secret_version" "db_passwords_version" {
   secret_id = aws_secretsmanager_secret.db_passwords[each.key].id
   secret_string = jsonencode(
     {
-      username = each.key
+      username = each.key == "ADMIN" ? var.admin_username : each.key
       password = var.initial_db_passwords[each.key]
       engine   = "oracle"
       host     = element(split(":", var.db_endpoint), 0)
       dbname   = var.db_name
     }
   )
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
 }
 
 resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {

@@ -14,3 +14,9 @@ variable "db_endpoint" {}
 variable "node_group_role_arn" {}
 variable "cluster_name" {}
 variable "external_secrets_pia" {}
+variable "admin_username" {}
+variable "db_instance_identifier" {}
+variable "database_arn" {
+  description = "ARN of the RDS database instance for granting RDS permissions to the lambda rotator."
+  type        = string
+}

@@ -102,7 +102,7 @@ variable "keypair_name" {
 }
 
 variable "k8s_public_access" {
-  default     = true
+  default     = false
   description = "Whether we can connect to the k8s control plane through the internet"
 }
 
@@ -331,7 +331,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.4.2")
+    version          = optional(string, "3.4.3")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -396,7 +396,7 @@ variable "external_secrets_chart" {
     chart            = optional(string, "external-secrets")
     namespace        = optional(string, "external-secrets")
     create_namespace = optional(bool, true)
-    version          = optional(string, "0.16.2")
+    version          = optional(string, "0.18.0")
   })
   default = {}
 }
@@ -434,7 +434,7 @@ variable "okta_oidc" {
     server_id = optional(string, "")
     secret    = optional(string, "")
   })
-  default = {}
+  default     = {}
   description = "Okta Client ID for OKTA integration"
   sensitive   = true
 }
@@ -449,7 +449,7 @@ variable "azure_oidc" {
     certificate_thumbprint = optional(string, "")
     certificate_key_path   = optional(string, "")
   })
-  default = {}
+  default   = {}
   sensitive = true
 }
 
@@ -459,7 +459,7 @@ variable "google_oidc" {
     client_id = optional(string, "none")
     secret    = optional(string, "")
   })
-  default = {}
+  default   = {}
   sensitive = true
 }
 
@@ -470,7 +470,7 @@ variable "pingid_oidc" {
     secret       = optional(string, "")
     metadata_url = optional(string, "")
   })
-  default = {}
+  default   = {}
   sensitive = true
 }
 
