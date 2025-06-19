@@ -518,6 +518,7 @@ resource "helm_release" "external_secrets_chart" {
   repository       = var.external_secrets_chart.repository
   namespace        = var.external_secrets_chart.namespace
   create_namespace = var.external_secrets_chart.create_namespace
+  version          = var.external_secrets_chart.version
   timeout          = 1200
 
   depends_on = [kubernetes_config_map_v1.aws_auth]

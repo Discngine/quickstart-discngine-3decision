@@ -269,6 +269,7 @@ variable "external_secrets_chart" {
     chart            = optional(string, "external-secrets")
     namespace        = optional(string, "external-secrets")
     create_namespace = optional(bool, true)
+    version          = optional(string, "0.16.2")
   })
   default = {}
 }
