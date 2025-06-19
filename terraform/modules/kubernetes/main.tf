@@ -772,6 +772,7 @@ resource "helm_release" "tdecision_chart" {
       kubectl delete -n ${self.namespace} cronjob --all --force
       kubectl delete -n ${self.namespace} job --all --force
       kubectl delete deployments -n ${self.namespace} --all --force
+      sleep 10
       kubectl delete pods -n ${self.namespace} --all --force
       kubectl delete ingress -n ${self.namespace} --all --force
       kubectl get all -n ${self.namespace}
