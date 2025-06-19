@@ -16,15 +16,15 @@ terraform {
     }
     kubectl = {
       source  = "alekc/kubectl"
-      version = "=2.1.3"
+      version = "= 2.1.3"
     }
     tls = {
       source  = "hashicorp/tls"
-      version = "=4.1.0"
+      version = "= 4.1.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "=3.7.2"
+      version = "= 3.7.2"
     }
   }
   backend "s3" {
