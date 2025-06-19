@@ -822,7 +822,7 @@ resource "helm_release" "postgres_chart" {
   values = [
     <<YAML
 image:
-  tag: 14.18.0
+  tag: 17.5.0
 secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
   reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
@@ -886,7 +886,7 @@ primary:
         - |
           set -e
           mkdir -p /bingo
-          wget "https://lifescience.opensource.epam.com/downloads/bingo-1.29.0/bingo-postgres-14-linux-x86_64.zip" -O /bingo/bingo.zip
+          wget "https://lifescience.opensource.epam.com/downloads/bingo-1.32.0/bingo-postgres-17-linux-x86_64.zip" -O /bingo/bingo.zip
           cd /bingo
           unzip -o bingo.zip
           tar -xzf bingo*.tgz
@@ -903,7 +903,7 @@ primary:
 
   sidecars:
     - name: post-init
-      image: bitnami/postgresql:14.18.0
+      image: bitnami/postgresql:17.5.0
       command:
         - /bin/bash
         - -c
@@ -919,7 +919,8 @@ primary:
           echo "Running POST-INIT Script..."
           PGPASSWORD="$POSTGRES_PASSWORD" psql -h localhost -U "$POSTGRES_USER" -d "$POSTGRES_DB" << 'EOF'
           SET statement_timeout = 0;
-          create index index_bingo_mol on structure_small_mol using bingo_idx (smiles bingo.bmolecule);
+          update bingo.bingo_config set cvalue='8' where cname='NTHREADS';
+          create index index_bingo_mol on structure_small_mol using bingo_idx (smiles bingo.molecule);
           ANALYZE;
           EOF
 
@@ -957,7 +958,7 @@ primary:
           smiles TEXT
         );
         \copy temp_structure_small_mol(small_mol_id, smiles) FROM '/export/export.csv' DELIMITER ',' CSV
-        create table STRUCTURE_SMALL_MOL as (select small_mol_id, bingo.compactmolecule(SMILES, false) as smiles from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null);
+        create table STRUCTURE_SMALL_MOL as (select small_mol_id, smiles as smiles from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null and bingo.getmass(smiles)>200 and smiles NOT LIKE '%\%%' ESCAPE '\');
 
         UPDATE bingo.bingo_config
         SET cvalue = '300000'
