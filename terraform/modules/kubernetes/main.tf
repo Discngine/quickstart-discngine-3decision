@@ -455,6 +455,8 @@ master:
     ports:
       redis: 6380
 replica:
+  podAnnotations:
+    karpenter.sh/do-not-disrupt: "true"
   priorityClassName: "high-priority"
   replicaCount: 1
   resources:
@@ -846,7 +848,7 @@ secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
   reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 primary:
-  annotations:
+  podAnnotations:
     karpenter.sh/do-not-disrupt: "true"
   extendedConfiguration: |-
     shared_buffers = 500MB
