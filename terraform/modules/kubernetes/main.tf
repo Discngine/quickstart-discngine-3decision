@@ -317,6 +317,7 @@ resource "kubernetes_secret" "azure_certificate_key" {
   data = {
     "key.pem" = "${var.azure_oidc.certificate_key}"
   }
+  depends_on = [ kubernetes_namespace.tdecision_namespace ]
 }
 
 resource "kubernetes_job_v1" "af_bucket_files_push" {
@@ -436,6 +437,8 @@ resource "kubernetes_priority_class" "low_priority" {
 locals {
   storage_class = var.encrypt_volumes ? "gp2-encrypted" : "gp2"
   values_config = <<YAML
+image:
+  registry: fra.ocir.io/discngine1
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -459,6 +462,8 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
+  security:
+    allowInsecureImages: true
   defaultStorageClass: ${local.storage_class}
   redis:
     password: lapin80
@@ -830,7 +835,11 @@ resource "helm_release" "postgres_chart" {
 
   values = [
     <<YAML
+global:
+  security:
+    allowInsecureImages: true
 image:
+  registry: fra.ocir.io/discngine1
   tag: 17.5.0
 secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
@@ -1001,6 +1010,13 @@ resource "helm_release" "kubernetes_reflector" {
   version          = var.kubernetes_reflector_chart.version
   namespace        = var.kubernetes_reflector_chart.namespace
   create_namespace = var.kubernetes_reflector_chart.create_namespace
+
+  values = [
+    <<YAML
+image:
+  repository: fra.ocir.io/discngine1/emberstack/kubernetes-reflector
+YAML
+  ]
 }
 
 locals {
