@@ -317,6 +317,7 @@ resource "kubernetes_secret" "azure_certificate_key" {
   data = {
     "key.pem" = "${var.azure_oidc.certificate_key}"
   }
+  depends_on = [ kubernetes_namespace.tdecision_namespace ]
 }
 
 resource "kubernetes_job_v1" "af_bucket_files_push" {
@@ -448,10 +449,14 @@ sentinel:
       cpu: 500m
       memory: 500Mi
 master:
+  podAnnotations:
+    karpenter.sh/do-not-disrupt: "true"
   service:
     ports:
       redis: 6380
 replica:
+  podAnnotations:
+    karpenter.sh/do-not-disrupt: "true"
   priorityClassName: "high-priority"
   replicaCount: 1
   resources:
@@ -459,6 +464,9 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
+  imageRegistry: fra.ocir.io/discngine1
+  security:
+    allowInsecureImages: true
   defaultStorageClass: ${local.storage_class}
   redis:
     password: lapin80
@@ -830,12 +838,18 @@ resource "helm_release" "postgres_chart" {
 
   values = [
     <<YAML
+global:
+  imageRegistry: fra.ocir.io/discngine1
+  security:
+    allowInsecureImages: true
 image:
   tag: 17.5.0
 secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
   reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 primary:
+  podAnnotations:
+    karpenter.sh/do-not-disrupt: "true"
   extendedConfiguration: |-
     shared_buffers = 500MB
   extraEnvVars:
@@ -1001,6 +1015,13 @@ resource "helm_release" "kubernetes_reflector" {
   version          = var.kubernetes_reflector_chart.version
   namespace        = var.kubernetes_reflector_chart.namespace
   create_namespace = var.kubernetes_reflector_chart.create_namespace
+
+  values = [
+    <<YAML
+image:
+  repository: fra.ocir.io/discngine1/emberstack/kubernetes-reflector
+YAML
+  ]
 }
 
 locals {
