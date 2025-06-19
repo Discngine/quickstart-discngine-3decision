@@ -926,7 +926,7 @@ primary:
 
   sidecars:
     - name: post-init
-      image: bitnami/postgresql:17.5.0
+      image: fra.ocir.io/discngine1/bitnami/postgresql:17.5.0
       command:
         - /bin/bash
         - -c
