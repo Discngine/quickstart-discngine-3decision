@@ -4,27 +4,27 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "= 5.100.0"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = ">=2.10.1"
+      version = "= 2.17.0"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = ">=2.12.1"
+      version = "= 2.37.1"
     }
     kubectl = {
       source  = "alekc/kubectl"
-      version = ">=1.14.0"
+      version = "= 2.1.3"
     }
     tls = {
       source  = "hashicorp/tls"
-      version = ">=4.0.1"
+      version = "= 4.1.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = ">=3.3.2"
+      version = "= 3.7.2"
     }
   }
   backend "s3" {
@@ -108,7 +108,7 @@ resource "aws_kms_key" "kms" {
   count = var.create_kms_key ? 1 : 0
 
   description              = "3decision KMS CMK"
-  enable_key_rotation      = false
+  enable_key_rotation      = true
   is_enabled               = true
   key_usage                = "ENCRYPT_DECRYPT"
   customer_master_key_spec = "SYMMETRIC_DEFAULT"
@@ -201,13 +201,16 @@ module "secrets" {
 
   external_secrets_pia = var.external_secrets_pia
   # Output
-  vpc_id               = var.create_network ? module.network[0].vpc_id : var.vpc_id
-  private_subnet_ids   = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
-  db_security_group_id = module.database.db_security_group_id
-  db_name              = module.database.db_name
-  db_endpoint          = module.database.db_endpoint
-  node_group_role_arn  = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
-  cluster_name         = module.eks.cluster_name
+  vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
+  private_subnet_ids     = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
+  db_security_group_id   = module.database.db_security_group_id
+  db_name                = module.database.db_name
+  db_endpoint            = module.database.db_endpoint
+  node_group_role_arn    = var.create_node_group ? module.eks.node_group_role_arn : var.node_group_arn
+  cluster_name           = module.eks.cluster_name
+  admin_username         = module.database.admin_username
+  db_instance_identifier = module.database.db_instance_identifier
+  database_arn           = module.database.database_arn
 }
 
 module "volumes" {
@@ -228,7 +231,7 @@ module "volumes" {
 }
 
 locals {
-  buckets = toset(["alphafold"])
+  buckets = toset(["alphafold", "app"])
   allowed_service_accounts = {
     "alphafold" = ["system:serviceaccount:tdecision:*"]
   }
@@ -239,6 +242,7 @@ module "storage" {
   source   = "./modules/storage"
 
   # Input
+  account_id               = local.account_id
   name                     = each.key
   region                   = var.region
   force_destroy            = each.key == "alphafold" ? true : var.force_destroy
@@ -296,6 +300,7 @@ module "kubernetes" {
   secrets_access_role_arn          = module.secrets.secrets_access_role_arn
   alphafold_bucket_name            = module.storage["alphafold"].bucket_name
   alphafold_s3_role_arn            = module.storage["alphafold"].s3_role_arn
+  app_bucket_name                  = module.storage["app"].bucket_name
   public_volume_id                 = module.volumes.public_volume_id
   private_volume_id                = module.volumes.private_volume_id
   eks_service_cidr                 = module.eks.service_cidr

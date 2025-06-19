@@ -1,5 +1,6 @@
 # monitor Module - Variables file for the monitor module
 
+variable "account_id" {}
 variable "name" {}
 variable "region" {}
 variable "force_destroy" {}

@@ -602,6 +602,8 @@ Resources:
                   - kms:ScheduleKeyDeletion
                   - kms:TagResource
                   - kms:UntagResource
+                  - kms:EnableKeyRotation
+                  - kms:DisableKeyRotation
                 Resource: '*'
               - Effect: Allow
                 Action: logs:PutRetentionPolicy
@@ -712,6 +714,26 @@ Resources:
         BlockPublicPolicy: true
         RestrictPublicBuckets: true
 
+  StateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateBucket
+    Properties:
+      Bucket: !Ref StateBucket
+      PolicyDocument:
+        Id: BucketPolicy
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt StateBucket.Arn
+              - !Sub "${StateBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
   BootNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties: 
@@ -767,11 +789,14 @@ Resources:
       KeyName: !Ref KeyPairName
       SecurityGroupIds: 
         - !Ref BootNodeSecurityGroup
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
       UserData:
         Fn::Base64:
           !Sub |
             #!/bin/bash
-
+            
             ret=0
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource BootNode --configsets Required --region ${AWS::Region}
             i=0
