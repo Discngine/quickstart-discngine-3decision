@@ -317,6 +317,7 @@ resource "kubernetes_secret" "azure_certificate_key" {
   data = {
     "key.pem" = "${var.azure_oidc.certificate_key}"
   }
+  depends_on = [ kubernetes_namespace.tdecision_namespace ]
 }
 
 resource "kubernetes_job_v1" "af_bucket_files_push" {
