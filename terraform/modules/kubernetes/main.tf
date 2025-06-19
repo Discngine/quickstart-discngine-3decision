@@ -317,6 +317,7 @@ resource "kubernetes_secret" "azure_certificate_key" {
   data = {
     "key.pem" = "${var.azure_oidc.certificate_key}"
   }
+  depends_on = [ kubernetes_namespace.tdecision_namespace ]
 }
 
 resource "kubernetes_job_v1" "af_bucket_files_push" {
@@ -459,6 +460,9 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
+  registry: fra.ocir.io/discngine1
+  security:
+    allowInsecureImages: true
   defaultStorageClass: ${local.storage_class}
   redis:
     password: lapin80
@@ -830,6 +834,10 @@ resource "helm_release" "postgres_chart" {
 
   values = [
     <<YAML
+global:
+  registry: fra.ocir.io/discngine1
+  security:
+    allowInsecureImages: true
 image:
   tag: 17.5.0
 secretAnnotations:
@@ -1001,6 +1009,13 @@ resource "helm_release" "kubernetes_reflector" {
   version          = var.kubernetes_reflector_chart.version
   namespace        = var.kubernetes_reflector_chart.namespace
   create_namespace = var.kubernetes_reflector_chart.create_namespace
+
+  values = [
+    <<YAML
+image:
+  repository: fra.ocir.io/discngine1/emberstack/kubernetes-reflector
+YAML
+  ]
 }
 
 locals {

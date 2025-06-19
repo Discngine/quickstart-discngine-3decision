@@ -342,7 +342,7 @@ variable "postgres_chart" {
 
   type = object({
     name             = optional(string, "postgresql")
-    chart            = optional(string, "oci://registry-1.docker.io/bitnamicharts/postgresql")
+    chart            = optional(string, "oci://fra.ocir.io/discngine1/bitnamicharts/postgresql")
     namespace        = optional(string, "postgres")
     create_namespace = optional(bool, true)
     version          = optional(string, "16.7.3")
