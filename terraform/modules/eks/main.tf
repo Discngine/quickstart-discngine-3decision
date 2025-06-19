@@ -102,6 +102,22 @@ resource "aws_iam_role" "eks_node_role" {
 
   name_prefix = "3decision-eks-nodegroup"
 
+  inline_policy {
+    name = "RetrieveLicense"
+    policy = jsonencode(
+      {
+        Version = "2012-10-17"
+        Statement = [
+          {
+            Action   = ["s3:GetObject"]
+            Effect   = "Allow"
+            Resource = "arn:aws:s3:::dng-psilo-license/*"
+          },
+        ]
+      }
+    )
+  }
+
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
