@@ -464,7 +464,7 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
-  registry: fra.ocir.io/discngine1
+  imageRegistry: fra.ocir.io/discngine1
   security:
     allowInsecureImages: true
   defaultStorageClass: ${local.storage_class}
@@ -839,7 +839,7 @@ resource "helm_release" "postgres_chart" {
   values = [
     <<YAML
 global:
-  registry: fra.ocir.io/discngine1
+  imageRegistry: fra.ocir.io/discngine1
   security:
     allowInsecureImages: true
 image:
