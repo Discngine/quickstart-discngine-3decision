@@ -752,6 +752,10 @@ Resources:
     Type: AWS::EC2::Instance
     Condition: CreateInfraInstance
     Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002
       AWS::CloudFormation::Init:
         configSets:
           Required:
