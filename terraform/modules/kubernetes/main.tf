@@ -449,6 +449,8 @@ sentinel:
       cpu: 500m
       memory: 500Mi
 master:
+  podAnnotations:
+    karpenter.sh/do-not-disrupt: "true"
   service:
     ports:
       redis: 6380
@@ -844,6 +846,8 @@ secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
   reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
 primary:
+  annotations:
+    karpenter.sh/do-not-disrupt: "true"
   extendedConfiguration: |-
     shared_buffers = 500MB
   extraEnvVars:
