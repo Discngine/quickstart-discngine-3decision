@@ -345,7 +345,7 @@ variable "postgres_chart" {
     chart            = optional(string, "oci://fra.ocir.io/discngine1/bitnamicharts/postgresql")
     namespace        = optional(string, "postgres")
     create_namespace = optional(bool, true)
-    version          = optional(string, "16.7.13")
+    version          = optional(string, "16.7.3")
   })
   default = {}
 }

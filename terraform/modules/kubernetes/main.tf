@@ -462,7 +462,7 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
-  security: 
+  security:
     allowInsecureImages: true
   defaultStorageClass: ${local.storage_class}
   redis:
@@ -835,8 +835,8 @@ resource "helm_release" "postgres_chart" {
 
   values = [
     <<YAML
-global: 
-  security: 
+global:
+  security:
     allowInsecureImages: true
 image:
   registry: fra.ocir.io/discngine1
