@@ -462,6 +462,8 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
+  security: 
+    allowInsecureImages: true
   defaultStorageClass: ${local.storage_class}
   redis:
     password: lapin80
