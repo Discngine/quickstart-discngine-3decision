@@ -437,8 +437,6 @@ resource "kubernetes_priority_class" "low_priority" {
 locals {
   storage_class = var.encrypt_volumes ? "gp2-encrypted" : "gp2"
   values_config = <<YAML
-image:
-  registry: fra.ocir.io/discngine1
 commonConfiguration: |-
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly no
@@ -462,6 +460,7 @@ replica:
       cpu: 1000m
       memory: 2Gi
 global:
+  registry: fra.ocir.io/discngine1
   security:
     allowInsecureImages: true
   defaultStorageClass: ${local.storage_class}
@@ -836,10 +835,10 @@ resource "helm_release" "postgres_chart" {
   values = [
     <<YAML
 global:
+  registry: fra.ocir.io/discngine1
   security:
     allowInsecureImages: true
 image:
-  registry: fra.ocir.io/discngine1
   tag: 17.5.0
 secretAnnotations:
   reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
