@@ -30,7 +30,7 @@ blocks:
   - name: Test templates upload
   # Run on commit on non main branch
     run:
-      when: "branch != 'main' AND pull_request !~ '.*'"
+      when: "branch != 'main' AND pull_request !~ '.*' AND tag !~ '.*'"
     task:
       jobs:
         - name: templates upload
@@ -43,7 +43,7 @@ blocks:
   - name: Templates upload
   # Run on commit on main branch
     run:
-      when: "branch = 'main' AND pull_request !~ '.*'"
+      when: "branch = 'main' AND pull_request !~ '.*' AND tag !~ '.*'"
     task:
       jobs:
         - name: templates upload
