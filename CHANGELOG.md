@@ -21,7 +21,7 @@ Add a `-0` with incrementing numbers in case of a terraform / cloudformation cha
 - Added pod identity association for license download. @JonathanManass
 
 #### Changed
-- NA
+- Updated default 3decision version to 3.4.4. @JonathanManass
 
 #### Removed
 - NA
