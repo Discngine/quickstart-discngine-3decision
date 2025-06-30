@@ -312,7 +312,7 @@ resource "aws_eks_addon" "pia_addon" {
 
 # Create IAM PIA Role for license download
 
-resource "aws_iam_role" "license_download_role" {
+resource "aws_iam_role" "license_download" {
   count = var.use_pia ? 1 : 0
 
   name_prefix = "3decision-license-download"
@@ -338,13 +338,15 @@ resource "aws_iam_role" "license_download_role" {
   description = "Role designed to create Kubernetes secrets from Secrets Manager for 3decision quickstart"
 }
 
-resource "aws_eks_pod_identity_association" "pod_identity_association" {
+resource "aws_eks_pod_identity_association" "license_download" {
   count = var.use_pia ? 1 : 0
 
   cluster_name    = var.cluster_name
   namespace       = "tdecision"
   service_account = "tdecision-license-download"
   role_arn        = aws_iam_role.license_download[0].arn
+
+  depends_on = [ aws_eks_addon.pia_addon ]
 }
 
 resource "aws_iam_policy" "license_download" {
@@ -365,7 +367,7 @@ resource "aws_iam_policy" "license_download" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "secrets_access" {
+resource "aws_iam_role_policy_attachment" "license_download" {
   count = var.use_pia ? 1 : 0
 
   role       = aws_iam_role.license_download[0].id
