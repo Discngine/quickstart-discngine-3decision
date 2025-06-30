@@ -4,6 +4,28 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.4.4] - 2025-06-18
+### Cloudformation
+#### Added
+- Added VolumeAvailabilityZone parameter to control where block volumes are created. @JonathanManass
+- Added Templates upload to specific directory on release. @JonathanManass
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- Added pod identity association for license download. @JonathanManass
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
 ## [3.4.3] - 2025-06-18
 ### Cloudformation
 #### Added
