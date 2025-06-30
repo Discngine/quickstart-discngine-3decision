@@ -13,7 +13,7 @@ variable "db_name" {}
 variable "db_endpoint" {}
 variable "node_group_role_arn" {}
 variable "cluster_name" {}
-variable "external_secrets_pia" {}
+variable "use_pia" {}
 variable "admin_username" {}
 variable "db_instance_identifier" {}
 variable "database_arn" {

@@ -91,6 +91,7 @@ Metadata:
         Parameters:
           - PublicVolumeSnapshotId
           - PrivateVolumeSnapshotId
+          - VolumeAvailabilityZone
     ParameterLabels:
       StackOperation:
         default: Terraform stack operation
@@ -188,6 +189,8 @@ Metadata:
         default: Snapshot id of the public volume to recover
       PrivateVolumeSnapshotId:
         default: Snapshot id of the private volume to recover
+      VolumeAvailabilityZone:
+        default: "Availability zone of the volumes"
 Parameters:
   StackOperation:
     Description: "Whether to apply (create/update) or destroy the ressources"
@@ -482,6 +485,11 @@ Parameters:
     Description: >
       Optional: Snapshot id of the private volume to recover.
       This is only used on volume creation.
+  VolumeAvailabilityZone:
+    Type: String
+    Default: "0"
+    Description: >
+      Optional: The availability zone to use for both public and private volumes. Takes a number (0 for 1a, 1 for 1b, etc).
 
 Rules:
   DiscngineSupportedRegionRule:
@@ -913,6 +921,8 @@ Resources:
             Value: !Ref PublicVolumeSnapshotId
           - Name: PrivateVolumeSnapshotId
             Value: !Ref PrivateVolumeSnapshotId
+          - Name: VolumeAvailabilityZone
+            Value: !Ref VolumeAvailabilityZone
           - Name: KubernetesVersion
             Value: !Ref KubernetesVersion
           - Name: DBInstanceClass
@@ -1029,6 +1039,9 @@ Resources:
                   }
                   public_volume_snapshot = "${PublicVolumeSnapshotId}"
                   private_volume_snapshot = "${PrivateVolumeSnapshotId}"
+
+                  public_volume_availability_zone = ${VolumeAvailabilityZone}
+                  private_volume_availability_zone = ${VolumeAvailabilityZone}
 
                   kubernetes_version = "${KubernetesVersion}"
                   db_instance_type = "${DBInstanceClass}"

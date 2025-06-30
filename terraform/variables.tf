@@ -148,7 +148,7 @@ variable "openid_provider_arn" {
   description = "Arn of an existing openid provider used if create_openid_provider is set to false."
 }
 
-variable "external_secrets_pia" {
+variable "use_pia" {
   type        = bool
   default     = false
   description = "Set to true to use pod identity association for external secrets. Otherwise the node role user credentials are used."
@@ -331,7 +331,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.4.3")
+    version          = optional(string, "3.4.4")
     create_namespace = optional(bool, true)
   })
   default = {}

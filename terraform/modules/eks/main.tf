@@ -309,3 +309,67 @@ resource "aws_eks_addon" "pia_addon" {
 
   depends_on = [aws_eks_node_group.node_group]
 }
+
+# Create IAM PIA Role for license download
+
+resource "aws_iam_role" "license_download" {
+  count = var.use_pia ? 1 : 0
+
+  name_prefix = "3decision-license-download"
+  assume_role_policy = jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Sid" : "AllowEksAuthToAssumeRoleForPodIdentity",
+          "Effect" : "Allow",
+          "Principal" : {
+            "Service" : "pods.eks.amazonaws.com"
+          },
+          "Action" : [
+            "sts:AssumeRole",
+            "sts:TagSession"
+          ]
+        }
+      ]
+    }
+  )
+
+  description = "Role designed to create Kubernetes secrets from Secrets Manager for 3decision quickstart"
+}
+
+resource "aws_eks_pod_identity_association" "license_download" {
+  count = var.use_pia ? 1 : 0
+
+  cluster_name    = var.cluster_name
+  namespace       = "tdecision"
+  service_account = "tdecision-license-download"
+  role_arn        = aws_iam_role.license_download[0].arn
+
+  depends_on = [ aws_eks_addon.pia_addon ]
+}
+
+resource "aws_iam_policy" "license_download" {
+  count = var.use_pia ? 1 : 0
+
+  name_prefix = "3decision-license-download"
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "s3:GetObject",
+        ],
+        "Resource" : "arn:aws:s3:::dng-psilo-license/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "license_download" {
+  count = var.use_pia ? 1 : 0
+
+  role       = aws_iam_role.license_download[0].id
+  policy_arn = aws_iam_policy.license_download[0].arn
+}
