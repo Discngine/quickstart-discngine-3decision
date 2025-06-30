@@ -234,7 +234,7 @@ spec:
     aws:
       service: SecretsManager
       region: ${var.region}
-      %{if !var.external_secrets_pia}role: ${var.secrets_access_role_arn}%{endif}
+      %{if !var.use_pia}role: ${var.secrets_access_role_arn}%{endif}
   YAML
   depends_on = [helm_release.external_secrets_chart, kubernetes_config_map_v1.aws_auth]
 }
@@ -317,7 +317,7 @@ resource "kubernetes_secret" "azure_certificate_key" {
   data = {
     "key.pem" = "${var.azure_oidc.certificate_key}"
   }
-  depends_on = [ kubernetes_namespace.tdecision_namespace ]
+  depends_on = [kubernetes_namespace.tdecision_namespace]
 }
 
 resource "kubernetes_job_v1" "af_bucket_files_push" {
@@ -550,7 +550,7 @@ resource "helm_release" "external_secrets_chart" {
   version          = var.external_secrets_chart.version
   timeout          = 1200
 
-  values = !var.external_secrets_pia ? null : [<<YAML
+  values = !var.use_pia ? null : [<<YAML
 serviceAccount:
   annotations:
   name: external-secrets

@@ -148,6 +148,7 @@ module "eks" {
   create_openid_provider = var.create_openid_provider
   openid_provider_arn    = var.openid_provider_arn
   add_pia_addon          = var.add_pia_addon
+  use_pia                = var.use_pia
   # Output
   vpc_cidr           = var.vpc_id != "" ? data.aws_vpc.vpc[0].cidr_block : "10.0.0.0/16"
   vpc_id             = var.create_network ? module.network[0].vpc_id : var.vpc_id
@@ -199,7 +200,7 @@ module "secrets" {
   db_user_rotation_schedule  = var.db_user_rotation_schedule
   db_admin_rotation_schedule = var.db_admin_rotation_schedule
 
-  external_secrets_pia = var.external_secrets_pia
+  use_pia = var.use_pia
   # Output
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
   private_subnet_ids     = var.create_network ? module.network[0].private_subnet_ids : var.private_subnet_ids
@@ -291,7 +292,7 @@ module "kubernetes" {
   encrypt_volumes            = var.encrypt_volumes
   deploy_cert_manager        = var.deploy_cert_manager
   deploy_alb_chart           = var.deploy_alb_chart
-  external_secrets_pia       = var.external_secrets_pia
+  use_pia                    = var.use_pia
   username_is_email          = var.username_is_email
   # Output
   vpc_id                           = var.create_network ? module.network[0].vpc_id : var.vpc_id

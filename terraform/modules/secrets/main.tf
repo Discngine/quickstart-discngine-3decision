@@ -247,7 +247,7 @@ resource "aws_secretsmanager_secret_rotation" "db_master_password_rotation" {
 
 resource "aws_iam_role" "secrets_access_role" {
   name_prefix = "3decision-database-secrets"
-  assume_role_policy = var.external_secrets_pia ? jsonencode(
+  assume_role_policy = var.use_pia ? jsonencode(
     {
       "Version" : "2012-10-17",
       "Statement" : [
@@ -283,7 +283,7 @@ resource "aws_iam_role" "secrets_access_role" {
 }
 
 resource "aws_eks_pod_identity_association" "pod_identity_association" {
-  count = var.external_secrets_pia ? 1 : 0
+  count = var.use_pia ? 1 : 0
 
   cluster_name    = var.cluster_name
   namespace       = "external-secrets"

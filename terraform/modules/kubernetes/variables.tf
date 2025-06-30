@@ -50,5 +50,5 @@ variable "deploy_alb_chart" {}
 variable "encrypt_volumes" {}
 variable "private_volume_availability_zone" {}
 variable "public_volume_availability_zone" {}
-variable "external_secrets_pia" {}
+variable "use_pia" {}
 variable "username_is_email" {}
