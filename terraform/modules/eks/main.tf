@@ -23,6 +23,9 @@ resource "aws_eks_cluster" "cluster" {
     }
     resources = ["secrets"]
   }
+  lifecycle {
+    ignore_changes = [ enabled_cluster_log_types ]
+  }
 }
 
 # Create IAM role for EKS cluster
