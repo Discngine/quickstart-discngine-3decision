@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
-## [3.4.5] - 2025-06-18
+## [3.4.5] - 2025-07-10
 ### Cloudformation
 #### Added
 - NA
