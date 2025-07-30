@@ -142,6 +142,8 @@ EOF
 }
 
 data "aws_ssm_parameter" "eks_ami_release_version" {
+  count = var.create_node_group ? 1 : 0
+
   name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2/recommended/image_id"
 }
 
@@ -160,7 +162,7 @@ set -o xtrace
 resource "aws_launch_template" "EKSLaunchTemplate" {
   count = var.create_node_group ? 1 : 0
 
-  image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version[0].value)
   instance_type           = var.instance_type
   disable_api_termination = true
 
