@@ -476,7 +476,7 @@ variable "pingid_oidc" {
 
 variable "username_is_email" {
   type        = bool
-  default     = false
+  default     = true
   description = "Set to true to use the email as the username in 3decision"
 }
 
