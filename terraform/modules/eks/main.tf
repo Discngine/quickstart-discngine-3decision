@@ -147,6 +147,20 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
   name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
 }
 
+locals {
+  user_data = <<USERDATA
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    name: ${local.cluster.name}
+    apiServerEndpoint: ${local.cluster.endpoint}
+    certificateAuthority: ${local.cluster.certificate_authority[0].data}
+    cidr: ${local.cluster.kubernetes_network_config[0].service_ipv4_cidr}
+USERDATA
+}
+
 # AL2023 nodeadm configuration with cluster details and maxPods
 data "cloudinit_config" "eks_node_userdata" {
   count = var.create_node_group && var.user_data == "" ? 1 : 0
