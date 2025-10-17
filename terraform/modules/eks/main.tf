@@ -209,7 +209,7 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
     associate_public_ip_address = false
   }
 
-  user_data = var.user_data != "" ? base64encode(var.user_data) : try(data.cloudinit_config.eks_node_userdata[0].rendered, null)
+  user_data = base64encode(local.user_data)
 
   metadata_options {
     http_put_response_hop_limit = 2
