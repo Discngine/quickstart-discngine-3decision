@@ -91,6 +91,11 @@ variable "eks_cluster_name" {
   description = "Name of the existing cluster if not created"
 }
 
+variable "eks_node_user_data" {
+  default     = ""
+  description = "User data to pass to nodes instead of default"
+}
+
 variable "keypair_name" {
   default     = ""
   description = "Name of keypair to add to EKS nodes"
