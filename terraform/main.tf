@@ -144,7 +144,6 @@ module "eks" {
   create_cluster         = var.create_cluster
   create_node_group      = var.create_node_group
   cluster_name           = var.eks_cluster_name
-  user_data              = var.eks_node_user_data
   create_openid_provider = var.create_openid_provider
   openid_provider_arn    = var.openid_provider_arn
   add_pia_addon          = var.add_pia_addon

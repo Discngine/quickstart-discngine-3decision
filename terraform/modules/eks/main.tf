@@ -163,7 +163,7 @@ USERDATA
 
 # AL2023 nodeadm configuration with cluster details and maxPods
 data "cloudinit_config" "eks_node_userdata" {
-  count = var.create_node_group && var.user_data == "" ? 1 : 0
+  count = var.create_node_group ? 1 : 0
 
   base64_encode = true
   gzip          = false
