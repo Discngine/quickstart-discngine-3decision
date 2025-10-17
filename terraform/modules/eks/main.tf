@@ -147,13 +147,25 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
 
 locals {
   user_data = var.user_data != "" ? var.user_data : <<EOF
-#!/bin/bash
-set -o xtrace
-/etc/eks/bootstrap.sh ${local.cluster.name} \
-                  --b64-cluster-ca ${local.cluster.certificate_authority.0.data} \
-                  --apiserver-endpoint ${local.cluster.endpoint} \
-                  --use-max-pods false \
-                  --kubelet-extra-args '--max-pods=110'
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="==MYBOUNDARY=="
+
+--==MYBOUNDARY==
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    name: ${local.cluster.name}
+    apiServerEndpoint: ${local.cluster.endpoint}
+    certificateAuthority: ${local.cluster.certificate_authority.0.data}
+  kubelet:
+    config:
+      maxPods: 110
+
+--==MYBOUNDARY==--
   EOF
 }
 
