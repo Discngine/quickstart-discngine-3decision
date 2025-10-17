@@ -145,14 +145,17 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
   name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
 }
 
-locals {
-  user_data = var.user_data != "" ? var.user_data : <<EOF
-MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="==MYBOUNDARY=="
+# AL2023 nodeadm configuration for maxPods
+data "cloudinit_config" "eks_node_userdata" {
+  count = var.create_node_group && var.user_data == "" ? 1 : 0
 
---==MYBOUNDARY==
-Content-Type: application/node.eks.aws
+  base64_encode = true
+  gzip          = false
+  boundary      = "MIMEBOUNDARY"
 
+  part {
+    content_type = "application/node.eks.aws"
+    content      = <<-EOT
 ---
 apiVersion: node.eks.aws/v1alpha1
 kind: NodeConfig
@@ -160,13 +163,12 @@ spec:
   cluster:
     name: ${local.cluster.name}
     apiServerEndpoint: ${local.cluster.endpoint}
-    certificateAuthority: ${local.cluster.certificate_authority.0.data}
+    certificateAuthority: ${local.cluster.certificate_authority[0].data}
   kubelet:
     config:
       maxPods: 110
-
---==MYBOUNDARY==--
-  EOF
+    EOT
+  }
 }
 
 resource "aws_launch_template" "EKSLaunchTemplate" {
@@ -191,7 +193,8 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
     associate_public_ip_address = false
   }
 
-  user_data = base64encode(local.user_data)
+  # Use cloudinit config for AL2023 with maxPods, or custom user_data if provided
+  user_data = var.user_data != "" ? base64encode(var.user_data) : try(data.cloudinit_config.eks_node_userdata[0].rendered, null)
 
   metadata_options {
     http_put_response_hop_limit = 2
@@ -213,10 +216,12 @@ resource "aws_eks_node_group" "node_group" {
     desired_size = 3
     max_size     = 3
   }
+  
   launch_template {
     id      = aws_launch_template.EKSLaunchTemplate[0].id
     version = aws_launch_template.EKSLaunchTemplate[0].latest_version
   }
+  
   force_update_version = true
   subnet_ids           = var.private_subnet_ids
 }
