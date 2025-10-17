@@ -148,7 +148,7 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
 }
 
 locals {
-  user_data = <<USERDATA
+  user_data = var.user_data != "" ? var.user_data : <<USERDATA
 ---
 apiVersion: node.eks.aws/v1alpha1
 kind: NodeConfig
@@ -209,7 +209,6 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
     associate_public_ip_address = false
   }
 
-  # Use cloudinit config for AL2023 with cluster details and maxPods
   user_data = var.user_data != "" ? base64encode(var.user_data) : try(data.cloudinit_config.eks_node_userdata[0].rendered, null)
 
   metadata_options {
