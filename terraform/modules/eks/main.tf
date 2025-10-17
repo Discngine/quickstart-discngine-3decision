@@ -144,7 +144,7 @@ EOF
 data "aws_ssm_parameter" "eks_ami_release_version" {
   count = var.custom_ami == "" ? 1 : 0
 
-  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/release_version"
+  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/recommended/image_id"
 }
 
 # AL2023 nodeadm configuration for maxPods
