@@ -142,7 +142,9 @@ EOF
 }
 
 data "aws_ssm_parameter" "eks_ami_release_version" {
-  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
+  count = var.custom_ami == "" ? 1 : 0
+
+  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/release_version"
 }
 
 # AL2023 nodeadm configuration for maxPods
@@ -174,7 +176,7 @@ spec:
 resource "aws_launch_template" "EKSLaunchTemplate" {
   count = var.create_node_group ? 1 : 0
 
-  image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version[0].value)
   instance_type           = var.instance_type
   disable_api_termination = true
 
