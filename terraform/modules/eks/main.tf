@@ -147,11 +147,9 @@ data "aws_ssm_parameter" "eks_ami_release_version" {
   name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
 }
 
-# AL2023 nodeadm configuration for maxPods
-# For managed node groups with custom AMI, we need full cluster config
-# For managed node groups with default AMI, we only configure kubelet
-data "cloudinit_config" "eks_node_userdata_custom_ami" {
-  count = var.create_node_group && var.user_data == "" && var.custom_ami != "" ? 1 : 0
+# AL2023 nodeadm configuration with cluster details and maxPods
+data "cloudinit_config" "eks_node_userdata" {
+  count = var.create_node_group && var.user_data == "" ? 1 : 0
 
   base64_encode = true
   gzip          = false
@@ -168,29 +166,6 @@ spec:
     name: ${local.cluster.name}
     apiServerEndpoint: ${local.cluster.endpoint}
     certificateAuthority: ${local.cluster.certificate_authority[0].data}
-  kubelet:
-    config:
-      maxPods: 110
-    EOT
-  }
-}
-
-# For managed node groups with default AMI, only specify kubelet config
-# EKS will automatically merge cluster connection details
-data "cloudinit_config" "eks_node_userdata_default_ami" {
-  count = var.create_node_group && var.user_data == "" && var.custom_ami == "" ? 1 : 0
-
-  base64_encode = true
-  gzip          = false
-  boundary      = "MIMEBOUNDARY"
-
-  part {
-    content_type = "application/node.eks.aws"
-    content      = <<-EOT
----
-apiVersion: node.eks.aws/v1alpha1
-kind: NodeConfig
-spec:
   kubelet:
     config:
       maxPods: 110
@@ -220,14 +195,8 @@ resource "aws_launch_template" "EKSLaunchTemplate" {
     associate_public_ip_address = false
   }
 
-  # Use appropriate cloudinit config based on whether custom AMI is used
-  user_data = var.user_data != "" ? base64encode(var.user_data) : try(
-    coalesce(
-      try(data.cloudinit_config.eks_node_userdata_custom_ami[0].rendered, null),
-      try(data.cloudinit_config.eks_node_userdata_default_ami[0].rendered, null)
-    ),
-    null
-  )
+  # Use cloudinit config for AL2023 with cluster details and maxPods
+  user_data = var.user_data != "" ? base64encode(var.user_data) : try(data.cloudinit_config.eks_node_userdata[0].rendered, null)
 
   metadata_options {
     http_put_response_hop_limit = 2
