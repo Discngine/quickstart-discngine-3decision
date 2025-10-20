@@ -161,32 +161,6 @@ spec:
 USERDATA
 }
 
-# AL2023 nodeadm configuration with cluster details and maxPods
-data "cloudinit_config" "eks_node_userdata" {
-  count = var.create_node_group ? 1 : 0
-
-  base64_encode = true
-  gzip          = false
-  boundary      = "MIMEBOUNDARY"
-
-  part {
-    content_type = "application/node.eks.aws"
-    content      = <<-EOT
----
-apiVersion: node.eks.aws/v1alpha1
-kind: NodeConfig
-spec:
-  cluster:
-    name: ${local.cluster.name}
-    apiServerEndpoint: ${local.cluster.endpoint}
-    certificateAuthority: ${local.cluster.certificate_authority[0].data}
-  kubelet:
-    config:
-      maxPods: 110
-    EOT
-  }
-}
-
 resource "aws_launch_template" "EKSLaunchTemplate" {
   count = var.create_node_group ? 1 : 0
 
