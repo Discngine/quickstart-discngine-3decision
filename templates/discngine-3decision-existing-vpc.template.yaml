@@ -719,6 +719,8 @@ Resources:
                   - "sns:SetTopicAttributes"
                   - "sns:Subscribe"
                   - "sns:Unsubscribe"
+                  - "sns:GetSubscriptionAttributes"
+                  - "sns:SetSubscriptionAttributes"
                   - "sns:ListTopics"
                   - "sns:ListSubscriptions"
                   - "sns:ListSubscriptionsByTopic"
