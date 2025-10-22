@@ -11,13 +11,6 @@ data "aws_lb" "tdecision_alb" {
   depends_on = [helm_release.tdecision_chart]
 }
 
-# Data source to find target groups for the ALB
-data "aws_lb_target_groups" "tdecision_tg" {
-  count = var.enable_alb_monitoring ? 1 : 0
-
-  load_balancer_arn = data.aws_lb.tdecision_alb[0].arn
-}
-
 # SNS Topic for ALB health notifications
 resource "aws_sns_topic" "alb_health_alerts" {
   count = var.enable_alb_monitoring ? 1 : 0
@@ -43,9 +36,9 @@ resource "aws_sns_topic_subscription" "alb_health_email" {
 
 # CloudWatch Alarm for Unhealthy Target Count
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets" {
-  count = var.enable_alb_monitoring ? length(data.aws_lb_target_groups.tdecision_tg[0].arns) : 0
+  count = var.enable_alb_monitoring ? 1 : 0
 
-  alarm_name          = "3decision-alb-unhealthy-targets-${count.index}"
+  alarm_name          = "3decision-alb-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "UnHealthyHostCount"
@@ -60,11 +53,10 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets" {
 
   dimensions = {
     LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
-    TargetGroup  = element(split("/", data.aws_lb_target_groups.tdecision_tg[0].arns[count.index]), 1)
   }
 
   tags = {
-    Name        = "3decision-alb-unhealthy-targets-${count.index}"
+    Name        = "3decision-alb-unhealthy-targets"
     Environment = "production"
     Service     = "3decision"
   }
@@ -72,9 +64,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets" {
 
 # CloudWatch Alarm for Target Response Time
 resource "aws_cloudwatch_metric_alarm" "alb_high_response_time" {
-  count = var.enable_alb_monitoring ? length(data.aws_lb_target_groups.tdecision_tg[0].arns) : 0
+  count = var.enable_alb_monitoring ? 1 : 0
 
-  alarm_name          = "3decision-alb-high-response-time-${count.index}"
+  alarm_name          = "3decision-alb-high-response-time"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "3"
   metric_name         = "TargetResponseTime"
@@ -82,18 +74,17 @@ resource "aws_cloudwatch_metric_alarm" "alb_high_response_time" {
   period              = "300"
   statistic           = "Average"
   threshold           = "5"  # 5 seconds
-  alarm_description   = "This metric monitors high response times for 3Decision ALB target group"
+  alarm_description   = "This metric monitors high response times for 3Decision ALB"
   alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   treat_missing_data  = "notBreaching"
 
   dimensions = {
     LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
-    TargetGroup  = element(split("/", data.aws_lb_target_groups.tdecision_tg[0].arns[count.index]), 1)
   }
 
   tags = {
-    Name        = "3decision-alb-high-response-time-${count.index}"
+    Name        = "3decision-alb-high-response-time"
     Environment = "production"
     Service     = "3decision"
   }
@@ -171,24 +162,10 @@ resource "aws_cloudwatch_dashboard" "alb_monitoring" {
         height = 6
 
         properties = {
-          metrics = concat(
-            [
-              for i, tg_arn in data.aws_lb_target_groups.tdecision_tg[0].arns : [
-                "AWS/ApplicationELB",
-                "HealthyHostCount",
-                "LoadBalancer", data.aws_lb.tdecision_alb[0].arn_suffix,
-                "TargetGroup", element(split("/", tg_arn), 1)
-              ]
-            ],
-            [
-              for i, tg_arn in data.aws_lb_target_groups.tdecision_tg[0].arns : [
-                "AWS/ApplicationELB",
-                "UnHealthyHostCount",
-                "LoadBalancer", data.aws_lb.tdecision_alb[0].arn_suffix,
-                "TargetGroup", element(split("/", tg_arn), 1)
-              ]
-            ]
-          )
+          metrics = [
+            ["AWS/ApplicationELB", "HealthyHostCount", "LoadBalancer", data.aws_lb.tdecision_alb[0].arn_suffix],
+            [".", "UnHealthyHostCount", ".", "."]
+          ]
           view    = "timeSeries"
           stacked = false
           region  = var.region
@@ -226,15 +203,14 @@ output "alb_monitoring_info" {
   value = var.enable_alb_monitoring ? {
     alb_arn                = data.aws_lb.tdecision_alb[0].arn
     alb_dns_name          = data.aws_lb.tdecision_alb[0].dns_name
-    target_group_arns     = data.aws_lb_target_groups.tdecision_tg[0].arns
     sns_topic_arn         = aws_sns_topic.alb_health_alerts[0].arn
     cloudwatch_dashboard  = "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards:name=${aws_cloudwatch_dashboard.alb_monitoring[0].dashboard_name}"
-    alarm_names = concat(
-      aws_cloudwatch_metric_alarm.alb_unhealthy_targets[*].alarm_name,
-      aws_cloudwatch_metric_alarm.alb_high_response_time[*].alarm_name,
-      [aws_cloudwatch_metric_alarm.alb_5xx_errors[0].alarm_name],
-      [aws_cloudwatch_metric_alarm.alb_4xx_errors[0].alarm_name]
-    )
+    alarm_names = [
+      aws_cloudwatch_metric_alarm.alb_unhealthy_targets[0].alarm_name,
+      aws_cloudwatch_metric_alarm.alb_high_response_time[0].alarm_name,
+      aws_cloudwatch_metric_alarm.alb_5xx_errors[0].alarm_name,
+      aws_cloudwatch_metric_alarm.alb_4xx_errors[0].alarm_name
+    ]
   } : null
   description = "Information about ALB monitoring setup"
 }

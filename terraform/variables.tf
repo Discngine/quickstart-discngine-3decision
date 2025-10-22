@@ -559,7 +559,7 @@ variable "af_file_nb" {
 
 variable "enable_alb_monitoring" {
   type        = bool
-  default     = false
+  default     = true
   description = "Enable CloudWatch monitoring for ALB health checks and performance metrics"
 }
 
