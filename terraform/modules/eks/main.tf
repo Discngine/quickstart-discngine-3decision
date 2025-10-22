@@ -142,25 +142,29 @@ EOF
 }
 
 data "aws_ssm_parameter" "eks_ami_release_version" {
-  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2/recommended/image_id"
+  count = var.custom_ami == "" ? 1 : 0
+
+  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
 }
 
 locals {
-  user_data = var.user_data != "" ? var.user_data : <<EOF
-#!/bin/bash
-set -o xtrace
-/etc/eks/bootstrap.sh ${local.cluster.name} \
-                  --b64-cluster-ca ${local.cluster.certificate_authority.0.data} \
-                  --apiserver-endpoint ${local.cluster.endpoint} \
-                  --use-max-pods false \
-                  --kubelet-extra-args '--max-pods=110'
-  EOF
+  user_data = var.user_data != "" ? var.user_data : <<USERDATA
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    name: ${local.cluster.name}
+    apiServerEndpoint: ${local.cluster.endpoint}
+    certificateAuthority: ${local.cluster.certificate_authority[0].data}
+    cidr: ${local.cluster.kubernetes_network_config[0].service_ipv4_cidr}
+USERDATA
 }
 
 resource "aws_launch_template" "EKSLaunchTemplate" {
   count = var.create_node_group ? 1 : 0
 
-  image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version.value)
+  image_id                = var.custom_ami != "" ? var.custom_ami : nonsensitive(data.aws_ssm_parameter.eks_ami_release_version[0].value)
   instance_type           = var.instance_type
   disable_api_termination = true
 
@@ -201,10 +205,12 @@ resource "aws_eks_node_group" "node_group" {
     desired_size = 3
     max_size     = 3
   }
+  
   launch_template {
     id      = aws_launch_template.EKSLaunchTemplate[0].id
     version = aws_launch_template.EKSLaunchTemplate[0].latest_version
   }
+  
   force_update_version = true
   subnet_ids           = var.private_subnet_ids
 }
