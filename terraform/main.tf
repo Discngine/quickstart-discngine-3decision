@@ -294,6 +294,8 @@ module "kubernetes" {
   deploy_alb_chart           = var.deploy_alb_chart
   use_pia                    = var.use_pia
   username_is_email          = var.username_is_email
+  enable_alb_monitoring      = var.enable_alb_monitoring
+  monitoring_email           = var.monitoring_email
   # Output
   vpc_id                           = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private                  = module.secrets.jwt_private_key

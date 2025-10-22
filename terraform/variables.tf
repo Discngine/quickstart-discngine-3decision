@@ -552,3 +552,19 @@ variable "af_file_nb" {
   default     = "542378"
   description = "number of files in archive"
 }
+
+###############
+# ALB MONITORING
+###############
+
+variable "enable_alb_monitoring" {
+  type        = bool
+  default     = false
+  description = "Enable CloudWatch monitoring for ALB health checks and performance metrics"
+}
+
+variable "monitoring_email" {
+  type        = string
+  default     = "jonathan.manassen@discngine.com"
+  description = "Email address to receive ALB health monitoring alerts. Leave empty to disable email notifications."
+}
