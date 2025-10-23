@@ -63,5 +63,4 @@ variable "enable_alb_monitoring" {
 variable "monitoring_email" {
   description = "Email address to receive ALB health monitoring alerts"
   type        = string
-  default     = "jonathan.manassen@discngine.com"
 }
