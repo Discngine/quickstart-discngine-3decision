@@ -65,71 +65,110 @@ resource "aws_sns_topic_subscription" "alb_health_email" {
   endpoint  = var.monitoring_email
 }
 
-# CloudWatch Alarm for Unhealthy Target Count - All Services
-resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets" {
+# Individual alarms for each service to provide detailed notifications
+resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_nest_front" {
   count = var.enable_alb_monitoring ? 1 : 0
 
-  alarm_name          = "3decision-alb-unhealthy-targets"
+  alarm_name          = "3decision-nest-front-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = "60"
+  statistic           = "Maximum"
   threshold           = "0"
-  alarm_description   = "This metric monitors unhealthy targets across all 3Decision ALB target groups"
+  alarm_description   = "🔴 3Decision NEST-FRONT Service (port 3000) has unhealthy targets."
   alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   treat_missing_data  = "notBreaching"
 
-  metric_query {
-    id          = "e1"
-    expression  = "m1 + m2 + m3"
-    label       = "Total Unhealthy Hosts"
-    return_data = "true"
-  }
-
-  metric_query {
-    id = "m1"
-    metric {
-      metric_name = "UnHealthyHostCount"
-      namespace   = "AWS/ApplicationELB"
-      period      = 60
-      stat        = "Maximum"
-      dimensions = {
-        LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
-        TargetGroup  = data.aws_lb_target_group.tdecision_nest_front[0].arn_suffix
-      }
-    }
-  }
-
-  metric_query {
-    id = "m2"
-    metric {
-      metric_name = "UnHealthyHostCount"
-      namespace   = "AWS/ApplicationELB"
-      period      = 60
-      stat        = "Maximum"
-      dimensions = {
-        LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
-        TargetGroup  = data.aws_lb_target_group.tdecision_react[0].arn_suffix
-      }
-    }
-  }
-
-  metric_query {
-    id = "m3"
-    metric {
-      metric_name = "UnHealthyHostCount"
-      namespace   = "AWS/ApplicationELB"
-      period      = 60
-      stat        = "Maximum"
-      dimensions = {
-        LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
-        TargetGroup  = data.aws_lb_target_group.tdecision_angular[0].arn_suffix
-      }
-    }
+  dimensions = {
+    LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
+    TargetGroup  = data.aws_lb_target_group.tdecision_nest_front[0].arn_suffix
   }
 
   tags = {
-    Name        = "3decision-alb-unhealthy-targets"
+    Name        = "3decision-nest-front-unhealthy-targets"
     Environment = "production"
-    Service     = "3decision"
+    Service     = "3decision-nest-front"
   }
+}
+
+resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_react" {
+  count = var.enable_alb_monitoring ? 1 : 0
+
+  alarm_name          = "3decision-react-unhealthy-targets"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = "60"
+  statistic           = "Maximum"
+  threshold           = "0"
+  alarm_description   = "🟠 3Decision REACT Service (port 9020) has unhealthy targets."
+  alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
+  ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
+    TargetGroup  = data.aws_lb_target_group.tdecision_react[0].arn_suffix
+  }
+
+  tags = {
+    Name        = "3decision-react-unhealthy-targets"
+    Environment = "production"
+    Service     = "3decision-react"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_angular" {
+  count = var.enable_alb_monitoring ? 1 : 0
+
+  alarm_name          = "3decision-angular-unhealthy-targets"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = "60"
+  statistic           = "Maximum"
+  threshold           = "0"
+  alarm_description   = "🟡 3Decision ANGULAR Service (port 9003) has unhealthy targets."
+  alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
+  ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
+    TargetGroup  = data.aws_lb_target_group.tdecision_angular[0].arn_suffix
+  }
+
+  tags = {
+    Name        = "3decision-angular-unhealthy-targets"
+    Environment = "production"
+    Service     = "3decision-angular"
+  }
+}
+
+# Output ALB monitoring information for reference
+output "alb_monitoring_info" {
+  value = var.enable_alb_monitoring ? {
+    alb_arn                = data.aws_lb.tdecision_alb[0].arn
+    alb_dns_name          = data.aws_lb.tdecision_alb[0].dns_name
+    alb_name              = data.aws_lb.tdecision_alb[0].name
+    alb_arn_suffix        = data.aws_lb.tdecision_alb[0].arn_suffix
+    sns_topic_arn         = aws_sns_topic.alb_health_alerts[0].arn
+    individual_alarm_names = [
+      aws_cloudwatch_metric_alarm.alb_unhealthy_targets_nest_front[0].alarm_name,
+      aws_cloudwatch_metric_alarm.alb_unhealthy_targets_react[0].alarm_name,
+      aws_cloudwatch_metric_alarm.alb_unhealthy_targets_angular[0].alarm_name
+    ]
+    # Debug information
+    target_groups = {
+      nest_front = data.aws_lb_target_group.tdecision_nest_front[0].arn_suffix
+      react = data.aws_lb_target_group.tdecision_react[0].arn_suffix
+      angular = data.aws_lb_target_group.tdecision_angular[0].arn_suffix
+    }
+  } : null
+  description = "Information about ALB monitoring setup with individual service alarms"
 }
