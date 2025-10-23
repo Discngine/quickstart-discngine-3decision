@@ -63,3 +63,9 @@ variable "monitoring_email" {
   description = "Email address to receive ALB health monitoring alerts"
   type        = string
 }
+
+variable "monitoring_account" {
+  type = string
+  default = ""
+  description = "Suffix to add to the alarm name to distinguish the account sending the warning"
+}

@@ -65,11 +65,15 @@ resource "aws_sns_topic_subscription" "alb_health_email" {
   endpoint  = var.monitoring_email
 }
 
+locals {
+  monitoring_suffix = var.monitoring_account != "" ? "-${var.monitoring_account}" : ""
+}
+
 # Individual alarms for each service to provide detailed notifications
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_nest_front" {
   count = var.enable_alb_monitoring ? 1 : 0
 
-  alarm_name          = "3decision-nest-front-unhealthy-targets"
+  alarm_name          = "3decision${local.monitoring_suffix}-nest-front-unhealthy-targets${local.monitoring_suffix}"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "UnHealthyHostCount"
@@ -89,7 +93,6 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_nest_front" {
 
   tags = {
     Name        = "3decision-nest-front-unhealthy-targets"
-    Environment = "production"
     Service     = "3decision-nest-front"
   }
 }
@@ -97,7 +100,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_nest_front" {
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_react" {
   count = var.enable_alb_monitoring ? 1 : 0
 
-  alarm_name          = "3decision-react-unhealthy-targets"
+  alarm_name          = "3decision${local.monitoring_suffix}-react-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "UnHealthyHostCount"
@@ -117,7 +120,6 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_react" {
 
   tags = {
     Name        = "3decision-react-unhealthy-targets"
-    Environment = "production"
     Service     = "3decision-react"
   }
 }
@@ -125,7 +127,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_react" {
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_angular" {
   count = var.enable_alb_monitoring ? 1 : 0
 
-  alarm_name          = "3decision-angular-unhealthy-targets"
+  alarm_name          = "3decision${local.monitoring_suffix}-angular-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "UnHealthyHostCount"
@@ -145,7 +147,6 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_angular" {
 
   tags = {
     Name        = "3decision-angular-unhealthy-targets"
-    Environment = "production"
     Service     = "3decision-angular"
   }
 }
