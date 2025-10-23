@@ -77,7 +77,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_nest_front" {
   period              = "60"
   statistic           = "Maximum"
   threshold           = "0"
-  alarm_description   = "🔴 3Decision NEST-FRONT Service (port 3000) has unhealthy targets."
+  alarm_description   = "3Decision NEST-FRONT Service (port 3000) has unhealthy targets. This affects the main application frontend."
   alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   treat_missing_data  = "notBreaching"
@@ -105,7 +105,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_react" {
   period              = "60"
   statistic           = "Maximum"
   threshold           = "0"
-  alarm_description   = "🟠 3Decision REACT Service (port 9020) has unhealthy targets."
+  alarm_description   = "3Decision REACT Service (port 9020) has unhealthy targets. This affects the React-based components."
   alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   treat_missing_data  = "notBreaching"
@@ -133,7 +133,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_angular" {
   period              = "60"
   statistic           = "Maximum"
   threshold           = "0"
-  alarm_description   = "🟡 3Decision ANGULAR Service (port 9003) has unhealthy targets."
+  alarm_description   = "3Decision ANGULAR Service (port 9003) has unhealthy targets. This affects the Angular-based components."
   alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   treat_missing_data  = "notBreaching"
