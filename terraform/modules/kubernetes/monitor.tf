@@ -11,6 +11,37 @@ data "aws_lb" "tdecision_alb" {
   depends_on = [helm_release.tdecision_chart]
 }
 
+# Data source to get the target groups for the ALB
+data "aws_lb_target_group" "tdecision_nest_front" {
+  count = var.enable_alb_monitoring ? 1 : 0
+
+  tags = {
+    "ingress.k8s.aws/resource" = "tdecision/tdecision-ingress-tdecision-nest-front:3000"
+  }
+
+  depends_on = [helm_release.tdecision_chart]
+}
+
+data "aws_lb_target_group" "tdecision_react" {
+  count = var.enable_alb_monitoring ? 1 : 0
+
+  tags = {
+    "ingress.k8s.aws/resource" = "tdecision/tdecision-ingress-tdecision-react:9020"
+  }
+
+  depends_on = [helm_release.tdecision_chart]
+}
+
+data "aws_lb_target_group" "tdecision_angular" {
+  count = var.enable_alb_monitoring ? 1 : 0
+
+  tags = {
+    "ingress.k8s.aws/resource" = "tdecision/tdecision-ingress-tdecision-angular:9003"
+  }
+
+  depends_on = [helm_release.tdecision_chart]
+}
+
 # SNS Topic for ALB health notifications
 resource "aws_sns_topic" "alb_health_alerts" {
   count = var.enable_alb_monitoring ? 1 : 0
@@ -34,25 +65,66 @@ resource "aws_sns_topic_subscription" "alb_health_email" {
   endpoint  = var.monitoring_email
 }
 
-# CloudWatch Alarm for Unhealthy Target Count
+# CloudWatch Alarm for Unhealthy Target Count - All Services
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets" {
   count = var.enable_alb_monitoring ? 1 : 0
 
   alarm_name          = "3decision-alb-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
-  metric_name         = "UnHealthyHostCount"
-  namespace           = "AWS/ApplicationELB"
-  period              = "60"
-  statistic           = "Maximum"
   threshold           = "0"
-  alarm_description   = "This metric monitors unhealthy targets in 3Decision ALB target group"
+  alarm_description   = "This metric monitors unhealthy targets across all 3Decision ALB target groups"
   alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
   ok_actions          = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
-  treat_missing_data  = "breaching"
+  treat_missing_data  = "notBreaching"
 
-  dimensions = {
-    LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
+  metric_query {
+    id          = "e1"
+    expression  = "m1 + m2 + m3"
+    label       = "Total Unhealthy Hosts"
+    return_data = "true"
+  }
+
+  metric_query {
+    id = "m1"
+    metric {
+      metric_name = "UnHealthyHostCount"
+      namespace   = "AWS/ApplicationELB"
+      period      = 60
+      stat        = "Maximum"
+      dimensions = {
+        LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
+        TargetGroup  = data.aws_lb_target_group.tdecision_nest_front[0].arn_suffix
+      }
+    }
+  }
+
+  metric_query {
+    id = "m2"
+    metric {
+      metric_name = "UnHealthyHostCount"
+      namespace   = "AWS/ApplicationELB"
+      period      = 60
+      stat        = "Maximum"
+      dimensions = {
+        LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
+        TargetGroup  = data.aws_lb_target_group.tdecision_react[0].arn_suffix
+      }
+    }
+  }
+
+  metric_query {
+    id = "m3"
+    metric {
+      metric_name = "UnHealthyHostCount"
+      namespace   = "AWS/ApplicationELB"
+      period      = 60
+      stat        = "Maximum"
+      dimensions = {
+        LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
+        TargetGroup  = data.aws_lb_target_group.tdecision_angular[0].arn_suffix
+      }
+    }
   }
 
   tags = {
@@ -163,13 +235,17 @@ resource "aws_cloudwatch_dashboard" "alb_monitoring" {
 
         properties = {
           metrics = [
-            ["AWS/ApplicationELB", "HealthyHostCount", "LoadBalancer", data.aws_lb.tdecision_alb[0].arn_suffix],
-            [".", "UnHealthyHostCount", ".", "."]
+            ["AWS/ApplicationELB", "HealthyHostCount", "LoadBalancer", data.aws_lb.tdecision_alb[0].arn_suffix, "TargetGroup", data.aws_lb_target_group.tdecision_nest_front[0].arn_suffix],
+            [".", "UnHealthyHostCount", ".", ".", ".", "."],
+            [".", "HealthyHostCount", ".", ".", "TargetGroup", data.aws_lb_target_group.tdecision_react[0].arn_suffix],
+            [".", "UnHealthyHostCount", ".", ".", ".", "."],
+            [".", "HealthyHostCount", ".", ".", "TargetGroup", data.aws_lb_target_group.tdecision_angular[0].arn_suffix],
+            [".", "UnHealthyHostCount", ".", ".", ".", "."]
           ]
           view    = "timeSeries"
           stacked = false
           region  = var.region
-          title   = "ALB Target Health"
+          title   = "ALB Target Health (All Services)"
           period  = 300
         }
       },
@@ -203,6 +279,8 @@ output "alb_monitoring_info" {
   value = var.enable_alb_monitoring ? {
     alb_arn                = data.aws_lb.tdecision_alb[0].arn
     alb_dns_name          = data.aws_lb.tdecision_alb[0].dns_name
+    alb_name              = data.aws_lb.tdecision_alb[0].name
+    alb_arn_suffix        = data.aws_lb.tdecision_alb[0].arn_suffix
     sns_topic_arn         = aws_sns_topic.alb_health_alerts[0].arn
     cloudwatch_dashboard  = "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#dashboards:name=${aws_cloudwatch_dashboard.alb_monitoring[0].dashboard_name}"
     alarm_names = [
@@ -211,6 +289,23 @@ output "alb_monitoring_info" {
       aws_cloudwatch_metric_alarm.alb_5xx_errors[0].alarm_name,
       aws_cloudwatch_metric_alarm.alb_4xx_errors[0].alarm_name
     ]
+    # Debug information
+    metric_debug = {
+      loadbalancer_dimension = data.aws_lb.tdecision_alb[0].arn_suffix
+      target_groups = {
+        nest_front = data.aws_lb_target_group.tdecision_nest_front[0].arn_suffix
+        react = data.aws_lb_target_group.tdecision_react[0].arn_suffix
+        angular = data.aws_lb_target_group.tdecision_angular[0].arn_suffix
+      }
+      expected_metrics = [
+        "UnHealthyHostCount",
+        "HealthyHostCount", 
+        "TargetResponseTime",
+        "HTTPCode_ELB_5XX_Count",
+        "HTTPCode_ELB_4XX_Count",
+        "RequestCount"
+      ]
+    }
   } : null
   description = "Information about ALB monitoring setup"
 }
