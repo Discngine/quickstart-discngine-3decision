@@ -57,7 +57,6 @@ variable "username_is_email" {}
 variable "enable_alb_monitoring" {
   description = "Enable CloudWatch monitoring for ALB health checks"
   type        = bool
-  default     = false
 }
 
 variable "monitoring_email" {
