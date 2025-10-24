@@ -570,7 +570,7 @@ variable "monitoring_email" {
 }
 
 variable "monitoring_account" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "Suffix to add to the alarm name to distinguish the account sending the warning"
 }

@@ -92,8 +92,8 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_nest_front" {
   }
 
   tags = {
-    Name        = "3decision-nest-front-unhealthy-targets"
-    Service     = "3decision-nest-front"
+    Name    = "3decision-nest-front-unhealthy-targets"
+    Service = "3decision-nest-front"
   }
 }
 
@@ -119,8 +119,8 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_react" {
   }
 
   tags = {
-    Name        = "3decision-react-unhealthy-targets"
-    Service     = "3decision-react"
+    Name    = "3decision-react-unhealthy-targets"
+    Service = "3decision-react"
   }
 }
 
@@ -146,19 +146,19 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_angular" {
   }
 
   tags = {
-    Name        = "3decision-angular-unhealthy-targets"
-    Service     = "3decision-angular"
+    Name    = "3decision-angular-unhealthy-targets"
+    Service = "3decision-angular"
   }
 }
 
 # Output ALB monitoring information for reference
 output "alb_monitoring_info" {
   value = var.enable_alb_monitoring ? {
-    alb_arn                = data.aws_lb.tdecision_alb[0].arn
-    alb_dns_name          = data.aws_lb.tdecision_alb[0].dns_name
-    alb_name              = data.aws_lb.tdecision_alb[0].name
-    alb_arn_suffix        = data.aws_lb.tdecision_alb[0].arn_suffix
-    sns_topic_arn         = aws_sns_topic.alb_health_alerts[0].arn
+    alb_arn        = data.aws_lb.tdecision_alb[0].arn
+    alb_dns_name   = data.aws_lb.tdecision_alb[0].dns_name
+    alb_name       = data.aws_lb.tdecision_alb[0].name
+    alb_arn_suffix = data.aws_lb.tdecision_alb[0].arn_suffix
+    sns_topic_arn  = aws_sns_topic.alb_health_alerts[0].arn
     individual_alarm_names = [
       aws_cloudwatch_metric_alarm.alb_unhealthy_targets_nest_front[0].alarm_name,
       aws_cloudwatch_metric_alarm.alb_unhealthy_targets_react[0].alarm_name,
@@ -167,8 +167,8 @@ output "alb_monitoring_info" {
     # Debug information
     target_groups = {
       nest_front = data.aws_lb_target_group.tdecision_nest_front[0].arn_suffix
-      react = data.aws_lb_target_group.tdecision_react[0].arn_suffix
-      angular = data.aws_lb_target_group.tdecision_angular[0].arn_suffix
+      react      = data.aws_lb_target_group.tdecision_react[0].arn_suffix
+      angular    = data.aws_lb_target_group.tdecision_angular[0].arn_suffix
     }
   } : null
   description = "Information about ALB monitoring setup with individual service alarms"
