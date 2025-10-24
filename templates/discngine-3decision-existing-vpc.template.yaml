@@ -707,6 +707,49 @@ Resources:
                   - "lambda:RemovePermission"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
+        - PolicyName: SNSAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "sns:CreateTopic"
+                  - "sns:DeleteTopic"
+                  - "sns:GetTopicAttributes"
+                  - "sns:SetTopicAttributes"
+                  - "sns:Subscribe"
+                  - "sns:Unsubscribe"
+                  - "sns:GetSubscriptionAttributes"
+                  - "sns:SetSubscriptionAttributes"
+                  - "sns:ListTopics"
+                  - "sns:ListSubscriptions"
+                  - "sns:ListSubscriptionsByTopic"
+                  - "sns:Publish"
+                  - "sns:TagResource"
+                  - "sns:UntagResource"
+                  - "sns:ListTagsForResource"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:sns:*:${AWS::AccountId}:3decision-*"
+        - PolicyName: CloudWatchAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "cloudwatch:PutMetricAlarm"
+                  - "cloudwatch:DeleteAlarms"
+                  - "cloudwatch:DescribeAlarms"
+                  - "cloudwatch:EnableAlarmActions"
+                  - "cloudwatch:DisableAlarmActions"
+                  - "cloudwatch:SetAlarmState"
+                  - "cloudwatch:PutDashboard"
+                  - "cloudwatch:DeleteDashboards"
+                  - "cloudwatch:GetDashboard"
+                  - "cloudwatch:ListDashboards"
+                  - "cloudwatch:TagResource"
+                  - "cloudwatch:UntagResource"
+                  - "cloudwatch:ListTagsForResource"
+                Resource: "*"
 
   StateBucket:
     Type: AWS::S3::Bucket

@@ -52,3 +52,20 @@ variable "private_volume_availability_zone" {}
 variable "public_volume_availability_zone" {}
 variable "use_pia" {}
 variable "username_is_email" {}
+
+# ALB Monitoring Variables
+variable "enable_alb_monitoring" {
+  description = "Enable CloudWatch monitoring for ALB health checks"
+  type        = bool
+}
+
+variable "monitoring_email" {
+  description = "Email address to receive ALB health monitoring alerts"
+  type        = string
+}
+
+variable "monitoring_account" {
+  type        = string
+  default     = ""
+  description = "Suffix to add to the alarm name to distinguish the account sending the warning"
+}

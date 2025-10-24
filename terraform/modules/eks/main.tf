@@ -205,12 +205,12 @@ resource "aws_eks_node_group" "node_group" {
     desired_size = 3
     max_size     = 3
   }
-  
+
   launch_template {
     id      = aws_launch_template.EKSLaunchTemplate[0].id
     version = aws_launch_template.EKSLaunchTemplate[0].latest_version
   }
-  
+
   force_update_version = true
   subnet_ids           = var.private_subnet_ids
 }
@@ -352,7 +352,7 @@ resource "aws_eks_pod_identity_association" "license_download" {
   service_account = "tdecision-license-download"
   role_arn        = aws_iam_role.license_download[0].arn
 
-  depends_on = [ aws_eks_addon.pia_addon ]
+  depends_on = [aws_eks_addon.pia_addon]
 }
 
 resource "aws_iam_policy" "license_download" {
