@@ -43,6 +43,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle" {
       object_size_greater_than = "128000"
     }
   }
+  lifecycle {
+    ignore_changes = [rule]
+  }
 }
 
 resource "aws_iam_role" "role" {
