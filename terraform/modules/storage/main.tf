@@ -43,12 +43,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "s3_bucket_lifecycle" {
       object_size_greater_than = "128000"
     }
   }
-  rule {
-    id = "SCCMultiPartDelete"
-    status = "Enabled"
-    abort_incomplete_multipart_upload {
-      days_after_initiation = 7
-    }
+  lifecycle {
+    ignore_changes = [rule]
   }
 }
 
