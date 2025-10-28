@@ -73,7 +73,7 @@ locals {
 resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_nest_front" {
   count = var.enable_alb_monitoring ? 1 : 0
 
-  alarm_name          = "3decision${local.monitoring_suffix}-nest-front-unhealthy-targets${local.monitoring_suffix}"
+  alarm_name          = "3decision${local.monitoring_suffix}-nest-front-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "UnHealthyHostCount"
