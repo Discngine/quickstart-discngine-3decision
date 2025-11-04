@@ -255,6 +255,12 @@ variable "db_storage_type" {
   description = "Type of storage for the database"
 }
 
+variable "maintenance_window" {
+  type        = string
+  default     = null
+  description = "Preferred weekly maintenance window for the database in UTC (Syntax: ddd:hh24:mi-ddd:hh24:mi)"
+}
+
 #################
 # Load Balancing
 #################

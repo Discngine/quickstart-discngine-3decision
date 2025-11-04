@@ -778,6 +778,9 @@ resource "helm_release" "tdecision_chart" {
     terraform_data.reset_passwords,
     helm_release.postgres_chart
   ]
+  lifecycle {
+    ignore_changes = all
+  }
 
   provisioner "local-exec" {
     when    = destroy
