@@ -246,29 +246,29 @@ def handler(event, context):
         if unhealthy_services:
             logger.info("Building notification message...")
             
-            # Build detailed notification message
-            message = "RECURRING ALERT - 3Decision ALB Health Issues\\n\\n"
-            message += f"Time: {datetime.utcnow().isoformat()}Z\\n"
-            message += f"Total Unhealthy Targets: {total_unhealthy}\\n\\n"
-            message += "AFFECTED SERVICES:\\n"
-            message += "=" * 50 + "\\n"
+            # Build detailed notification message with proper line breaks for email
+            message = "RECURRING ALERT - 3Decision ALB Health Issues\n\n"
+            message += f"Time: {datetime.utcnow().isoformat()}Z\n"
+            message += f"Total Unhealthy Targets: {total_unhealthy}\n\n"
+            message += "AFFECTED SERVICES:\n"
+            message += "=" * 50 + "\n"
             
             for service in unhealthy_services:
-                message += f"\\n• SERVICE: {service['name'].upper()}\\n"
-                message += f"  Port: {service['port']}\\n"
-                message += f"  Description: {service['description']}\\n"
-                message += f"  Unhealthy Targets: {service['unhealthy_count']}\\n"
-                message += f"  Average Unhealthy: {service['average_unhealthy']:.2f}\\n"
+                message += f"\n• SERVICE: {service['name'].upper()}\n"
+                message += f"  Port: {service['port']}\n"
+                message += f"  Description: {service['description']}\n"
+                message += f"  Unhealthy Targets: {service['unhealthy_count']}\n"
+                message += f"  Average Unhealthy: {service['average_unhealthy']:.2f}\n"
             
-            message += "\\n" + "=" * 50 + "\\n"
-            message += f"\\nAlarm: {alarm_name}\\n"
-            message += f"State Since: {alarm['StateUpdatedTimestamp'].isoformat()}\\n"
-            message += f"Reason: {alarm['StateReason']}\\n\\n"
-            message += "IMMEDIATE ACTION REQUIRED:\\n"
-            message += "• Check Kubernetes pod health\\n"
-            message += "• Verify application logs\\n"
-            message += "• Confirm network connectivity\\n"
-            message += "• Review resource utilization\\n\\n"
+            message += "\n" + "=" * 50 + "\n"
+            message += f"\nAlarm: {alarm_name}\n"
+            message += f"State Since: {alarm['StateUpdatedTimestamp'].isoformat()}\n"
+            message += f"Reason: {alarm['StateReason']}\n\n"
+            message += "IMMEDIATE ACTION REQUIRED:\n"
+            message += "• Check Kubernetes pod health\n"
+            message += "• Verify application logs\n"
+            message += "• Confirm network connectivity\n"
+            message += "• Review resource utilization\n\n"
             message += "This notification will repeat every hour until all services are healthy."
             
             subject_services = ", ".join([s['name'].upper() for s in unhealthy_services])
@@ -310,7 +310,7 @@ def handler(event, context):
         
         # Try to send an error notification
         try:
-            error_message = f"Error in 3Decision recurring alarm notifier:\\n\\nError: {str(e)}\\nTime: {datetime.utcnow().isoformat()}Z\\n\\nPlease check CloudWatch logs for details."
+            error_message = f"Error in 3Decision recurring alarm notifier:\n\nError: {str(e)}\nTime: {datetime.utcnow().isoformat()}Z\n\nPlease check CloudWatch logs for details."
             sns.publish(
                 TopicArn=sns_topic_arn,
                 Subject="ERROR: 3Decision Alarm Notifier Failed",
