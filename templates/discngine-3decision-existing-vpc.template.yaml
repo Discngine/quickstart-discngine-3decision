@@ -706,7 +706,7 @@ Resources:
                   - "lambda:UntagResource"
                   - "lambda:RemovePermission"
                 Resource:
-                  - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-rotator-lambda"
+                  - !Sub "arn:${AWS::Partition}:lambda:*:*:function:3decision-*"
         - PolicyName: SNSAccess
           PolicyDocument:
             Version: 2012-10-17
@@ -749,7 +749,25 @@ Resources:
                   - "cloudwatch:TagResource"
                   - "cloudwatch:UntagResource"
                   - "cloudwatch:ListTagsForResource"
+                  - "cloudwatch:GetMetricStatistics"
                 Resource: "*"
+        - PolicyName: EventBridgeAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "events:PutRule"
+                  - "events:PutTargets"
+                  - "events:DeleteRule"
+                  - "events:RemoveTargets"
+                  - "events:DescribeRule"
+                  - "events:ListTargetsByRule"
+                  - "events:TagResource"
+                  - "events:UntagResource"
+                  - "events:ListTagsForResource"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:events:*:${AWS::AccountId}:rule/3decision-*"
 
   StateBucket:
     Type: AWS::S3::Bucket

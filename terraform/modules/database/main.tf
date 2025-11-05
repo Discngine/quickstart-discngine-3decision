@@ -55,6 +55,7 @@ resource "aws_db_instance" "db_instance" {
   skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = "db3dec-final-snapshot"
   backup_retention_period   = var.backup_retention_period
+  maintenance_window        = var.maintenance_window
   lifecycle {
     ignore_changes = [
       kms_key_id,
