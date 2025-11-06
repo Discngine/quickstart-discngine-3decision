@@ -144,11 +144,12 @@ EOF
 data "aws_ssm_parameter" "eks_ami_release_version" {
   count = var.custom_ami == "" ? 1 : 0
 
-  name = "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/image_id"
+  name = local.kube_higher_than_1_33 ? "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2023/x86_64/standard/recommended/image_id" : "/aws/service/eks/optimized-ami/${local.cluster.version}/amazon-linux-2/recommended/image_id"
 }
 
 locals {
-  user_data = var.user_data != "" ? var.user_data : <<USERDATA
+  kube_higher_than_1_33 = tonumber(split(".", local.cluster.version)[0]) >= 1 && tonumber(split(".", local.cluster.version)[1]) >= 33
+  user_data_1_33 = <<USERDATA
 ---
 apiVersion: node.eks.aws/v1alpha1
 kind: NodeConfig
@@ -159,6 +160,16 @@ spec:
     certificateAuthority: ${local.cluster.certificate_authority[0].data}
     cidr: ${local.cluster.kubernetes_network_config[0].service_ipv4_cidr}
 USERDATA
+  user_data_older = <<USERDATA
+#!/bin/bash
+set -o xtrace
+/etc/eks/bootstrap.sh ${local.cluster.name} \
+                  --b64-cluster-ca ${local.cluster.certificate_authority[0].data} \
+                  --apiserver-endpoint ${local.cluster.endpoint} \
+                  --use-max-pods false \
+                  --kubelet-extra-args '--max-pods=110'
+USERDATA
+  user_data = var.user_data != "" ? var.user_data : (local.kube_higher_than_1_33 ? local.user_data_1_33 : local.user_data_older)
 }
 
 resource "aws_launch_template" "EKSLaunchTemplate" {
