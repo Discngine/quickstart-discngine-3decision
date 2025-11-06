@@ -3,6 +3,39 @@ All notable changes to this project will be documented in this file.
 Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
+
+## [3.5.1] - 2025-11-06
+
+### Cloudformation
+#### Added
+- MonitoringEmail parameter for ALB health notifications in both main and existing VPC templates
+
+#### Changed
+- Updated default tdecision chart version to 3.5.1
+- Updated Kubernetes default Version to 1.34
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- Added ALB health monitoring
+- Lambda-based recurring notification system for persistent alarm states
+- SNS topic and subscription management for monitoring alerts
+- Database maintenance window configuration variable
+- IAM policies for Lambda and EventBridge with appropriate permissions
+
+#### Changed
+- Updated EKS cluster version to 1.34 with Amazon Linux 2023 AMI compatibility
+- Migrated from AL2 bootstrap.sh to AL2023 nodeadm configuration system
+- Implemented cloudinit_config for EKS node configuration with maxPods=110
+- Updated SSM parameter references for EKS AMI release versions
+- Refactored user data handling for better custom AMI support
+- Set default for username_is_email variable to true
+- Updated EBS snapshot ID
+
+#### Removed
+- Legacy AL2 user data configuration methods
+
 ## [3.4.5] - 2025-07-10
 ### Cloudformation
 #### Added
