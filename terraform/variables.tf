@@ -255,6 +255,12 @@ variable "db_storage_type" {
   description = "Type of storage for the database"
 }
 
+variable "maintenance_window" {
+  type        = string
+  default     = null
+  description = "Preferred weekly maintenance window for the database in UTC (Syntax: ddd:hh24:mi-ddd:hh24:mi)"
+}
+
 #################
 # Load Balancing
 #################
@@ -331,7 +337,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.4.5")
+    version          = optional(string, "3.5.0")
     create_namespace = optional(bool, true)
   })
   default = {}

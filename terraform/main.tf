@@ -175,6 +175,7 @@ module "database" {
   kms_key_id                 = local.kms_key_id
   max_allocated_storage      = var.max_allocated_storage
   storage_type               = var.db_storage_type
+  maintenance_window         = var.maintenance_window
   # Output
   node_security_group_id = var.create_node_group ? module.eks.node_security_group_id : var.node_group_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
