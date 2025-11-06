@@ -87,6 +87,10 @@ Metadata:
           - GoogleClientId
           - GoogleSecret
       - Label:
+          default: Monitoring and alerting configuration
+        Parameters:
+          - MonitoringEmail
+      - Label:
           default: Disaster Recovery specific parameters
         Parameters:
           - PublicVolumeSnapshotId
@@ -185,6 +189,8 @@ Metadata:
         default: Google app client id
       GoogleSecret:
         default: Google app secret
+      MonitoringEmail:
+        default: Email address for ALB health monitoring notifications
       PublicVolumeSnapshotId:
         default: Snapshot id of the public volume to recover
       PrivateVolumeSnapshotId:
@@ -490,6 +496,11 @@ Parameters:
     Default: "0"
     Description: >
       Optional: The availability zone to use for both public and private volumes. Takes a number (0 for 1a, 1 for 1b, etc).
+  MonitoringEmail:
+    Type: String
+    Default: ""
+    Description: >
+      Optional: Email address to receive ALB health monitoring notifications. If left empty, monitoring emails will be disabled.
 
 Rules:
   DiscngineSupportedRegionRule:
@@ -1002,6 +1013,8 @@ Resources:
             Value: !Ref TdecisionNamespace
           - Name: AdminPassword
             Value: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
+          - Name: MonitoringEmail
+            Value: !Ref MonitoringEmail
       TimeoutInMinutes: 180
       Cache:
         Type: NO_CACHE
@@ -1122,6 +1135,9 @@ Resources:
                     "CHEMBL_29"               = "Ch4ng3m3f0rs3cur3p4ss"
                     "PD_T1_DNG_THREEDECISION" = "Ch4ng3m3f0rs3cur3p4ss"
                   }
+
+                  # Monitoring configuration
+                  monitoring_email = "${MonitoringEmail}"
 
                   EOF
                 - cat vars.tfvars
