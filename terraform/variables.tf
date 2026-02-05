@@ -580,3 +580,19 @@ variable "monitoring_account" {
   default     = ""
   description = "Suffix to add to the alarm name to distinguish the account sending the warning"
 }
+
+###############
+# DATA MIGRATION
+###############
+
+variable "data_migration_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable one-time data migration from Oracle Data Pump dump file"
+}
+
+variable "data_migration_s3_key" {
+  type        = string
+  default     = ""
+  description = "S3 key (path) to dump file in dng-psilo-license bucket (e.g., migrations/project/export.dmp)"
+}

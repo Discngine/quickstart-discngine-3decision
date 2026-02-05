@@ -332,3 +332,31 @@ module "dns" {
 
   depends_on = [module.kubernetes.tdecision_release]
 }
+
+#####################
+# DATA MIGRATION
+#####################
+
+module "data_migration" {
+  source = "./modules/data_migration"
+
+  run_data_migration = var.data_migration_enabled
+  region             = var.region
+
+  s3_key = var.data_migration_s3_key
+
+  db_endpoint = module.database.db_endpoint
+  db_name     = module.database.db_name
+
+  depends_on = [module.kubernetes, module.database]
+}
+
+# RDS S3 Integration role association
+resource "aws_db_instance_role_association" "s3_integration" {
+  count = var.data_migration_enabled ? 1 : 0
+
+  db_instance_identifier = module.database.db_instance_identifier
+  feature_name           = "S3_INTEGRATION"
+  role_arn               = module.data_migration.rds_s3_role_arn
+}
+
