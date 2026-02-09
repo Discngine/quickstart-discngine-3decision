@@ -212,6 +212,7 @@ BEGIN
     filename  => 'import_migration.log', 
     directory => 'DATA_PUMP_DIR', 
     filetype  => 2);
+  DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'EXCLUDE_PATH_LIST','''STATISTICS''');
   DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'SCHEMA_EXPR','IN (''${local.target_schema}'')');
   DBMS_DATAPUMP.START_JOB(v_hdnl);
 END;

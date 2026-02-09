@@ -19,3 +19,10 @@ variable "kms_key_id" {}
 variable "max_allocated_storage" {}
 variable "storage_type" {}
 variable "maintenance_window" {}
+
+# S3 Integration for Data Pump
+variable "enable_s3_integration" {
+  description = "Enable S3 integration option group for Oracle Data Pump imports"
+  type        = bool
+  default     = true
+}
