@@ -92,7 +92,7 @@ sleep 60
 
 # Run import using DBMS_DATAPUMP
 echo "Running DBMS_DATAPUMP import..."
-sqlplus -s "ADMIN/\$SYS_DB_PASSWD@\$CONNECTION" << EOSQL
+sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
 DECLARE
   v_hdnl NUMBER;
@@ -124,7 +124,7 @@ sleep 120
 
 # Check import status and show log
 echo "Checking import status..."
-sqlplus -s "ADMIN/\$SYS_DB_PASSWD@\$CONNECTION" << EOSQL
+sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
 SET LINESIZE 200
 SET PAGESIZE 0
@@ -249,8 +249,8 @@ resource "kubernetes_job_v1" "migration" {
 
 # IAM Role for RDS to access S3
 resource "aws_iam_role" "rds_s3" {
-  count = var.run_data_migration ? 1 : 0
-  name_prefix  = "3decision-rds-s3-datapump-access"
+  count       = var.run_data_migration ? 1 : 0
+  name_prefix = "3decision-rds-s3-datapump-access"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
