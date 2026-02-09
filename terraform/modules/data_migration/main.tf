@@ -70,7 +70,10 @@ sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" @/scripts/prepare_db.sql
 
 # Download dump file from S3 to RDS
 echo "Downloading dump file to RDS DATA_PUMP_DIR..."
-sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+TASK_ID=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
 SET SERVEROUTPUT ON SIZE UNLIMITED
 DECLARE
   v_task_id VARCHAR2(64);
@@ -80,15 +83,55 @@ BEGIN
     p_s3_prefix      => '${var.s3_key}',
     p_directory_name => 'DATA_PUMP_DIR'
   );
-  DBMS_OUTPUT.PUT_LINE('Download task ID: ' || v_task_id);
+  DBMS_OUTPUT.PUT_LINE(v_task_id);
 END;
 /
 EXIT;
 EOSQL
+)
+TASK_ID=$(echo $TASK_ID | tr -d '[:space:]')
+echo "Download task ID: $TASK_ID"
 
-# Wait for download to complete
-echo "Waiting for S3 download to complete..."
-sleep 60
+# Wait for S3 download to complete by checking task status
+echo "Waiting for S3 download to complete (checking task status, max 30 min)..."
+for i in {1..180}; do
+  sleep 10
+  echo "Checking download status (attempt $i/180, $(($i * 10 / 60)) min elapsed)..."
+  
+  # Check if file exists in DATA_PUMP_DIR
+  FILE_EXISTS=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT COUNT(*) FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) WHERE filename = '${local.dump_file_name}';
+EXIT;
+EOSQL
+)
+  FILE_EXISTS=$(echo $FILE_EXISTS | tr -d '[:space:]')
+  
+  if [ "$FILE_EXISTS" = "1" ]; then
+    echo "Dump file found in DATA_PUMP_DIR!"
+    break
+  fi
+  
+  if [ $i -eq 180 ]; then
+    echo "ERROR: Timeout waiting for S3 download to complete (30 min)"
+    echo "Listing DATA_PUMP_DIR contents:"
+    sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SELECT filename, filesize, mtime FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR'));
+EXIT;
+EOSQL
+    exit 1
+  fi
+done
+
+# List files in DATA_PUMP_DIR after download
+echo "Files in DATA_PUMP_DIR after download:"
+sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET LINESIZE 200
+SELECT filename, filesize, mtime FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) ORDER BY mtime DESC;
+EXIT;
+EOSQL
 
 # Count tables BEFORE import
 echo "Counting tables BEFORE import..."
