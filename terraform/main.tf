@@ -26,10 +26,6 @@ terraform {
       source  = "hashicorp/random"
       version = "= 3.7.2"
     }
-    null = {
-      source  = "hashicorp/null"
-      version = "= 3.2.3"
-    }
   }
   backend "s3" {
     key                  = "terraform.state"
@@ -352,9 +348,6 @@ module "data_migration" {
 
   db_endpoint = module.database.db_endpoint
   db_name     = module.database.db_name
-
-  # Wait for S3 integration to be ready (includes reboot)
-  s3_integration_ready = module.database.s3_integration_ready
 
   depends_on = [module.kubernetes, module.database]
 }

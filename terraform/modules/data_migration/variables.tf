@@ -27,9 +27,3 @@ variable "db_name" {
   description = "Database name/SID"
   type        = string
 }
-
-variable "s3_integration_ready" {
-  description = "Dependency marker indicating S3 integration is ready on RDS"
-  type        = string
-  default     = null
-}

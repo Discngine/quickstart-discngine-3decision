@@ -23,8 +23,3 @@ output "admin_username" {
 output "database_arn" {
   value = aws_db_instance.db_instance.arn
 }
-
-output "s3_integration_ready" {
-  description = "Indicates S3 integration is ready (reboot completed)"
-  value       = var.enable_s3_integration ? null_resource.reboot_for_s3_integration[0].id : null
-}

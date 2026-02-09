@@ -106,26 +106,3 @@ resource "aws_db_option_group" "oracle_s3" {
     version     = "1.0"
   }
 }
-
-# Automatic reboot after option group change to activate S3_INTEGRATION
-resource "null_resource" "reboot_for_s3_integration" {
-  count = var.enable_s3_integration ? 1 : 0
-
-  triggers = {
-    option_group_id = aws_db_option_group.oracle_s3[0].id
-  }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      echo "Waiting for RDS instance to be available before reboot..."
-      aws rds wait db-instance-available --db-instance-identifier ${aws_db_instance.db_instance.identifier} --region ${var.region}
-      echo "Rebooting RDS instance to apply S3_INTEGRATION option..."
-      aws rds reboot-db-instance --db-instance-identifier ${aws_db_instance.db_instance.identifier} --region ${var.region}
-      echo "Waiting for RDS instance to be available after reboot..."
-      aws rds wait db-instance-available --db-instance-identifier ${aws_db_instance.db_instance.identifier} --region ${var.region}
-      echo "RDS instance reboot complete. S3_INTEGRATION is now active."
-    EOT
-  }
-
-  depends_on = [aws_db_instance.db_instance]
-}
