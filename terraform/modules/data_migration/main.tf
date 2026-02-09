@@ -35,7 +35,6 @@ SET ECHO ON
 SET SERVEROUTPUT ON
 
 -- Create Data Pump directory
-CREATE OR REPLACE DIRECTORY DATA_PUMP_DIR AS '/rdsdbdata/datapump';
 GRANT READ, WRITE ON DIRECTORY DATA_PUMP_DIR TO ${local.target_schema};
 GRANT IMP_FULL_DATABASE TO ${local.target_schema};
 
@@ -91,17 +90,53 @@ EOSQL
 echo "Waiting for S3 download to complete..."
 sleep 60
 
-# Run import
-echo "Running impdp..."
-impdp ${local.target_schema}/$DB_PASSWD@$CONNECTION \
-  directory=DATA_PUMP_DIR \
-  dumpfile=${local.dump_file_name} \
-  logfile=import_$(date +%Y%m%d_%H%M%S).log \
-  tables=structure_cavity_feature,structure_cavity_feature_pair \
-  remap_table=structure_cavity_feature_pair:structure_cavity_feature_pair_updated,structure_cavity_feature:structure_cavity_feature_updated \
-  exclude=INDEX,CONSTRAINT,REF_CONSTRAINT,TRIGGER,STATISTICS \
-  table_exists_action=skip \
-  access_method=external_table
+# Run import using DBMS_DATAPUMP
+echo "Running DBMS_DATAPUMP import..."
+sqlplus -s "ADMIN/\$SYS_DB_PASSWD@\$CONNECTION" << EOSQL
+SET SERVEROUTPUT ON SIZE UNLIMITED
+DECLARE
+  v_hdnl NUMBER;
+BEGIN
+  v_hdnl := DBMS_DATAPUMP.OPEN( 
+    operation => 'IMPORT', 
+    job_mode  => 'SCHEMA', 
+    job_name  => null);
+  DBMS_DATAPUMP.ADD_FILE( 
+    handle    => v_hdnl, 
+    filename  => '${local.dump_file_name}', 
+    directory => 'DATA_PUMP_DIR', 
+    filetype  => dbms_datapump.ku\$_file_type_dump_file);
+  DBMS_DATAPUMP.ADD_FILE( 
+    handle    => v_hdnl, 
+    filename  => 'import_migration.log', 
+    directory => 'DATA_PUMP_DIR', 
+    filetype  => dbms_datapump.ku\$_file_type_log_file);
+  DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'SCHEMA_EXPR','IN (''${local.target_schema}'')');
+  DBMS_DATAPUMP.START_JOB(v_hdnl);
+END;
+/
+EXIT;
+EOSQL
+
+echo "Data Pump import job started (asynchronous)."
+echo "Waiting for import to complete..."
+sleep 120
+
+# Check import status and show log
+echo "Checking import status..."
+sqlplus -s "ADMIN/\$SYS_DB_PASSWD@\$CONNECTION" << EOSQL
+SET SERVEROUTPUT ON SIZE UNLIMITED
+SET LINESIZE 200
+SET PAGESIZE 0
+
+-- Verify import by counting tables
+SELECT 'Table count for schema: ' || COUNT(*) FROM DBA_TABLES WHERE OWNER='${local.target_schema}';
+
+-- Display import log content
+SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR', 'import_migration.log'));
+
+EXIT;
+EOSQL
 
 echo "=== Import Complete ==="
 
