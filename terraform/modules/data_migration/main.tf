@@ -98,9 +98,7 @@ echo "Waiting for S3 download to complete (checking task status, max 30 min)..."
 echo "Looking for file: ${local.dump_file_name}"
 for i in {1..220}; do
   sleep 10
-  ELAPSED_MIN=$(($i * 10 / 60))
-  ELAPSED_SEC=$(($i * 10 % 60))
-  echo "--- Check $i/180 (${ELAPSED_MIN}m ${ELAPSED_SEC}s elapsed) ---"
+  echo "Checking download status (attempt $i/180, $(($i * 10 / 60)) min elapsed)..."
   
   # Show download progress from task log
   echo "Download task log:"
