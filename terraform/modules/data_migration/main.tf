@@ -90,6 +90,19 @@ EOSQL
 echo "Waiting for S3 download to complete..."
 sleep 60
 
+# Count tables BEFORE import
+echo "Counting tables BEFORE import..."
+TABLES_BEFORE=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER='${local.target_schema}';
+EXIT;
+EOSQL
+)
+TABLES_BEFORE=$(echo $TABLES_BEFORE | tr -d '[:space:]')
+echo "Tables BEFORE import: $TABLES_BEFORE"
+
 # Run import using DBMS_DATAPUMP
 echo "Running DBMS_DATAPUMP import..."
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
@@ -105,12 +118,12 @@ BEGIN
     handle    => v_hdnl, 
     filename  => '${local.dump_file_name}', 
     directory => 'DATA_PUMP_DIR', 
-    filetype  => dbms_datapump.ku\$_file_type_dump_file);
+    filetype  => 1);
   DBMS_DATAPUMP.ADD_FILE( 
     handle    => v_hdnl, 
     filename  => 'import_migration.log', 
     directory => 'DATA_PUMP_DIR', 
-    filetype  => dbms_datapump.ku\$_file_type_log_file);
+    filetype  => 2);
   DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'SCHEMA_EXPR','IN (''${local.target_schema}'')');
   DBMS_DATAPUMP.START_JOB(v_hdnl);
 END;
@@ -122,6 +135,28 @@ echo "Data Pump import job started (asynchronous)."
 echo "Waiting for import to complete..."
 sleep 120
 
+# Count tables AFTER import
+echo "Counting tables AFTER import..."
+TABLES_AFTER=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER='${local.target_schema}';
+EXIT;
+EOSQL
+)
+TABLES_AFTER=$(echo $TABLES_AFTER | tr -d '[:space:]')
+echo "Tables AFTER import: $TABLES_AFTER"
+
+# Calculate difference
+TABLES_ADDED=$((TABLES_AFTER - TABLES_BEFORE))
+echo "========================================="
+echo "IMPORT SUMMARY:"
+echo "  Tables BEFORE: $TABLES_BEFORE"
+echo "  Tables AFTER:  $TABLES_AFTER"
+echo "  Tables ADDED:  $TABLES_ADDED"
+echo "========================================="
+
 # Check import status and show log
 echo "Checking import status..."
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
@@ -129,11 +164,19 @@ SET SERVEROUTPUT ON SIZE UNLIMITED
 SET LINESIZE 200
 SET PAGESIZE 0
 
--- Verify import by counting tables
-SELECT 'Table count for schema: ' || COUNT(*) FROM DBA_TABLES WHERE OWNER='${local.target_schema}';
+-- List Data Pump files in directory
+SELECT 'DATA_PUMP_DIR files: ' || filename FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) WHERE filename LIKE '%.log' OR filename LIKE '%.dmp';
 
--- Display import log content
-SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR', 'import_migration.log'));
+-- Try to display import log content (if exists)
+BEGIN
+  FOR rec IN (SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR', 'import_migration.log'))) LOOP
+    DBMS_OUTPUT.PUT_LINE(rec.text);
+  END LOOP;
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Note: Log file not found or not readable');
+END;
+/
 
 EXIT;
 EOSQL
