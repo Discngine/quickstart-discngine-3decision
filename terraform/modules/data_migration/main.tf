@@ -156,7 +156,7 @@ resource "kubernetes_job_v1" "migration" {
 
         container {
           name  = "import"
-          image = "container-registry.oracle.com/database/instantclient:21"
+          image = "fra.ocir.io/discngine1/oracle/instantclient:23"
 
           command = ["/bin/bash", "-c", "/scripts/import.sh"]
 
