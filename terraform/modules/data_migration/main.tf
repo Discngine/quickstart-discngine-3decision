@@ -96,7 +96,20 @@ echo "Download task ID: $TASK_ID"
 echo "Waiting for S3 download to complete (checking task status, max 30 min)..."
 for i in {1..180}; do
   sleep 10
-  echo "Checking download status (attempt $i/180, $(($i * 10 / 60)) min elapsed)..."
+  ELAPSED_MIN=$(($i * 10 / 60))
+  ELAPSED_SEC=$(($i * 10 % 60))
+  echo "--- Check $i/180 (${ELAPSED_MIN}m ${ELAPSED_SEC}s elapsed) ---"
+  
+  # Show download progress from task log
+  echo "Download progress:"
+  sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SET LINESIZE 200
+SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log')) WHERE ROWNUM <= 20;
+EXIT;
+EOSQL
   
   # Check if file exists in DATA_PUMP_DIR
   FILE_EXISTS=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
@@ -111,14 +124,36 @@ EOSQL
   
   if [ "$FILE_EXISTS" = "1" ]; then
     echo "Dump file found in DATA_PUMP_DIR!"
+    # Show final task log
+    echo "Final download task log:"
+    sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SET LINESIZE 200
+SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'));
+EXIT;
+EOSQL
     break
   fi
   
   if [ $i -eq 180 ]; then
     echo "ERROR: Timeout waiting for S3 download to complete (30 min)"
+    echo "Final task log:"
+    sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SET LINESIZE 200
+SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'));
+EXIT;
+EOSQL
     echo "Listing DATA_PUMP_DIR contents:"
     sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
-SELECT filename, filesize, mtime FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR'));
+SET LINESIZE 200
+COLUMN filename FORMAT A50
+COLUMN size_gb FORMAT A12
+SELECT filename, ROUND(filesize/1024/1024/1024, 2) || ' GB' AS size_gb, mtime FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) ORDER BY mtime DESC;
 EXIT;
 EOSQL
     exit 1
@@ -129,7 +164,9 @@ done
 echo "Files in DATA_PUMP_DIR after download:"
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET LINESIZE 200
-SELECT filename, filesize, mtime FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) ORDER BY mtime DESC;
+COLUMN filename FORMAT A50
+COLUMN size_gb FORMAT A12
+SELECT filename, ROUND(filesize/1024/1024/1024, 2) || ' GB' AS size_gb, mtime FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) ORDER BY mtime DESC;
 EXIT;
 EOSQL
 
