@@ -13,13 +13,14 @@ terraform {
 }
 
 locals {
-  s3_bucket         = "dng-psilo-license"
-  target_schema     = "PD_T1_DNG_THREEDECISION"
-  namespace         = "tdecision"
-  dump_file_name    = basename(var.s3_key)
+  s3_bucket      = "dng-psilo-license"
+  target_schema  = "PD_T1_DNG_THREEDECISION"
+  namespace      = "tdecision"
+  dump_file_name = basename(var.s3_key)
+  # S3 download preserves path structure - file will be at DATA_PUMP_DIR/<s3_key>
+  dump_file_path    = var.s3_key
   connection_string = "${var.db_endpoint}/${var.db_name}"
 }
-
 # ConfigMap with migration scripts
 resource "kubernetes_config_map" "migration_scripts" {
   count = var.run_data_migration ? 1 : 0
@@ -94,44 +95,52 @@ echo "Download task ID: $TASK_ID"
 
 # Wait for S3 download to complete by checking task status
 echo "Waiting for S3 download to complete (checking task status, max 30 min)..."
-for i in {1..180}; do
+echo "Looking for file: ${local.dump_file_name}"
+for i in {1..220}; do
   sleep 10
   ELAPSED_MIN=$(($i * 10 / 60))
   ELAPSED_SEC=$(($i * 10 % 60))
   echo "--- Check $i/180 (${ELAPSED_MIN}m ${ELAPSED_SEC}s elapsed) ---"
   
   # Show download progress from task log
-  echo "Download progress:"
+  echo "Download task log:"
   sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET HEADING OFF
 SET FEEDBACK OFF
-SET PAGESIZE 0
+SET PAGESIZE 100
 SET LINESIZE 200
-SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log')) WHERE ROWNUM <= 20;
+SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'));
 EXIT;
 EOSQL
   
-  # Check if file exists in DATA_PUMP_DIR
-  FILE_EXISTS=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+  # Check if download task completed (look for SUCCESS or ERROR in log)
+  TASK_STATUS=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET HEADING OFF
 SET FEEDBACK OFF
 SET PAGESIZE 0
-SELECT COUNT(*) FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) WHERE filename = '${local.dump_file_name}';
+SELECT CASE 
+  WHEN COUNT(*) > 0 THEN 'COMPLETED'
+  ELSE 'RUNNING'
+END
+FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'))
+WHERE text LIKE '%finished successfully%' OR text LIKE '%ERROR%' OR text LIKE '%completed%';
 EXIT;
 EOSQL
 )
-  FILE_EXISTS=$(echo $FILE_EXISTS | tr -d '[:space:]')
+  TASK_STATUS=$(echo $TASK_STATUS | tr -d '[:space:]')
+  echo "Task status: $TASK_STATUS"
   
-  if [ "$FILE_EXISTS" = "1" ]; then
-    echo "Dump file found in DATA_PUMP_DIR!"
-    # Show final task log
-    echo "Final download task log:"
+  if [ "$TASK_STATUS" = "COMPLETED" ]; then
+    echo "Download task completed!"
+    # List all files to see where it was placed
+    echo "Listing DATA_PUMP_DIR contents:"
     sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
-SET HEADING OFF
-SET FEEDBACK OFF
-SET PAGESIZE 0
 SET LINESIZE 200
-SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'));
+COLUMN filename FORMAT A60
+COLUMN size_gb FORMAT A12
+SELECT filename, ROUND(filesize/1024/1024/1024, 2) || ' GB' AS size_gb, mtime 
+FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) 
+ORDER BY mtime DESC;
 EXIT;
 EOSQL
     break
@@ -185,6 +194,7 @@ echo "Tables BEFORE import: $TABLES_BEFORE"
 
 # Run import using DBMS_DATAPUMP
 echo "Running DBMS_DATAPUMP import..."
+echo "Using dump file path: ${local.dump_file_path}"
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
 DECLARE
@@ -196,7 +206,7 @@ BEGIN
     job_name  => null);
   DBMS_DATAPUMP.ADD_FILE( 
     handle    => v_hdnl, 
-    filename  => '${local.dump_file_name}', 
+    filename  => '${local.dump_file_path}', 
     directory => 'DATA_PUMP_DIR', 
     filetype  => 1);
   DBMS_DATAPUMP.ADD_FILE( 
@@ -268,7 +278,7 @@ echo "Cleaning up..."
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 REVOKE IMP_FULL_DATABASE FROM ${local.target_schema};
 BEGIN
-  UTL_FILE.FREMOVE('DATA_PUMP_DIR', '${local.dump_file_name}');
+  UTL_FILE.FREMOVE('DATA_PUMP_DIR', '${local.dump_file_path}');
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 /
