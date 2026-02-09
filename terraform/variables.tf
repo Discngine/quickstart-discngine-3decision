@@ -587,7 +587,7 @@ variable "monitoring_account" {
 
 variable "data_migration_enabled" {
   type        = bool
-  default     = false
+  default     = true
   description = "Enable one-time data migration from Oracle Data Pump dump file"
 }
 
