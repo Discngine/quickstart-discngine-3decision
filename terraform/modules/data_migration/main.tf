@@ -215,7 +215,7 @@ resource "kubernetes_job_v1" "migration" {
 # IAM Role for RDS to access S3
 resource "aws_iam_role" "rds_s3" {
   count = var.run_data_migration ? 1 : 0
-  name  = "rds-s3-datapump-access"
+  name_prefix  = "3decision-rds-s3-datapump-access"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
