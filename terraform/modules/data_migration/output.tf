@@ -1,17 +1,5 @@
 # Data Migration Module - Outputs
 
-output "bucket_policy_statement" {
-  description = "JSON statement to add to dng-psilo-license bucket policy (provide to Discngine)"
-  value = var.run_data_migration && var.rds_s3_role_arn != null ? jsonencode({
-    Sid    = "AllowRDSAccess"
-    Effect = "Allow"
-    Principal = {
-      AWS = var.rds_s3_role_arn
-    }
-    Action   = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation"]
-    Resource = ["arn:aws:s3:::dng-psilo-license", "arn:aws:s3:::dng-psilo-license/*"]
-  }) : null
-}
 
 output "job_name" {
   description = "Migration job name"

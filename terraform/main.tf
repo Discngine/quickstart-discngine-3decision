@@ -364,8 +364,8 @@ resource "aws_iam_role_policy" "rds_s3_datapump" {
       Effect = "Allow"
       Action = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation"]
       Resource = [
-        "arn:aws:s3:::dng-psilo-license",
-        "arn:aws:s3:::dng-psilo-license/*"
+        "arn:aws:s3:::dng-3dec-dump-${var.region}",
+        "arn:aws:s3:::dng-3dec-dump-${var.region}/*"
       ]
     }]
   })
