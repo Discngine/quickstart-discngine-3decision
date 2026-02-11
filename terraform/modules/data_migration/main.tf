@@ -297,7 +297,7 @@ SCRIPT
 # Migration Job
 # Depends on s3_role_association_id to ensure IAM role is attached before running
 resource "kubernetes_job_v1" "migration" {
-  count = var.run_data_migration && var.s3_role_association_id != null ? 1 : 0
+  count = var.run_data_migration ? 1 : 0
 
   metadata {
     name      = "data-migration"
