@@ -94,22 +94,10 @@ TASK_ID=$(echo $TASK_ID | tr -d '[:space:]')
 echo "Download task ID: $TASK_ID"
 
 # Wait for S3 download to complete by checking task status
-echo "Waiting for S3 download to complete (checking task status, max 30 min)..."
-echo "Looking for file: ${local.dump_file_name}"
-for i in {1..220}; do
+echo "Waiting for S3 download to complete (max 30 min)..."
+echo "Task ID: $TASK_ID"
+for i in {1..180}; do
   sleep 10
-  echo "Checking download status (attempt $i/180, $(($i * 10 / 60)) min elapsed)..."
-  
-  # Show download progress from task log
-  echo "Download task log:"
-  sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
-SET HEADING OFF
-SET FEEDBACK OFF
-SET PAGESIZE 100
-SET LINESIZE 200
-SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'));
-EXIT;
-EOSQL
   
   # Check if download task completed (look for SUCCESS or ERROR in log)
   TASK_STATUS=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
@@ -121,15 +109,59 @@ SELECT CASE
   ELSE 'RUNNING'
 END
 FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'))
-WHERE text LIKE '%finished successfully%' OR text LIKE '%ERROR%' OR text LIKE '%completed%';
+WHERE text LIKE '%finished successfully%' OR text LIKE '%ERROR%' OR text LIKE '%The task failed%';
 EXIT;
 EOSQL
 )
   TASK_STATUS=$(echo $TASK_STATUS | tr -d '[:space:]')
-  echo "Task status: $TASK_STATUS"
+  ELAPSED_MIN=$(($i * 10 / 60))
+  
+  # Show last line of log (contains progress info) every 30 seconds
+  if [ $(($i % 3)) -eq 0 ]; then
+    LAST_LOG=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SET LINESIZE 300
+SELECT text FROM (
+  SELECT text, ROWNUM rn FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'))
+  ORDER BY ROWNUM DESC
+) WHERE rn = 1;
+EXIT;
+EOSQL
+)
+    echo "[$ELAPSED_MIN min] $LAST_LOG"
+  fi
   
   if [ "$TASK_STATUS" = "COMPLETED" ]; then
-    echo "Download task completed!"
+    echo ""
+    echo "=== Download task log ==="
+    sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 100
+SET LINESIZE 200
+SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'));
+EXIT;
+EOSQL
+    
+    # Check if it was an error
+    ERROR_CHECK=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT COUNT(*) FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'))
+WHERE text LIKE '%ERROR%' OR text LIKE '%The task failed%';
+EXIT;
+EOSQL
+)
+    ERROR_CHECK=$(echo $ERROR_CHECK | tr -d '[:space:]')
+    if [ "$ERROR_CHECK" != "0" ]; then
+      echo "ERROR: S3 download task failed!"
+      exit 1
+    fi
+    
+    echo "Download completed successfully!"
     # List all files to see where it was placed
     echo "Listing DATA_PUMP_DIR contents:"
     sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
@@ -177,6 +209,26 @@ SELECT filename, ROUND(filesize/1024/1024/1024, 2) || ' GB' AS size_gb, mtime FR
 EXIT;
 EOSQL
 
+# Detect the .dmp file in DATA_PUMP_DIR
+DUMP_FILE=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT filename FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) 
+WHERE filename LIKE '%.dmp' 
+ORDER BY mtime DESC
+FETCH FIRST 1 ROW ONLY;
+EXIT;
+EOSQL
+)
+DUMP_FILE=$(echo $DUMP_FILE | tr -d '[:space:]')
+echo "Detected dump file: $DUMP_FILE"
+
+if [ -z "$DUMP_FILE" ]; then
+  echo "ERROR: No .dmp file found in DATA_PUMP_DIR"
+  exit 1
+fi
+
 # Count tables BEFORE import
 echo "Counting tables BEFORE import..."
 TABLES_BEFORE=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
@@ -192,7 +244,7 @@ echo "Tables BEFORE import: $TABLES_BEFORE"
 
 # Run import using DBMS_DATAPUMP
 echo "Running DBMS_DATAPUMP import..."
-echo "Using dump file path: ${local.dump_file_path}"
+echo "Using dump file: $DUMP_FILE"
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
 DECLARE
@@ -204,7 +256,7 @@ BEGIN
     job_name  => null);
   DBMS_DATAPUMP.ADD_FILE( 
     handle    => v_hdnl, 
-    filename  => '${local.dump_file_path}', 
+    filename  => '$DUMP_FILE', 
     directory => 'DATA_PUMP_DIR', 
     filetype  => 1);
   DBMS_DATAPUMP.ADD_FILE( 
@@ -277,7 +329,7 @@ echo "Cleaning up..."
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 REVOKE IMP_FULL_DATABASE FROM ${local.target_schema};
 BEGIN
-  UTL_FILE.FREMOVE('DATA_PUMP_DIR', '${local.dump_file_path}');
+  UTL_FILE.FREMOVE('DATA_PUMP_DIR', '$DUMP_FILE');
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 /
