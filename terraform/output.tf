@@ -6,7 +6,7 @@
 
 output "data_migration_rds_role_arn" {
   description = "IAM role ARN for RDS S3 integration - provide this to Discngine"
-  value       = module.data_migration.rds_s3_role_arn
+  value       = var.data_migration_enabled ? aws_iam_role.rds_s3_datapump[0].arn : null
 }
 
 output "data_migration_job_name" {
