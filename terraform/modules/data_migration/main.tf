@@ -308,12 +308,13 @@ BEGIN
   
   DBMS_OUTPUT.PUT_LINE('Starting job...');
   DBMS_DATAPUMP.START_JOB(v_hdnl);
-  DBMS_OUTPUT.PUT_LINE('Import job started successfully.');
+  DBMS_OUTPUT.PUT_LINE('Import job started, detaching...');
+  DBMS_DATAPUMP.DETACH(v_hdnl);
 EXCEPTION
   WHEN OTHERS THEN
     DBMS_OUTPUT.PUT_LINE('ERROR: ' || SQLERRM);
     DBMS_OUTPUT.PUT_LINE('Error at: ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
-    RAISE;
+    -- Don't re-raise, let the job run
 END;
 /
 EXIT;
@@ -322,6 +323,29 @@ EOSQL
 echo "Data Pump import job started (asynchronous)."
 echo "Waiting for import to complete..."
 sleep 120
+
+# Check job status and get detailed info
+echo "Checking Data Pump job status..."
+sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET SERVEROUTPUT ON SIZE UNLIMITED
+SET LINESIZE 200
+-- Show recent Data Pump jobs
+SELECT job_name, operation, job_mode, state, attached_sessions
+FROM dba_datapump_jobs
+WHERE owner_name = 'ADMIN';
+
+-- Show Data Pump master table for details
+DECLARE
+  CURSOR c_jobs IS
+    SELECT job_name FROM dba_datapump_jobs WHERE owner_name = 'ADMIN';
+BEGIN
+  FOR r IN c_jobs LOOP
+    DBMS_OUTPUT.PUT_LINE('=== Job: ' || r.job_name || ' ===');
+  END LOOP;
+END;
+/
+EXIT;
+EOSQL
 
 # Count tables AFTER import
 echo "Counting tables AFTER import..."
@@ -350,10 +374,23 @@ echo "Checking import status..."
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
 SET LINESIZE 200
-SET PAGESIZE 0
+SET PAGESIZE 1000
+
+-- Show all Data Pump jobs and their status
+PROMPT === Data Pump Jobs ===
+SELECT job_name, operation, job_mode, state, degree, attached_sessions
+FROM dba_datapump_jobs;
+
+-- Show session logs from alertlog
+PROMPT === Recent Alert Log Entries ===
+SELECT message_text
+FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'alert_' || (SELECT db_unique_name FROM v\\$database) || '.log'))
+WHERE message_text LIKE '%ORA-%' OR message_text LIKE '%Data Pump%' OR message_text LIKE '%Import%'
+FETCH FIRST 50 ROWS ONLY;
 
 -- List Data Pump files in directory
-SELECT 'DATA_PUMP_DIR files: ' || filename FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) WHERE filename LIKE '%.log' OR filename LIKE '%.dmp';
+PROMPT === DATA_PUMP_DIR files ===
+SELECT filename FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) WHERE filename LIKE '%.log' OR filename LIKE '%.dmp';
 
 -- Try to display import log content (if exists)
 BEGIN
