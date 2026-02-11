@@ -36,8 +36,8 @@ SET ECHO ON
 SET SERVEROUTPUT ON
 
 -- Create Data Pump directory
-GRANT READ, WRITE ON DIRECTORY DATA_PUMP_DIR TO ${local.target_schema};
-GRANT IMP_FULL_DATABASE TO ${local.target_schema};
+GRANT READ, WRITE ON DIRECTORY DATA_PUMP_DIR TO PD_T1_DNG_THREEDECISION;
+GRANT IMP_FULL_DATABASE TO PD_T1_DNG_THREEDECISION;
 
 -- Show directory info
 SELECT directory_name, directory_path FROM dba_directories WHERE directory_name = 'DATA_PUMP_DIR';
@@ -51,7 +51,7 @@ set -e
 
 echo "=== Data Migration Started ==="
 echo "S3 Source: s3://${local.s3_bucket}/${var.s3_key}"
-echo "Target Schema: ${local.target_schema}"
+echo "Target Schema: PD_T1_DNG_THREEDECISION"
 
 # Wait for secrets
 echo "Waiting for database credentials..."
@@ -239,7 +239,7 @@ TABLES_BEFORE=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET HEADING OFF
 SET FEEDBACK OFF
 SET PAGESIZE 0
-SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER='${local.target_schema}';
+SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER='PD_T1_DNG_THREEDECISION';
 EXIT;
 EOSQL
 )
@@ -302,8 +302,8 @@ BEGIN
   --   filetype  => 2);
   
   DBMS_OUTPUT.PUT_LINE('Adding metadata filters...');
-  DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'EXCLUDE_PATH_LIST','''STATISTICS''');
-  DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'SCHEMA_EXPR','IN (''${local.target_schema}'')');
+  DBMS_DATAPUMP.METADATA_FILTER(v_hdnl, 'EXCLUDE_PATH_LIST', '''INDEX'',''CONSTRAINT'',''REF_CONSTRAINT'',''TRIGGER'',''STATISTICS'',''GRANT''');
+  DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'SCHEMA_EXPR','IN (''PD_T1_DNG_THREEDECISION'')');
   DBMS_OUTPUT.PUT_LINE('Filters added.');
   
   DBMS_OUTPUT.PUT_LINE('Starting job...');
@@ -353,7 +353,7 @@ TABLES_AFTER=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET HEADING OFF
 SET FEEDBACK OFF
 SET PAGESIZE 0
-SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER='${local.target_schema}';
+SELECT COUNT(*) FROM DBA_TABLES WHERE OWNER='PD_T1_DNG_THREEDECISION';
 EXIT;
 EOSQL
 )
@@ -411,14 +411,14 @@ echo "=== Import Complete ==="
 # Cleanup
 echo "Cleaning up..."
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
-REVOKE IMP_FULL_DATABASE FROM ${local.target_schema};
+REVOKE IMP_FULL_DATABASE FROM PD_T1_DNG_THREEDECISION;
 BEGIN
   UTL_FILE.FREMOVE('DATA_PUMP_DIR', '$DUMP_FILE');
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 /
 BEGIN
-  DBMS_STATS.GATHER_SCHEMA_STATS('${local.target_schema}', options => 'GATHER AUTO');
+  DBMS_STATS.GATHER_SCHEMA_STATS('PD_T1_DNG_THREEDECISION', options => 'GATHER AUTO');
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 /
