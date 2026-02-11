@@ -229,6 +229,21 @@ if [ -z "$DUMP_FILE" ]; then
   exit 1
 fi
 
+# Clean up old import log files to avoid conflicts
+echo "Cleaning up old log files..."
+sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET SERVEROUTPUT ON
+BEGIN
+  UTL_FILE.FREMOVE('DATA_PUMP_DIR', 'import_migration.log');
+  DBMS_OUTPUT.PUT_LINE('Removed old import_migration.log');
+EXCEPTION 
+  WHEN OTHERS THEN 
+    DBMS_OUTPUT.PUT_LINE('No old log file to remove');
+END;
+/
+EXIT;
+EOSQL
+
 # Count tables BEFORE import
 echo "Counting tables BEFORE import..."
 TABLES_BEFORE=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
