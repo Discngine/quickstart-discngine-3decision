@@ -116,21 +116,9 @@ EOSQL
   TASK_STATUS=$(echo $TASK_STATUS | tr -d '[:space:]')
   ELAPSED_MIN=$(($i * 10 / 60))
   
-  # Show last line of log (contains progress info) every 30 seconds
+  # Simple progress indicator every 30 seconds
   if [ $(($i % 3)) -eq 0 ]; then
-    LAST_LOG=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
-SET HEADING OFF
-SET FEEDBACK OFF
-SET PAGESIZE 0
-SET LINESIZE 300
-SELECT text FROM (
-  SELECT text, ROWNUM rn FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'dbtask-$TASK_ID.log'))
-  ORDER BY ROWNUM DESC
-) WHERE rn = 1;
-EXIT;
-EOSQL
-)
-    echo "[$ELAPSED_MIN min] $LAST_LOG"
+    echo "[$ELAPSED_MIN min] Downloading..."
   fi
   
   if [ "$TASK_STATUS" = "COMPLETED" ]; then
@@ -231,11 +219,12 @@ fi
 
 # Clean up old import log files to avoid conflicts
 echo "Cleaning up old log files..."
+LOG_FILE="import_$DUMP_FILE.log"
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON
 BEGIN
-  UTL_FILE.FREMOVE('DATA_PUMP_DIR', 'import_migration.log');
-  DBMS_OUTPUT.PUT_LINE('Removed old import_migration.log');
+  UTL_FILE.FREMOVE('DATA_PUMP_DIR', '$LOG_FILE');
+  DBMS_OUTPUT.PUT_LINE('Removed old $LOG_FILE');
 EXCEPTION 
   WHEN OTHERS THEN 
     DBMS_OUTPUT.PUT_LINE('No old log file to remove');
@@ -257,31 +246,75 @@ EOSQL
 TABLES_BEFORE=$(echo $TABLES_BEFORE | tr -d '[:space:]')
 echo "Tables BEFORE import: $TABLES_BEFORE"
 
+# Verify dump file exists and check DATA_PUMP_DIR
+echo "Verifying dump file in DATA_PUMP_DIR..."
+sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET SERVEROUTPUT ON SIZE UNLIMITED
+DECLARE
+  v_fexists BOOLEAN;
+  v_fsize NUMBER;
+  v_bsize NUMBER;
+BEGIN
+  UTL_FILE.FGETATTR('DATA_PUMP_DIR', '$DUMP_FILE', v_fexists, v_fsize, v_bsize);
+  IF v_fexists THEN
+    DBMS_OUTPUT.PUT_LINE('Dump file exists: $DUMP_FILE');
+    DBMS_OUTPUT.PUT_LINE('File size: ' || v_fsize || ' bytes');
+  ELSE
+    DBMS_OUTPUT.PUT_LINE('ERROR: Dump file NOT found: $DUMP_FILE');
+  END IF;
+END;
+/
+
+-- Check directory path
+SELECT directory_path FROM dba_directories WHERE directory_name = 'DATA_PUMP_DIR';
+EXIT;
+EOSQL
+
 # Run import using DBMS_DATAPUMP
 echo "Running DBMS_DATAPUMP import..."
 echo "Using dump file: $DUMP_FILE"
+echo "Log file: $LOG_FILE"
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
 DECLARE
   v_hdnl NUMBER;
 BEGIN
+  DBMS_OUTPUT.PUT_LINE('Opening Data Pump job...');
   v_hdnl := DBMS_DATAPUMP.OPEN( 
     operation => 'IMPORT', 
     job_mode  => 'SCHEMA', 
     job_name  => null);
+  DBMS_OUTPUT.PUT_LINE('Job handle: ' || v_hdnl);
+  
+  DBMS_OUTPUT.PUT_LINE('Adding dump file...');
   DBMS_DATAPUMP.ADD_FILE( 
     handle    => v_hdnl, 
     filename  => '$DUMP_FILE', 
     directory => 'DATA_PUMP_DIR', 
     filetype  => 1);
+  DBMS_OUTPUT.PUT_LINE('Dump file added.');
+  
+  DBMS_OUTPUT.PUT_LINE('Adding log file...');
   DBMS_DATAPUMP.ADD_FILE( 
     handle    => v_hdnl, 
-    filename  => 'import_migration.log', 
+    filename  => '$LOG_FILE', 
     directory => 'DATA_PUMP_DIR', 
     filetype  => 2);
+  DBMS_OUTPUT.PUT_LINE('Log file added.');
+  
+  DBMS_OUTPUT.PUT_LINE('Adding metadata filters...');
   DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'EXCLUDE_PATH_LIST','''STATISTICS''');
   DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'SCHEMA_EXPR','IN (''${local.target_schema}'')');
+  DBMS_OUTPUT.PUT_LINE('Filters added.');
+  
+  DBMS_OUTPUT.PUT_LINE('Starting job...');
   DBMS_DATAPUMP.START_JOB(v_hdnl);
+  DBMS_OUTPUT.PUT_LINE('Import job started successfully.');
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('ERROR: ' || SQLERRM);
+    DBMS_OUTPUT.PUT_LINE('Error at: ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    RAISE;
 END;
 /
 EXIT;
@@ -325,7 +358,7 @@ SELECT 'DATA_PUMP_DIR files: ' || filename FROM TABLE(rdsadmin.rds_file_util.lis
 
 -- Try to display import log content (if exists)
 BEGIN
-  FOR rec IN (SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR', 'import_migration.log'))) LOOP
+  FOR rec IN (SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR', '$LOG_FILE'))) LOOP
     DBMS_OUTPUT.PUT_LINE(rec.text);
   END LOOP;
 EXCEPTION
