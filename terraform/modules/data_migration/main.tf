@@ -295,11 +295,11 @@ BEGIN
   DBMS_OUTPUT.PUT_LINE('Dump file added.');
   
   -- Skip log file for now to test if that's the issue
-  -- DBMS_DATAPUMP.ADD_FILE( 
-  --   handle    => v_hdnl, 
-  --   filename  => '$LOG_FILE', 
-  --   directory => 'DATA_PUMP_DIR', 
-  --   filetype  => 2);
+  DBMS_DATAPUMP.ADD_FILE( 
+    handle    => v_hdnl, 
+    filename  => '$LOG_FILE', 
+    directory => 'DATA_PUMP_DIR', 
+    filetype  => dbms_datapump.ku\$_file_type_log_file);
   
   DBMS_OUTPUT.PUT_LINE('Adding metadata filters...');
   DBMS_DATAPUMP.METADATA_FILTER(v_hdnl, 'EXCLUDE_PATH_LIST', '''INDEX'',''CONSTRAINT'',''REF_CONSTRAINT'',''TRIGGER'',''STATISTICS'',''GRANT''');
