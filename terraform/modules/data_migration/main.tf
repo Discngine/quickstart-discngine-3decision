@@ -219,7 +219,7 @@ fi
 
 # Clean up old import log files to avoid conflicts
 echo "Cleaning up old log files..."
-LOG_FILE="import_$DUMP_FILE.log"
+LOG_FILE="datapump_import.log"
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON
 BEGIN
@@ -294,13 +294,12 @@ BEGIN
     filetype  => 1);
   DBMS_OUTPUT.PUT_LINE('Dump file added.');
   
-  DBMS_OUTPUT.PUT_LINE('Adding log file...');
-  DBMS_DATAPUMP.ADD_FILE( 
-    handle    => v_hdnl, 
-    filename  => '$LOG_FILE', 
-    directory => 'DATA_PUMP_DIR', 
-    filetype  => 2);
-  DBMS_OUTPUT.PUT_LINE('Log file added.');
+  -- Skip log file for now to test if that's the issue
+  -- DBMS_DATAPUMP.ADD_FILE( 
+  --   handle    => v_hdnl, 
+  --   filename  => '$LOG_FILE', 
+  --   directory => 'DATA_PUMP_DIR', 
+  --   filetype  => 2);
   
   DBMS_OUTPUT.PUT_LINE('Adding metadata filters...');
   DBMS_DATAPUMP.METADATA_FILTER(v_hdnl,'EXCLUDE_PATH_LIST','''STATISTICS''');
