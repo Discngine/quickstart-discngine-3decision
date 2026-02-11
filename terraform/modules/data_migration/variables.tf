@@ -27,3 +27,15 @@ variable "db_name" {
   description = "Database name/SID"
   type        = string
 }
+
+variable "s3_role_association_id" {
+  description = "ID of the RDS S3 role association (dependency marker)"
+  type        = string
+  default     = null
+}
+
+variable "rds_s3_role_arn" {
+  description = "ARN of the IAM role for RDS S3 integration"
+  type        = string
+  default     = null
+}

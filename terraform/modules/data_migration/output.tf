@@ -1,17 +1,12 @@
 # Data Migration Module - Outputs
 
-output "rds_s3_role_arn" {
-  description = "IAM role ARN for RDS S3 integration - provide this to Discngine for bucket policy"
-  value       = var.run_data_migration ? aws_iam_role.rds_s3[0].arn : null
-}
-
 output "bucket_policy_statement" {
   description = "JSON statement to add to dng-psilo-license bucket policy (provide to Discngine)"
-  value = var.run_data_migration ? jsonencode({
+  value = var.run_data_migration && var.rds_s3_role_arn != null ? jsonencode({
     Sid    = "AllowRDSAccess"
     Effect = "Allow"
     Principal = {
-      AWS = aws_iam_role.rds_s3[0].arn
+      AWS = var.rds_s3_role_arn
     }
     Action   = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation"]
     Resource = ["arn:aws:s3:::dng-psilo-license", "arn:aws:s3:::dng-psilo-license/*"]

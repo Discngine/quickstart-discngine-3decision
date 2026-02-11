@@ -338,6 +338,50 @@ module "dns" {
 # DATA MIGRATION
 #####################
 
+# IAM Role for RDS to access S3 (created first, before role association)
+resource "aws_iam_role" "rds_s3_datapump" {
+  count       = var.data_migration_enabled ? 1 : 0
+  name_prefix = "3decision-rds-s3-datapump-"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "rds.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "rds_s3_datapump" {
+  count = var.data_migration_enabled ? 1 : 0
+  name  = "s3-access"
+  role  = aws_iam_role.rds_s3_datapump[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation"]
+      Resource = [
+        "arn:aws:s3:::dng-psilo-license",
+        "arn:aws:s3:::dng-psilo-license/*"
+      ]
+    }]
+  })
+}
+
+# RDS S3 Integration role association - must be created BEFORE data_migration job
+resource "aws_db_instance_role_association" "s3_integration" {
+  count = var.data_migration_enabled ? 1 : 0
+
+  db_instance_identifier = module.database.db_instance_identifier
+  feature_name           = "S3_INTEGRATION"
+  role_arn               = aws_iam_role.rds_s3_datapump[0].arn
+
+  depends_on = [aws_iam_role_policy.rds_s3_datapump]
+}
+
 module "data_migration" {
   source = "./modules/data_migration"
 
@@ -349,15 +393,10 @@ module "data_migration" {
   db_endpoint = module.database.db_endpoint
   db_name     = module.database.db_name
 
-  depends_on = [module.kubernetes, module.database]
-}
+  # Pass role ARN and association ID to ensure proper dependency ordering
+  rds_s3_role_arn        = var.data_migration_enabled ? aws_iam_role.rds_s3_datapump[0].arn : null
+  s3_role_association_id = var.data_migration_enabled ? aws_db_instance_role_association.s3_integration[0].id : null
 
-# RDS S3 Integration role association
-resource "aws_db_instance_role_association" "s3_integration" {
-  count = var.data_migration_enabled ? 1 : 0
-
-  db_instance_identifier = module.database.db_instance_identifier
-  feature_name           = "S3_INTEGRATION"
-  role_arn               = module.data_migration.rds_s3_role_arn
+  depends_on = [module.kubernetes, module.database, aws_db_instance_role_association.s3_integration]
 }
 
