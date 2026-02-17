@@ -1095,6 +1095,9 @@ EOF
         "ec2:DescribeTags",
         "ec2:GetCoipPoolUsage",
         "ec2:DescribeCoipPools",
+        "ec2:GetSecurityGroupsForVpc",
+        "ec2:DescribeIpamPools",
+        "ec2:DescribeRouteTables",
         "elasticloadbalancing:DescribeLoadBalancers",
         "elasticloadbalancing:DescribeLoadBalancerAttributes",
         "elasticloadbalancing:DescribeListeners",
@@ -1104,7 +1107,10 @@ EOF
         "elasticloadbalancing:DescribeTargetGroups",
         "elasticloadbalancing:DescribeTargetGroupAttributes",
         "elasticloadbalancing:DescribeTargetHealth",
-        "elasticloadbalancing:DescribeTags"
+        "elasticloadbalancing:DescribeTags",
+        "elasticloadbalancing:DescribeTrustStores",
+        "elasticloadbalancing:DescribeListenerAttributes",
+        "elasticloadbalancing:DescribeCapacityReservation"
       ],
       "Resource": "*"
     },
@@ -1253,7 +1259,10 @@ EOF
         "elasticloadbalancing:DeleteLoadBalancer",
         "elasticloadbalancing:ModifyTargetGroup",
         "elasticloadbalancing:ModifyTargetGroupAttributes",
-        "elasticloadbalancing:DeleteTargetGroup"
+        "elasticloadbalancing:DeleteTargetGroup",
+        "elasticloadbalancing:ModifyListenerAttributes",
+        "elasticloadbalancing:ModifyCapacityReservation",
+        "elasticloadbalancing:ModifyIpPools"
       ],
       "Resource": "*",
       "Condition": {
@@ -1300,8 +1309,7 @@ EOF
         "elasticloadbalancing:AddListenerCertificates",
         "elasticloadbalancing:RemoveListenerCertificates",
         "elasticloadbalancing:ModifyRule",
-        "elasticloadbalancing:DescribeListenerAttributes",
-        "elasticloadbalancing:ModifyListenerAttributes"
+        "elasticloadbalancing:SetRulePriorities"
       ],
       "Resource": "*"
     }
@@ -1318,7 +1326,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
-  version    = "1.13.3"
+  version    = "3.0.0"
 
   values = [<<YAML
     clusterName: ${var.cluster_name}
