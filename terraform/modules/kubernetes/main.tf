@@ -1362,7 +1362,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 
 resource "null_resource" "update_alb_crds" {
   triggers = {
-    release = helm_release.aws_load_balancer_controller
+    release = helm_release.aws_load_balancer_controller[0].id
   }
 
   provisioner "local-exec" {
