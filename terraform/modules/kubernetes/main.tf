@@ -1368,11 +1368,10 @@ resource "null_resource" "update_alb_crds" {
   provisioner "local-exec" {
     command = <<-EOT
       #!/bin/bash
-      
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      kubectl apply -k "https://github.com/aws/eks-charts/tree/master/stable/aws-load-balancer-controller/crds/crds.yaml"
-      kubectl apply -k "https://github.com/aws/eks-charts/tree/master/stable/aws-load-balancer-controller/crds/gateway-crds.yaml"
+      kubectl apply -f "https://github.com/aws/eks-charts/tree/master/stable/aws-load-balancer-controller/crds/crds.yaml"
+      kubectl apply -f "https://github.com/aws/eks-charts/tree/master/stable/aws-load-balancer-controller/crds/gateway-crds.yaml"
     EOT
   }
 }
