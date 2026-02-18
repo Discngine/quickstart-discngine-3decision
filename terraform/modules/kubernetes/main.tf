@@ -640,6 +640,14 @@ ingress:
   react:
     host: ${var.registration_subdomain}
   class: alb
+httproute:
+  gateway:
+    name: tdecision-gateway
+    namespace: tdecision
+    httpListener: http
+    httpsListener: https
+  class: alb
+  host: ${var.domain}
 Images:
   redis:
     repository: fra.ocir.io/discngine1/prod/redis/redis
@@ -1350,4 +1358,20 @@ resource "helm_release" "aws_load_balancer_controller" {
   YAML
   ]
   depends_on = [helm_release.cert_manager_release, kubernetes_config_map_v1.aws_auth]
+}
+
+resource "null_resource" "update_alb_crds" {
+  triggers = {
+    release = helm_release.aws_load_balancer_controller
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
+    EOT
+  }
 }
