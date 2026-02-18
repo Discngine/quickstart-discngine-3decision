@@ -1371,7 +1371,7 @@ resource "null_resource" "update_alb_crds" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
+      kubectl apply -k "https://github.com/aws/eks-charts/tree/master/stable/aws-load-balancer-controller/crds"
     EOT
   }
 }
