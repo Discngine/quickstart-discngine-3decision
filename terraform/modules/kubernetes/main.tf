@@ -1371,6 +1371,8 @@ resource "null_resource" "update_alb_crds" {
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
+      kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/heads/main/config/crd/gateway/gateway-crds.yaml
     EOT
   }
 }
