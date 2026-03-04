@@ -628,10 +628,6 @@ ingress:
   certificateArn: ${var.certificate_arn}
   visibility: ${var.load_balancer_type}
   inboundCidrs: ${var.inbound_cidrs == "" ? "null" : var.inbound_cidrs}
-  deletionProtection: ${!var.force_destroy}
-  logging:
-    enabled: true
-    bucket: ${var.app_bucket_name}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]
@@ -648,6 +644,13 @@ httproute:
     httpsListener: https
   class: alb
   host: ${var.domain}
+  loadBalancerAttributes:
+    idle_timeout.timeout_seconds: "300"
+    deletion_protection.enabled: ${!var.force_destroy}
+    routing.http.drop_invalid_header_fields.enabled: "true"
+    access_logs.s3.enabled: "true"
+    access_logs.s3.bucket: ${var.app_bucket_name}
+    access_logs.s3.prefix: ""
 Images:
   redis:
     repository: fra.ocir.io/discngine1/prod/redis/redis
