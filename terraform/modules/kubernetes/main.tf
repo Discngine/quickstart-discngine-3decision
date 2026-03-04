@@ -1355,6 +1355,9 @@ resource "helm_release" "aws_load_balancer_controller" {
       create: true
       name: aws-load-balancer-controller
     vpcId: ${var.vpc_id}
+    controllerConfig:
+      featureGates:
+        ALBGatewayAPI: true
   YAML
   ]
   depends_on = [helm_release.cert_manager_release, kubernetes_config_map_v1.aws_auth]
