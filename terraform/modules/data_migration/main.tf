@@ -521,3 +521,153 @@ resource "kubernetes_job_v1" "migration" {
     create = "5m"
   }
 }
+
+# Validation ConfigMap - checks that migration created the expected tables
+resource "kubernetes_config_map" "validation_scripts" {
+  count = var.run_data_migration ? 1 : 0
+
+  metadata {
+    name      = "migration-validation-scripts"
+    namespace = local.namespace
+  }
+
+  data = {
+    "validate.sh" = <<-SCRIPT
+#!/bin/bash
+set -e
+
+echo "=== Data Migration Validation ==="
+echo "Checking for required tables: STRUCTURE_CAVITY_FEATURE_UPDATED, STRUCTURE_CAVITY_FEATURE_PAIR_UPDATED"
+
+# Wait for secrets
+echo "Waiting for database credentials..."
+for i in {1..60}; do
+  [ -f /secrets/SYS_DB_PASSWD ] && break
+  sleep 5
+done
+[ ! -f /secrets/SYS_DB_PASSWD ] && echo "ERROR: Secrets not found" && exit 1
+
+SYS_DB_PASSWD=$(cat /secrets/SYS_DB_PASSWD)
+CONNECTION="${var.db_endpoint}/${var.db_name}"
+
+# Check for tables with retries (migration might still be running)
+MAX_RETRIES=360  # 60 minutes at 10s intervals
+for i in $(seq 1 $MAX_RETRIES); do
+  TABLE_COUNT=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT COUNT(*) FROM DBA_TABLES
+WHERE OWNER='PD_T1_DNG_THREEDECISION'
+AND TABLE_NAME IN ('STRUCTURE_CAVITY_FEATURE_UPDATED', 'STRUCTURE_CAVITY_FEATURE_PAIR_UPDATED');
+EXIT;
+EOSQL
+)
+  TABLE_COUNT=$(echo $TABLE_COUNT | tr -d '[:space:]')
+
+  if [ "$TABLE_COUNT" = "2" ]; then
+    echo "SUCCESS: Both required tables found!"
+    echo "  - STRUCTURE_CAVITY_FEATURE_UPDATED"
+    echo "  - STRUCTURE_CAVITY_FEATURE_PAIR_UPDATED"
+    echo "Data migration validation passed. Safe to proceed with 3decision update."
+    exit 0
+  fi
+
+  ELAPSED_MIN=$(($i * 10 / 60))
+  if [ $(($i % 6)) -eq 0 ]; then
+    echo "[$ELAPSED_MIN min] Waiting for migration tables... (found $TABLE_COUNT/2)"
+  fi
+
+  sleep 10
+done
+
+echo "ERROR: Data migration validation FAILED!"
+echo "Required tables not found after 60 minutes."
+echo "Found $TABLE_COUNT/2 expected tables."
+echo "The 3decision version update will NOT proceed."
+exit 1
+SCRIPT
+  }
+}
+
+# Validation Job - waits for migration tables to exist before allowing helm update
+resource "kubernetes_job_v1" "migration_validation" {
+  count = var.run_data_migration ? 1 : 0
+
+  metadata {
+    name      = "data-migration-validation"
+    namespace = local.namespace
+    labels = {
+      "app.kubernetes.io/name" = "data-migration-validation"
+    }
+  }
+
+  spec {
+    ttl_seconds_after_finished = 1800
+    backoff_limit              = 2
+    active_deadline_seconds    = 7200 # 2h timeout
+
+    template {
+      metadata {
+        labels = {
+          "app.kubernetes.io/name" = "data-migration-validation"
+        }
+      }
+
+      spec {
+        restart_policy = "OnFailure"
+
+        container {
+          name  = "validate"
+          image = "fra.ocir.io/discngine1/oracle/instantclient:23"
+
+          command = ["/bin/bash", "-c", "/scripts/validate.sh"]
+
+          volume_mount {
+            name       = "scripts"
+            mount_path = "/scripts"
+          }
+
+          volume_mount {
+            name       = "db-secrets"
+            mount_path = "/secrets"
+            read_only  = true
+          }
+
+          resources {
+            requests = {
+              cpu    = "250m"
+              memory = "512Mi"
+            }
+            limits = {
+              cpu    = "500m"
+              memory = "1Gi"
+            }
+          }
+        }
+
+        volume {
+          name = "scripts"
+          config_map {
+            name         = kubernetes_config_map.validation_scripts[0].metadata[0].name
+            default_mode = "0755"
+          }
+        }
+
+        volume {
+          name = "db-secrets"
+          secret {
+            secret_name = "database-secrets"
+          }
+        }
+      }
+    }
+  }
+
+  wait_for_completion = true
+  timeouts {
+    create = "90m"
+  }
+
+  depends_on = [kubernetes_job_v1.migration]
+}

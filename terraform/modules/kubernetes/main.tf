@@ -770,6 +770,11 @@ rm reset_passwords.yaml
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
+# Gate resource: ensures data migration validation completes before Helm update
+resource "terraform_data" "data_migration_gate" {
+  input = var.data_migration_validated
+}
+
 resource "helm_release" "tdecision_chart" {
   name      = var.tdecision_chart.name
   chart     = var.tdecision_chart.chart
@@ -787,7 +792,8 @@ resource "helm_release" "tdecision_chart" {
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,
     terraform_data.reset_passwords,
-    helm_release.postgres_chart
+    helm_release.postgres_chart,
+    terraform_data.data_migration_gate
   ]
 
   provisioner "local-exec" {

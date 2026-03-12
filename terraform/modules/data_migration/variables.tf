@@ -4,7 +4,7 @@
 variable "run_data_migration" {
   description = "Whether to run the data migration job"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "region" {

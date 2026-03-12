@@ -318,6 +318,8 @@ module "kubernetes" {
   public_volume_availability_zone  = var.public_volume_availability_zone
   private_volume_availability_zone = var.private_volume_availability_zone
 
+  data_migration_validated = module.data_migration.validation_completed
+
   depends_on = [module.eks]
 }
 
@@ -397,6 +399,6 @@ module "data_migration" {
   rds_s3_role_arn        = var.data_migration_enabled ? aws_iam_role.rds_s3_datapump[0].arn : null
   s3_role_association_id = var.data_migration_enabled ? aws_db_instance_role_association.s3_integration[0].id : null
 
-  depends_on = [module.kubernetes, module.database, aws_db_instance_role_association.s3_integration]
+  depends_on = [module.database, aws_db_instance_role_association.s3_integration]
 }
 
