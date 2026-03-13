@@ -384,6 +384,66 @@ resource "aws_db_instance_role_association" "s3_integration" {
   depends_on = [aws_iam_role_policy.rds_s3_datapump]
 }
 
+# Increase RDS storage by 200GB to accommodate Data Pump dump file download
+resource "null_resource" "rds_storage_increase" {
+  count = var.data_migration_enabled ? 1 : 0
+
+  triggers = {
+    db_instance_id = module.database.db_instance_identifier
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      set -e
+
+      DB_INSTANCE="${module.database.db_instance_identifier}"
+      REGION="${var.region}"
+      EXTRA_GB=200
+
+      echo "=== RDS Storage Increase ==="
+      echo "Instance: $DB_INSTANCE"
+
+      # Wait for instance to be available before modifying
+      echo "Waiting for RDS instance to be available..."
+      aws rds wait db-instance-available --db-instance-identifier "$DB_INSTANCE" --region "$REGION"
+
+      # Get current allocated storage
+      CURRENT_STORAGE=$(aws rds describe-db-instances \
+        --db-instance-identifier "$DB_INSTANCE" \
+        --region "$REGION" \
+        --query 'DBInstances[0].AllocatedStorage' \
+        --output text)
+      echo "Current allocated storage: $${CURRENT_STORAGE} GB"
+
+      NEW_STORAGE=$(($CURRENT_STORAGE + $EXTRA_GB))
+      echo "Requesting new storage: $${NEW_STORAGE} GB (+$${EXTRA_GB} GB)"
+
+      # Modify the instance storage
+      aws rds modify-db-instance \
+        --db-instance-identifier "$DB_INSTANCE" \
+        --allocated-storage "$NEW_STORAGE" \
+        --apply-immediately \
+        --region "$REGION"
+
+      echo "Storage modification requested. Waiting for instance to be available..."
+      # Wait for the modification to complete
+      sleep 30
+      aws rds wait db-instance-available --db-instance-identifier "$DB_INSTANCE" --region "$REGION"
+
+      FINAL_STORAGE=$(aws rds describe-db-instances \
+        --db-instance-identifier "$DB_INSTANCE" \
+        --region "$REGION" \
+        --query 'DBInstances[0].AllocatedStorage' \
+        --output text)
+      echo "Final allocated storage: $${FINAL_STORAGE} GB"
+      echo "=== Storage Increase Complete ==="
+    EOT
+  }
+
+  depends_on = [module.database, aws_db_instance_role_association.s3_integration]
+}
+
 module "data_migration" {
   source = "./modules/data_migration"
 
@@ -399,6 +459,6 @@ module "data_migration" {
   rds_s3_role_arn        = var.data_migration_enabled ? aws_iam_role.rds_s3_datapump[0].arn : null
   s3_role_association_id = var.data_migration_enabled ? aws_db_instance_role_association.s3_integration[0].id : null
 
-  depends_on = [module.database, aws_db_instance_role_association.s3_integration]
+  depends_on = [module.database, aws_db_instance_role_association.s3_integration, null_resource.rds_storage_increase]
 }
 
