@@ -173,6 +173,7 @@ module "database" {
   license_type               = var.license_type
   skip_final_snapshot        = var.skip_db_final_snapshot
   kms_key_id                 = local.kms_key_id
+  allocated_storage          = var.db_allocated_storage
   max_allocated_storage      = var.max_allocated_storage
   storage_type               = var.db_storage_type
   maintenance_window         = var.maintenance_window

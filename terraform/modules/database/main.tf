@@ -34,6 +34,7 @@ resource "aws_db_snapshot_copy" "snapshot" {
 }
 
 resource "aws_db_instance" "db_instance" {
+  allocated_storage         = var.allocated_storage
   max_allocated_storage     = var.max_allocated_storage
   instance_class            = var.instance_type
   db_name                   = "ORCL"

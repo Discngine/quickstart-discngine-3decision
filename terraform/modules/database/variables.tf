@@ -16,6 +16,11 @@ variable "delete_automated_backups" {}
 variable "license_type" {}
 variable "skip_final_snapshot" {}
 variable "kms_key_id" {}
+variable "allocated_storage" {
+  description = "Initial allocated storage in GB. When restoring from snapshot, RDS uses the larger of this value or the snapshot size. Set this high enough to avoid immediate autoscaling and the 6-hour cooldown."
+  type        = number
+  default     = null
+}
 variable "max_allocated_storage" {}
 variable "storage_type" {}
 variable "maintenance_window" {}

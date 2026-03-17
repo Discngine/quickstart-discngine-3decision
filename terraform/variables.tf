@@ -243,6 +243,12 @@ variable "skip_db_final_snapshot" {
   description = "Whether to skip the creation of a db snpashot when deleting it"
 }
 
+variable "db_allocated_storage" {
+  default     = 900
+  type        = number
+  description = "Initial allocated storage in GB. When restoring from snapshot, RDS uses the larger of this value or the snapshot size. Set high enough to avoid immediate autoscaling and the 6-hour cooldown (e.g. 500 for data migration)."
+}
+
 variable "max_allocated_storage" {
   default     = 1000
   type        = number
@@ -587,7 +593,7 @@ variable "monitoring_account" {
 
 variable "data_migration_enabled" {
   type        = bool
-  default     = true
+  default     = false
   description = "Enable one-time data migration from Oracle Data Pump dump file"
 }
 
