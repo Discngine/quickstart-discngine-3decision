@@ -803,12 +803,38 @@ resource "helm_release" "tdecision_chart" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      kubectl delete -n ${self.namespace} cronjob --all --force
-      kubectl delete -n ${self.namespace} job --all --force
-      kubectl delete deployments -n ${self.namespace} --all --force
+
+      echo "=== Cleaning up Gateway API resources ==="
+      kubectl delete gateway --all -n ${self.namespace} --timeout=30s 2>/dev/null || true
+      kubectl delete httproute --all -n ${self.namespace} --timeout=30s 2>/dev/null || true
+
+      echo "=== Cleaning up load balancer services ==="
+      kubectl delete svc --all -n ${self.namespace} --timeout=30s 2>/dev/null || true
+
+      echo "=== Cleaning up ingress resources ==="
+      kubectl delete ingress -n ${self.namespace} --all --timeout=30s 2>/dev/null || true
+
+      echo "=== Cleaning up workloads ==="
+      kubectl delete -n ${self.namespace} cronjob --all --force 2>/dev/null || true
+      kubectl delete -n ${self.namespace} job --all --force 2>/dev/null || true
+      kubectl delete deployments -n ${self.namespace} --all --force 2>/dev/null || true
       sleep 10
-      kubectl delete pods -n ${self.namespace} --all --force
-      kubectl delete ingress -n ${self.namespace} --all --force
+      kubectl delete pods -n ${self.namespace} --all --force 2>/dev/null || true
+
+      echo "=== Removing stuck finalizers ==="
+      # Remove finalizers from any remaining gateway resources
+      for kind in gateway httproute; do
+        for name in $(kubectl get $kind -n ${self.namespace} -o name 2>/dev/null); do
+          echo "Removing finalizers from $name"
+          kubectl patch $name -n ${self.namespace} --type=json -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
+        done
+      done
+      # Remove finalizers from any remaining services
+      for name in $(kubectl get svc -n ${self.namespace} -o name 2>/dev/null); do
+        echo "Removing finalizers from $name"
+        kubectl patch $name -n ${self.namespace} --type=json -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
+      done
+
       kubectl get all -n ${self.namespace}
       echo "finished deleting resources"
     EOT
