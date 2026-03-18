@@ -450,7 +450,7 @@ resource "kubernetes_job_v1" "migration" {
   }
 
   spec {
-    ttl_seconds_after_finished = 1800 # 30 min cleanup
+    ttl_seconds_after_finished = 604800 # 1 week
     backoff_limit              = 2
     active_deadline_seconds    = 86400 # 24h timeout
 
@@ -603,7 +603,7 @@ resource "kubernetes_job_v1" "migration_validation" {
   }
 
   spec {
-    ttl_seconds_after_finished = 1800
+    ttl_seconds_after_finished = 604800 # 1 week
     backoff_limit              = 2
     active_deadline_seconds    = 7200 # 2h timeout
 
