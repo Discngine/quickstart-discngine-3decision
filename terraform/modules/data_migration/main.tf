@@ -53,6 +53,10 @@ echo "=== Data Migration Started ==="
 echo "S3 Source: s3://${local.s3_bucket}/${var.s3_key}"
 echo "Target Schema: PD_T1_DNG_THREEDECISION"
 
+# Initial delay to let volumes and network settle
+echo "Waiting 30s for pod readiness..."
+sleep 30
+
 # Wait for secrets
 echo "Waiting for database credentials..."
 for i in {1..60}; do
@@ -308,8 +312,8 @@ BEGIN
   DBMS_DATAPUMP.METADATA_REMAP(v_hdnl, 'REMAP_TABLE', 'PD_T1_DNG_THREEDECISION.STRUCTURE_CAVITY_FEATURE_PAIR', 'STRUCTURE_CAVITY_FEATURE_PAIR_UPDATED');
   DBMS_DATAPUMP.METADATA_REMAP(v_hdnl, 'REMAP_TABLE', 'PD_T1_DNG_THREEDECISION.STRUCTURE_CAVITY_FEATURE', 'STRUCTURE_CAVITY_FEATURE_UPDATED');
   
-  -- Handle existing tables
-  DBMS_DATAPUMP.SET_PARAMETER(v_hdnl, 'TABLE_EXISTS_ACTION', 'SKIP');
+  -- Handle existing tables (TRUNCATE to reload data on re-runs)
+  DBMS_DATAPUMP.SET_PARAMETER(v_hdnl, 'TABLE_EXISTS_ACTION', 'TRUNCATE');
   DBMS_OUTPUT.PUT_LINE('Filters added.');
   
   DBMS_OUTPUT.PUT_LINE('Starting job...');
@@ -356,7 +360,8 @@ EOSQL
   fi
 
   # Job done when no longer present or explicitly completed
-  if [ "$JOB_STATE" = "NOT RUNNING" ] || [ "$JOB_STATE" = "COMPLETED" ]; then
+  # Note: tr -d strips all whitespace so "NOT RUNNING" becomes "NOTRUNNING"
+  if [ "$JOB_STATE" = "NOTRUNNING" ] || [ "$JOB_STATE" = "COMPLETED" ]; then
     echo "Data Pump job finished after ~$ELAPSED_MIN min (state: $JOB_STATE)."
     break
   fi
@@ -509,7 +514,7 @@ resource "kubernetes_job_v1" "migration" {
 
   spec {
     ttl_seconds_after_finished = 604800 # 1 week
-    backoff_limit              = 2
+    backoff_limit              = 5
     active_deadline_seconds    = 86400 # 24h timeout
 
     template {
@@ -520,7 +525,7 @@ resource "kubernetes_job_v1" "migration" {
       }
 
       spec {
-        restart_policy = "OnFailure"
+        restart_policy = "Never"
 
         container {
           name  = "import"
