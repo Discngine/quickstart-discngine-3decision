@@ -319,7 +319,7 @@ module "kubernetes" {
   public_volume_availability_zone  = var.public_volume_availability_zone
   private_volume_availability_zone = var.private_volume_availability_zone
 
-  data_migration_validated = module.data_migration.validation_completed
+  data_migration_validated = module.data_migration.migration_completed
 
   depends_on = [module.eks]
 }

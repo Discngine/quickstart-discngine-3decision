@@ -16,7 +16,7 @@ output "logs_command" {
   value       = var.run_data_migration ? "kubectl logs -n tdecision job/data-migration -f" : null
 }
 
-output "validation_completed" {
-  description = "Marker that data migration validation has completed successfully"
-  value       = var.run_data_migration ? kubernetes_job_v1.migration_validation[0].metadata[0].name : "skipped"
+output "migration_completed" {
+  description = "Marker that data migration job has completed successfully (tables validated)"
+  value       = var.run_data_migration ? kubernetes_job_v1.migration[0].metadata[0].name : "skipped"
 }
