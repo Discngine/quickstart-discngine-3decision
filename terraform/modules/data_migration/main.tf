@@ -327,31 +327,60 @@ EXIT;
 EOSQL
 
 echo "Data Pump import job started (asynchronous)."
-echo "Waiting for import to complete..."
-sleep 120
+echo "Waiting for import to complete (max 120 min)..."
 
-# Check job status and get detailed info
-echo "Checking Data Pump job status..."
-sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+# Poll until Data Pump job finishes (COMPLETED / NOT RUNNING) or timeout
+for i in {1..360}; do
+  sleep 20
+
+  JOB_STATE=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT NVL(
+  (SELECT state FROM dba_datapump_jobs
+   WHERE owner_name = 'ADMIN'
+     AND operation = 'IMPORT'
+     AND ROWNUM = 1),
+  'NOT RUNNING')
+FROM dual;
+EXIT;
+EOSQL
+)
+  JOB_STATE=$(echo $JOB_STATE | tr -d '[:space:]')
+  ELAPSED_MIN=$(( i * 20 / 60 ))
+
+  # Progress every ~2 minutes
+  if [ $(( i % 6 )) -eq 0 ]; then
+    echo "[$ELAPSED_MIN min] Data Pump state: $JOB_STATE"
+  fi
+
+  # Job done when no longer present or explicitly completed
+  if [ "$JOB_STATE" = "NOT RUNNING" ] || [ "$JOB_STATE" = "COMPLETED" ]; then
+    echo "Data Pump job finished after ~$ELAPSED_MIN min (state: $JOB_STATE)."
+    break
+  fi
+
+  if [ $i -eq 360 ]; then
+    echo "ERROR: Timeout waiting for Data Pump import (120 min)"
+    echo "Last state: $JOB_STATE"
+    # Show log before exiting
+    sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
-SET LINESIZE 200
--- Show recent Data Pump jobs
-SELECT job_name, operation, job_mode, state, attached_sessions
-FROM dba_datapump_jobs
-WHERE owner_name = 'ADMIN';
-
--- Show Data Pump master table for details
-DECLARE
-  CURSOR c_jobs IS
-    SELECT job_name FROM dba_datapump_jobs WHERE owner_name = 'ADMIN';
 BEGIN
-  FOR r IN c_jobs LOOP
-    DBMS_OUTPUT.PUT_LINE('=== Job: ' || r.job_name || ' ===');
+  FOR rec IN (SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR', '$LOG_FILE'))) LOOP
+    DBMS_OUTPUT.PUT_LINE(rec.text);
   END LOOP;
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Note: Log file not readable');
 END;
 /
 EXIT;
 EOSQL
+    exit 1
+  fi
+done
 
 # Count tables AFTER import
 echo "Counting tables AFTER import..."
@@ -375,30 +404,19 @@ echo "  Tables AFTER:  $TABLES_AFTER"
 echo "  Tables ADDED:  $TABLES_ADDED"
 echo "========================================="
 
-# Check import status and show log
-echo "Checking import status..."
+# Show final status and import log
+echo "Checking import results..."
 sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET SERVEROUTPUT ON SIZE UNLIMITED
 SET LINESIZE 200
 SET PAGESIZE 1000
 
--- Show all Data Pump jobs and their status
-PROMPT === Data Pump Jobs ===
-SELECT job_name, operation, job_mode, state, degree, attached_sessions
-FROM dba_datapump_jobs;
-
--- Show session logs from alertlog
-PROMPT === Recent Alert Log Entries ===
-SELECT message_text
-FROM TABLE(rdsadmin.rds_file_util.read_text_file('BDUMP', 'alert_' || (SELECT db_unique_name FROM v\\$database) || '.log'))
-WHERE message_text LIKE '%ORA-%' OR message_text LIKE '%Data Pump%' OR message_text LIKE '%Import%'
-FETCH FIRST 50 ROWS ONLY;
-
 -- List Data Pump files in directory
 PROMPT === DATA_PUMP_DIR files ===
 SELECT filename FROM TABLE(rdsadmin.rds_file_util.listdir('DATA_PUMP_DIR')) WHERE filename LIKE '%.log' OR filename LIKE '%.dmp';
 
--- Try to display import log content (if exists)
+-- Display import log content
+PROMPT === Import Log ===
 BEGIN
   FOR rec IN (SELECT text FROM TABLE(rdsadmin.rds_file_util.read_text_file('DATA_PUMP_DIR', '$LOG_FILE'))) LOOP
     DBMS_OUTPUT.PUT_LINE(rec.text);
