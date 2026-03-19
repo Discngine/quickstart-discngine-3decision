@@ -569,7 +569,7 @@ SYS_DB_PASSWD=$(cat /secrets/SYS_DB_PASSWD)
 CONNECTION="${var.db_endpoint}/${var.db_name}"
 
 # Check for tables with retries (migration might still be running)
-MAX_RETRIES=360  # 60 minutes at 10s intervals
+MAX_RETRIES=720  # 120 minutes at 10s intervals
 for i in $(seq 1 $MAX_RETRIES); do
   TABLE_COUNT=$(sqlplus -s "ADMIN/$SYS_DB_PASSWD@$CONNECTION" << EOSQL
 SET HEADING OFF
@@ -600,7 +600,7 @@ EOSQL
 done
 
 echo "ERROR: Data migration validation FAILED!"
-echo "Required tables not found after 60 minutes."
+echo "Required tables not found after 120 minutes."
 echo "Found $TABLE_COUNT/2 expected tables."
 echo "The 3decision version update will NOT proceed."
 exit 1
