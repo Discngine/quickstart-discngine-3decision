@@ -50,7 +50,7 @@ resource "null_resource" "delete_aws_auth" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl -n kube-system delete configmap aws-auth --force
       exit 0
@@ -503,7 +503,7 @@ resource "terraform_data" "delete_sentinel_statefulsets" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
 # Delete PVCs with a different storage class
@@ -533,7 +533,7 @@ resource "helm_release" "sentinel_release" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl delete statefulsets -n ${self.namespace} --all --force
       kubectl delete pods -n ${self.namespace} --all --force
@@ -732,7 +732,7 @@ resource "terraform_data" "reset_passwords" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 cat > reset_passwords.yaml << YAML
 ---
@@ -801,7 +801,7 @@ resource "helm_release" "tdecision_chart" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
 
       echo "=== Cleaning up Gateway API resources ==="
@@ -854,7 +854,7 @@ resource "null_resource" "delete_resources" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl delete deployments -n ${var.tdecision_chart.namespace} --all --force
     EOT
@@ -1406,7 +1406,7 @@ resource "null_resource" "update_alb_crds" {
   provisioner "local-exec" {
     command = <<-EOT
       #!/bin/bash
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
       kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
