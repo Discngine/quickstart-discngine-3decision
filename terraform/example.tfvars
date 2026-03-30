@@ -75,3 +75,14 @@ db_instance_type   = "db.t3.xlarge"
 license_type       = "license-included"
 eks_instance_type  = "t3.2xlarge"
 boot_volume_size   = "50"
+
+# DATA MIGRATION (optional one-time import)
+#####################
+# Uses Discngine's S3 bucket (dng-psilo-license). Requires:
+# 1. Apply with data_migration_enabled=true (creates IAM role)
+# 2. Send `terraform output data_migration_rds_role_arn` to Discngine
+# 3. Discngine adds role to bucket policy & uploads dump file
+# 4. Re-apply to run migration
+#
+# data_migration_enabled = true
+# data_migration_s3_key  = "migrations/customer-name/export.dmp"

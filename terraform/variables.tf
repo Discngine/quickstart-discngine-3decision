@@ -243,8 +243,14 @@ variable "skip_db_final_snapshot" {
   description = "Whether to skip the creation of a db snpashot when deleting it"
 }
 
+variable "db_allocated_storage" {
+  default     = 650
+  type        = number
+  description = "Initial allocated storage in GB. When restoring from snapshot, RDS uses the larger of this value or the snapshot size. Set high enough to avoid immediate autoscaling and the 6-hour cooldown (e.g. 500 for data migration)."
+}
+
 variable "max_allocated_storage" {
-  default     = 1000
+  default     = 1500
   type        = number
   description = "Maximum autoscaled size of the database"
 }
@@ -337,7 +343,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.5.1")
+    version          = optional(string, "3.5.12")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -579,4 +585,20 @@ variable "monitoring_account" {
   type        = string
   default     = ""
   description = "Suffix to add to the alarm name to distinguish the account sending the warning"
+}
+
+###############
+# DATA MIGRATION
+###############
+
+variable "data_migration_enabled" {
+  type        = bool
+  default     = true
+  description = "Enable one-time data migration from Oracle Data Pump dump file"
+}
+
+variable "data_migration_s3_key" {
+  type        = string
+  default     = ""
+  description = "S3 key (path) to dump file in dng-psilo-license bucket (e.g., migrations/project/export.dmp)"
 }
