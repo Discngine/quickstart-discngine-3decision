@@ -53,6 +53,12 @@ variable "public_volume_availability_zone" {}
 variable "use_pia" {}
 variable "username_is_email" {}
 
+variable "data_migration_validated" {
+  description = "Signal from data migration validation (creates implicit dependency on migration completion)"
+  type        = any
+  default     = null
+}
+
 # ALB Monitoring Variables
 variable "enable_alb_monitoring" {
   description = "Enable CloudWatch monitoring for ALB health checks"

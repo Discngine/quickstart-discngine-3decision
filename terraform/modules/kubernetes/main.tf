@@ -628,10 +628,6 @@ ingress:
   certificateArn: ${var.certificate_arn}
   visibility: ${var.load_balancer_type}
   inboundCidrs: ${var.inbound_cidrs == "" ? "null" : var.inbound_cidrs}
-  deletionProtection: ${!var.force_destroy}
-  logging:
-    enabled: true
-    bucket: ${var.app_bucket_name}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]
@@ -640,6 +636,21 @@ ingress:
   react:
     host: ${var.registration_subdomain}
   class: alb
+httproute:
+  gateway:
+    name: tdecision-gateway
+    namespace: tdecision
+    httpListener: http
+    httpsListener: https
+  class: alb
+  host: ${var.domain}
+  loadBalancerAttributes:
+    idle_timeout.timeout_seconds: "300"
+    deletion_protection.enabled: ${!var.force_destroy}
+    routing.http.drop_invalid_header_fields.enabled: "true"
+    access_logs.s3.enabled: "true"
+    access_logs.s3.bucket: ${var.app_bucket_name}
+    access_logs.s3.prefix: ""
 Images:
   redis:
     repository: fra.ocir.io/discngine1/prod/redis/redis
@@ -759,6 +770,11 @@ rm reset_passwords.yaml
   depends_on = [kubectl_manifest.ClusterExternalSecret]
 }
 
+# Gate resource: ensures data migration validation completes before Helm update
+resource "terraform_data" "data_migration_gate" {
+  input = var.data_migration_validated
+}
+
 resource "helm_release" "tdecision_chart" {
   name      = var.tdecision_chart.name
   chart     = var.tdecision_chart.chart
@@ -776,7 +792,8 @@ resource "helm_release" "tdecision_chart" {
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,
     terraform_data.reset_passwords,
-    helm_release.postgres_chart
+    helm_release.postgres_chart,
+    terraform_data.data_migration_gate
   ]
 
   provisioner "local-exec" {
@@ -786,12 +803,38 @@ resource "helm_release" "tdecision_chart" {
       
       aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
-      kubectl delete -n ${self.namespace} cronjob --all --force
-      kubectl delete -n ${self.namespace} job --all --force
-      kubectl delete deployments -n ${self.namespace} --all --force
+
+      echo "=== Cleaning up Gateway API resources ==="
+      kubectl delete gateway --all -n ${self.namespace} --timeout=30s 2>/dev/null || true
+      kubectl delete httproute --all -n ${self.namespace} --timeout=30s 2>/dev/null || true
+
+      echo "=== Cleaning up load balancer services ==="
+      kubectl delete svc --all -n ${self.namespace} --timeout=30s 2>/dev/null || true
+
+      echo "=== Cleaning up ingress resources ==="
+      kubectl delete ingress -n ${self.namespace} --all --timeout=30s 2>/dev/null || true
+
+      echo "=== Cleaning up workloads ==="
+      kubectl delete -n ${self.namespace} cronjob --all --force 2>/dev/null || true
+      kubectl delete -n ${self.namespace} job --all --force 2>/dev/null || true
+      kubectl delete deployments -n ${self.namespace} --all --force 2>/dev/null || true
       sleep 10
-      kubectl delete pods -n ${self.namespace} --all --force
-      kubectl delete ingress -n ${self.namespace} --all --force
+      kubectl delete pods -n ${self.namespace} --all --force 2>/dev/null || true
+
+      echo "=== Removing stuck finalizers ==="
+      # Remove finalizers from any remaining gateway resources
+      for kind in gateway httproute; do
+        for name in $(kubectl get $kind -n ${self.namespace} -o name 2>/dev/null); do
+          echo "Removing finalizers from $name"
+          kubectl patch $name -n ${self.namespace} --type=json -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
+        done
+      done
+      # Remove finalizers from any remaining services
+      for name in $(kubectl get svc -n ${self.namespace} -o name 2>/dev/null); do
+        echo "Removing finalizers from $name"
+        kubectl patch $name -n ${self.namespace} --type=json -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null || true
+      done
+
       kubectl get all -n ${self.namespace}
       echo "finished deleting resources"
     EOT
@@ -1095,6 +1138,9 @@ EOF
         "ec2:DescribeTags",
         "ec2:GetCoipPoolUsage",
         "ec2:DescribeCoipPools",
+        "ec2:GetSecurityGroupsForVpc",
+        "ec2:DescribeIpamPools",
+        "ec2:DescribeRouteTables",
         "elasticloadbalancing:DescribeLoadBalancers",
         "elasticloadbalancing:DescribeLoadBalancerAttributes",
         "elasticloadbalancing:DescribeListeners",
@@ -1104,7 +1150,10 @@ EOF
         "elasticloadbalancing:DescribeTargetGroups",
         "elasticloadbalancing:DescribeTargetGroupAttributes",
         "elasticloadbalancing:DescribeTargetHealth",
-        "elasticloadbalancing:DescribeTags"
+        "elasticloadbalancing:DescribeTags",
+        "elasticloadbalancing:DescribeTrustStores",
+        "elasticloadbalancing:DescribeListenerAttributes",
+        "elasticloadbalancing:DescribeCapacityReservation"
       ],
       "Resource": "*"
     },
@@ -1253,7 +1302,10 @@ EOF
         "elasticloadbalancing:DeleteLoadBalancer",
         "elasticloadbalancing:ModifyTargetGroup",
         "elasticloadbalancing:ModifyTargetGroupAttributes",
-        "elasticloadbalancing:DeleteTargetGroup"
+        "elasticloadbalancing:DeleteTargetGroup",
+        "elasticloadbalancing:ModifyListenerAttributes",
+        "elasticloadbalancing:ModifyCapacityReservation",
+        "elasticloadbalancing:ModifyIpPools"
       ],
       "Resource": "*",
       "Condition": {
@@ -1300,8 +1352,7 @@ EOF
         "elasticloadbalancing:AddListenerCertificates",
         "elasticloadbalancing:RemoveListenerCertificates",
         "elasticloadbalancing:ModifyRule",
-        "elasticloadbalancing:DescribeListenerAttributes",
-        "elasticloadbalancing:ModifyListenerAttributes"
+        "elasticloadbalancing:SetRulePriorities"
       ],
       "Resource": "*"
     }
@@ -1318,7 +1369,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
-  version    = "1.13.3"
+  version    = "3.0.0"
 
   values = [<<YAML
     clusterName: ${var.cluster_name}
@@ -1339,7 +1390,27 @@ resource "helm_release" "aws_load_balancer_controller" {
       create: true
       name: aws-load-balancer-controller
     vpcId: ${var.vpc_id}
+    controllerConfig:
+      featureGates:
+        ALBGatewayAPI: true
   YAML
   ]
   depends_on = [helm_release.cert_manager_release, kubernetes_config_map_v1.aws_auth]
+}
+
+resource "null_resource" "update_alb_crds" {
+  triggers = {
+    release = helm_release.aws_load_balancer_controller[0].id
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+      kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
+      kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
+      kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/refs/heads/main/config/crd/gateway/gateway-crds.yaml
+    EOT
+  }
 }

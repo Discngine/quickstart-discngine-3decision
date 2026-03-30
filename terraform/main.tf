@@ -173,9 +173,11 @@ module "database" {
   license_type               = var.license_type
   skip_final_snapshot        = var.skip_db_final_snapshot
   kms_key_id                 = local.kms_key_id
+  allocated_storage          = var.db_allocated_storage
   max_allocated_storage      = var.max_allocated_storage
   storage_type               = var.db_storage_type
   maintenance_window         = var.maintenance_window
+  enable_s3_integration      = var.data_migration_enabled
   # Output
   node_security_group_id = var.create_node_group ? module.eks.node_security_group_id : var.node_group_security_group_id
   vpc_id                 = var.create_network ? module.network[0].vpc_id : var.vpc_id
@@ -317,6 +319,8 @@ module "kubernetes" {
   public_volume_availability_zone  = var.public_volume_availability_zone
   private_volume_availability_zone = var.private_volume_availability_zone
 
+  data_migration_validated = module.data_migration.migration_completed
+
   depends_on = [module.eks]
 }
 
@@ -332,3 +336,221 @@ module "dns" {
 
   depends_on = [module.kubernetes.tdecision_release]
 }
+
+#####################
+# DATA MIGRATION
+#####################
+
+# IAM Role for RDS to access S3 (created first, before role association)
+resource "aws_iam_role" "rds_s3_datapump" {
+  count       = var.data_migration_enabled ? 1 : 0
+  name_prefix = "3decision-rds-s3-datapump-"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "rds.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "rds_s3_datapump" {
+  count = var.data_migration_enabled ? 1 : 0
+  name  = "s3-access"
+  role  = aws_iam_role.rds_s3_datapump[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation"]
+      Resource = [
+        "arn:aws:s3:::dng-3dec-dump-${var.region}",
+        "arn:aws:s3:::dng-3dec-dump-${var.region}/*"
+      ]
+    }]
+  })
+}
+
+# RDS S3 Integration role association - must be created BEFORE data_migration job
+resource "aws_db_instance_role_association" "s3_integration" {
+  count = var.data_migration_enabled ? 1 : 0
+
+  db_instance_identifier = module.database.db_instance_identifier
+  feature_name           = "S3_INTEGRATION"
+  role_arn               = aws_iam_role.rds_s3_datapump[0].arn
+
+  depends_on = [aws_iam_role_policy.rds_s3_datapump]
+}
+
+# Increase RDS storage by 200GB to accommodate Data Pump dump file download
+resource "null_resource" "rds_storage_increase" {
+  count = var.data_migration_enabled ? 1 : 0
+
+  triggers = {
+    db_instance_id = module.database.db_instance_identifier
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      set -e
+
+      DB_INSTANCE="${module.database.db_instance_identifier}"
+      REGION="${var.region}"
+      EXTRA_GB=200
+      REQUIRED_FREE_GB=200
+
+      echo "=== RDS Storage Increase ==="
+      echo "Instance: $DB_INSTANCE"
+
+      # Helper: wait for instance to be usable (available OR storage-optimization)
+      wait_for_usable() {
+        local max_attempts=120  # 60 minutes at 30s intervals
+        for i in $(seq 1 $max_attempts); do
+          STATUS=$(aws rds describe-db-instances \
+            --db-instance-identifier "$DB_INSTANCE" \
+            --region "$REGION" \
+            --query 'DBInstances[0].DBInstanceStatus' \
+            --output text)
+          if [ "$STATUS" = "available" ] || [ "$STATUS" = "storage-optimization" ]; then
+            echo "Instance is usable (status: $STATUS)"
+            return 0
+          fi
+          ELAPSED_MIN=$(($i * 30 / 60))
+          if [ $(($i % 4)) -eq 0 ]; then
+            echo "[$ELAPSED_MIN min] Waiting for instance to be usable (current status: $STATUS)..."
+          fi
+          sleep 30
+        done
+        echo "ERROR: Timeout waiting for instance to become usable (last status: $STATUS)"
+        return 1
+      }
+
+      # Wait for instance to be usable before checking storage
+      echo "Waiting for RDS instance to be usable..."
+      wait_for_usable
+
+      # Get current allocated storage
+      CURRENT_STORAGE=$(aws rds describe-db-instances \
+        --db-instance-identifier "$DB_INSTANCE" \
+        --region "$REGION" \
+        --query 'DBInstances[0].AllocatedStorage' \
+        --output text)
+      echo "Current allocated storage: $${CURRENT_STORAGE} GB"
+
+      # Check free storage via CloudWatch (FreeStorageSpace is in bytes)
+      FREE_BYTES=$(aws cloudwatch get-metric-statistics \
+        --namespace AWS/RDS \
+        --metric-name FreeStorageSpace \
+        --dimensions Name=DBInstanceIdentifier,Value="$DB_INSTANCE" \
+        --start-time "$(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%SZ)" \
+        --end-time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --period 300 \
+        --statistics Average \
+        --region "$REGION" \
+        --query 'sort_by(Datapoints,&Timestamp)[-1].Average' \
+        --output text 2>/dev/null || echo "None")
+
+      if [ "$FREE_BYTES" != "None" ] && [ "$FREE_BYTES" != "null" ] && [ -n "$FREE_BYTES" ]; then
+        FREE_GB=$(echo "$FREE_BYTES" | awk '{printf "%d", $1/1024/1024/1024}')
+        echo "Current free storage: $${FREE_GB} GB"
+
+        if [ "$FREE_GB" -ge "$REQUIRED_FREE_GB" ]; then
+          echo "Sufficient free storage available ($${FREE_GB} GB >= $${REQUIRED_FREE_GB} GB). Skipping storage increase."
+          echo "=== Storage Increase Skipped ==="
+          exit 0
+        fi
+        echo "Insufficient free storage ($${FREE_GB} GB < $${REQUIRED_FREE_GB} GB). Proceeding with increase."
+      else
+        echo "WARNING: Could not retrieve CloudWatch FreeStorageSpace metric. Proceeding with storage increase."
+      fi
+
+      # Check if a pending storage modification is already in progress
+      PENDING_STORAGE=$(aws rds describe-db-instances \
+        --db-instance-identifier "$DB_INSTANCE" \
+        --region "$REGION" \
+        --query 'DBInstances[0].PendingModifiedValues.AllocatedStorage' \
+        --output text)
+      if [ "$PENDING_STORAGE" != "None" ] && [ "$PENDING_STORAGE" != "null" ] && [ -n "$PENDING_STORAGE" ]; then
+        echo "A storage modification is already pending ($${PENDING_STORAGE} GB). Waiting for it to complete..."
+        wait_for_usable
+        CURRENT_STORAGE=$(aws rds describe-db-instances \
+          --db-instance-identifier "$DB_INSTANCE" \
+          --region "$REGION" \
+          --query 'DBInstances[0].AllocatedStorage' \
+          --output text)
+        echo "Updated allocated storage: $${CURRENT_STORAGE} GB"
+      fi
+
+      NEW_STORAGE=$(($CURRENT_STORAGE + $EXTRA_GB))
+      echo "Requesting new storage: $${NEW_STORAGE} GB (+$${EXTRA_GB} GB)"
+
+      # Modify the instance storage
+      aws rds modify-db-instance \
+        --db-instance-identifier "$DB_INSTANCE" \
+        --allocated-storage "$NEW_STORAGE" \
+        --apply-immediately \
+        --region "$REGION"
+
+      echo "Storage modification requested. Waiting for allocated storage to update..."
+
+      # Wait for the AllocatedStorage value to reflect the new size
+      # (instance may go to storage-optimization which is fine)
+      for i in $(seq 1 120); do
+        sleep 30
+        ACTUAL_STORAGE=$(aws rds describe-db-instances \
+          --db-instance-identifier "$DB_INSTANCE" \
+          --region "$REGION" \
+          --query 'DBInstances[0].AllocatedStorage' \
+          --output text)
+        STATUS=$(aws rds describe-db-instances \
+          --db-instance-identifier "$DB_INSTANCE" \
+          --region "$REGION" \
+          --query 'DBInstances[0].DBInstanceStatus' \
+          --output text)
+
+        if [ "$ACTUAL_STORAGE" -ge "$NEW_STORAGE" ]; then
+          echo "Storage updated to $${ACTUAL_STORAGE} GB (status: $STATUS)"
+          break
+        fi
+
+        ELAPSED_MIN=$(($i * 30 / 60))
+        if [ $(($i % 4)) -eq 0 ]; then
+          echo "[$ELAPSED_MIN min] Waiting for storage update... (current: $${ACTUAL_STORAGE} GB, target: $${NEW_STORAGE} GB, status: $STATUS)"
+        fi
+
+        if [ $i -eq 120 ]; then
+          echo "ERROR: Timeout waiting for storage to increase"
+          exit 1
+        fi
+      done
+
+      echo "Final allocated storage: $${ACTUAL_STORAGE} GB"
+      echo "=== Storage Increase Complete ==="
+    EOT
+  }
+
+  depends_on = [module.database, aws_db_instance_role_association.s3_integration]
+}
+
+module "data_migration" {
+  source = "./modules/data_migration"
+
+  run_data_migration = var.data_migration_enabled
+  region             = var.region
+
+  s3_key = var.data_migration_s3_key
+
+  db_endpoint = module.database.db_endpoint
+  db_name     = module.database.db_name
+
+  # Pass role ARN and association ID to ensure proper dependency ordering
+  rds_s3_role_arn        = var.data_migration_enabled ? aws_iam_role.rds_s3_datapump[0].arn : null
+  s3_role_association_id = var.data_migration_enabled ? aws_db_instance_role_association.s3_integration[0].id : null
+
+  depends_on = [module.database, aws_db_instance_role_association.s3_integration, null_resource.rds_storage_increase]
+}
+
