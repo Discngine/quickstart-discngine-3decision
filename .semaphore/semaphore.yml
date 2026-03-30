@@ -3,7 +3,7 @@ name: 3decision Quickstart CI
 agent:
   machine:
     type: e1-standard-2
-    os_image: ubuntu2004
+    os_image: ubuntu2404
 global_job_config:
   # Connect secret to all jobs in the pipeline
   secrets:
