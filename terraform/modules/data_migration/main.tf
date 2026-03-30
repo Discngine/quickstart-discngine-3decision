@@ -13,7 +13,7 @@ terraform {
 }
 
 locals {
-  s3_bucket      = "dng-3dec-dumps-${var.region}"
+  s3_bucket      = "dng-3dec-dump-${var.region}"
   target_schema  = "PD_T1_DNG_THREEDECISION"
   namespace      = "tdecision"
   dump_file_name = basename(var.s3_key)
