@@ -533,7 +533,7 @@ resource "helm_release" "sentinel_release" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl delete statefulsets -n ${self.namespace} --all --force
       kubectl delete pods -n ${self.namespace} --all --force
@@ -801,7 +801,7 @@ resource "helm_release" "tdecision_chart" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
 
       echo "=== Cleaning up Gateway API resources ==="
