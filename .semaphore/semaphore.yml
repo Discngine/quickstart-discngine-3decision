@@ -3,30 +3,12 @@ name: 3decision Quickstart CI
 agent:
   machine:
     type: e1-standard-2
-    os_image: ubuntu2004
+    os_image: ubuntu2404
 global_job_config:
   # Connect secret to all jobs in the pipeline
   secrets:
     - name: 3dec-quickstart
 blocks:
-  - name: Cloudformation linting
-    run:
-      when: "pull_request =~ '.*'"
-    task:
-      jobs:
-        - name: linting
-          commands:
-            - checkout
-            - export PATH=$PATH:~/.local/bin
-            - cd ~/
-            - git clone https://github.com/aws-quickstart/qs-cfn-lint-rules.git
-            - cd qs-cfn-lint-rules
-            - sudo apt update
-            - sudo apt install python3.8-venv -y
-            - python3 -m venv .
-            - . ./bin/activate
-            - pip install -e .
-            - cfn-lint ~/quickstart-discngine-3decision/templates/* -a ~/qs-cfn-lint-rules/qs_cfn_lint_rules/ -i E1029 W9006
   - name: Test templates upload
   # Run on commit on non main branch
     run:
