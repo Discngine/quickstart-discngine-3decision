@@ -624,6 +624,7 @@ volumes:
           volumeID: ${var.private_volume_id}
           availabilityZone: ${var.availability_zone_names[var.private_volume_availability_zone]}
 ingress:
+  enabled: true
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}
   visibility: ${var.load_balancer_type}
