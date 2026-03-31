@@ -4,37 +4,71 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.5.12] - 2025-03-31
+
+### Cloudformation
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- Cloudformation linting job from CI configuration @JonathanManass
+
+### Terraform
+#### Added
+- Oracle Data Pump data migration module with S3 integration for importing database backups @aphilippejolivel
+- Data migration validation gate to ensure migration completes before Helm chart deployment @aphilippejolivel
+- IAM role and policy for RDS S3 integration (Oracle Data Pump) @aphilippejolivel
+- RDS allocated storage variable for configurable database storage @aphilippejolivel
+- RDS storage increase script with CloudWatch metrics and usability checks @aphilippejolivel
+- Gateway API support (HTTPRoute) for AWS Load Balancer Controller with ALBGatewayAPI feature gate @aphilippejolivel
+- CRD updates for AWS Load Balancer Controller and Gateway API @aphilippejolivel
+- Load balancer access logging and deletion protection on ingress @aphilippejolivel
+- Destroy-time kubeconfig setup via `null_resource` to replace hardcoded EKS cluster names in destroy provisioners @aphilippejolivel
+
+#### Changed
+- Updated default 3decision chart version to 3.5.12 @aphilippejolivel
+- Updated AWS Load Balancer Controller Helm chart to v3.0.0 with expanded IAM permissions @aphilippejolivel
+- Increased Helm release timeout from 7200 to 72000 seconds @JonathanManass
+- Enhanced destroy provisioners for `tdecision_chart` with Gateway API resource cleanup and finalizer removal @aphilippejolivel
+- Refactored destroy provisioners to use dynamic cluster name instead of hardcoded `EKS-tdecision` @JonathanManass
+
+#### Removed
+- NA
+
 ## [3.5.1] - 2025-11-06
 
 ### Cloudformation
 #### Added
-- MonitoringEmail parameter for ALB health notifications in both main and existing VPC templates
+- MonitoringEmail parameter for ALB health notifications in both main and existing VPC templates @JonathanManass
 
 #### Changed
-- Updated default tdecision chart version to 3.5.1
-- Updated Kubernetes default Version to 1.34
+- Updated default tdecision chart version to 3.5.1 @JonathanManass
+- Updated Kubernetes default Version to 1.34 @JonathanManass
 #### Removed
 - NA
 
 ### Terraform
 #### Added
-- Added ALB health monitoring
-- Lambda-based recurring notification system for persistent alarm states
-- SNS topic and subscription management for monitoring alerts
-- Database maintenance window configuration variable
-- IAM policies for Lambda and EventBridge with appropriate permissions
+- Added ALB health monitoring @JonathanManass
+- Lambda-based recurring notification system for persistent alarm states @JonathanManass
+- SNS topic and subscription management for monitoring alerts @JonathanManass
+- Database maintenance window configuration variable @JonathanManass
+- IAM policies for Lambda and EventBridge with appropriate permissions @JonathanManass
 
 #### Changed
-- Updated EKS cluster version to 1.34 with Amazon Linux 2023 AMI compatibility
-- Migrated from AL2 bootstrap.sh to AL2023 nodeadm configuration system
-- Implemented cloudinit_config for EKS node configuration with maxPods=110
-- Updated SSM parameter references for EKS AMI release versions
-- Refactored user data handling for better custom AMI support
-- Set default for username_is_email variable to true
-- Updated EBS snapshot ID
+- Updated EKS cluster version to 1.34 with Amazon Linux 2023 AMI compatibility @JonathanManass
+- Migrated from AL2 bootstrap.sh to AL2023 nodeadm configuration system @JonathanManass
+- Implemented cloudinit_config for EKS node configuration with maxPods=110 @JonathanManass
+- Updated SSM parameter references for EKS AMI release versions @JonathanManass
+- Refactored user data handling for better custom AMI support @JonathanManass
+- Set default for username_is_email variable to true @JonathanManass
+- Updated EBS snapshot ID @JonathanManass
 
 #### Removed
-- Legacy AL2 user data configuration methods
+- Legacy AL2 user data configuration methods @JonathanManass
 
 ## [3.4.5] - 2025-07-10
 ### Cloudformation
