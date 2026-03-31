@@ -50,7 +50,7 @@ resource "null_resource" "delete_aws_auth" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl -n kube-system delete configmap aws-auth --force
       exit 0
@@ -503,7 +503,7 @@ resource "terraform_data" "delete_sentinel_statefulsets" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
 # Delete PVCs with a different storage class
@@ -624,10 +624,15 @@ volumes:
           volumeID: ${var.private_volume_id}
           availabilityZone: ${var.availability_zone_names[var.private_volume_availability_zone]}
 ingress:
+  enabled: true
   host: ${var.domain}
   certificateArn: ${var.certificate_arn}
   visibility: ${var.load_balancer_type}
   inboundCidrs: ${var.inbound_cidrs == "" ? "null" : var.inbound_cidrs}
+  deletionProtection: ${!var.force_destroy}
+  logging:
+    enabled: true
+    bucket: ${var.app_bucket_name}
   ui:
     host: ${var.main_subdomain}
     additionalHosts: [${join(", ", var.additional_main_fqdns)}]
@@ -637,6 +642,7 @@ ingress:
     host: ${var.registration_subdomain}
   class: alb
 httproute:
+  enabled: false
   gateway:
     name: tdecision-gateway
     namespace: tdecision
@@ -732,7 +738,7 @@ resource "terraform_data" "reset_passwords" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<EOF
-aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
 export KUBECONFIG=$HOME/.kube/config
 cat > reset_passwords.yaml << YAML
 ---
@@ -780,7 +786,7 @@ resource "helm_release" "tdecision_chart" {
   chart     = var.tdecision_chart.chart
   version   = var.tdecision_chart.version
   namespace = var.tdecision_chart.namespace
-  timeout   = 7200
+  timeout   = 72000
 
   values = [local.final_values]
   depends_on = [
@@ -854,7 +860,7 @@ resource "null_resource" "delete_resources" {
     command = <<-EOT
       #!/bin/bash
       
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl delete deployments -n ${var.tdecision_chart.namespace} --all --force
     EOT
@@ -1400,13 +1406,13 @@ resource "helm_release" "aws_load_balancer_controller" {
 
 resource "null_resource" "update_alb_crds" {
   triggers = {
-    release = helm_release.aws_load_balancer_controller[0].id
+    release = var.deploy_alb_chart ? helm_release.aws_load_balancer_controller[0].id : ""
   }
 
   provisioner "local-exec" {
     command = <<-EOT
       #!/bin/bash
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
       kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
       kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
