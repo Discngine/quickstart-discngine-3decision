@@ -4,6 +4,41 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [3.5.12] - 2025-03-31
+
+### Cloudformation
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- Cloudformation linting job from CI configuration @JonathanManass
+
+### Terraform
+#### Added
+- Oracle Data Pump data migration module with S3 integration for importing database backups @aphilippejolivel
+- Data migration validation gate to ensure migration completes before Helm chart deployment @aphilippejolivel
+- IAM role and policy for RDS S3 integration (Oracle Data Pump) @aphilippejolivel
+- RDS allocated storage variable for configurable database storage @aphilippejolivel
+- RDS storage increase script with CloudWatch metrics and usability checks @aphilippejolivel
+- Gateway API support (HTTPRoute) for AWS Load Balancer Controller with ALBGatewayAPI feature gate @aphilippejolivel
+- CRD updates for AWS Load Balancer Controller and Gateway API @aphilippejolivel
+- Load balancer access logging and deletion protection on ingress @aphilippejolivel
+- Destroy-time kubeconfig setup via `null_resource` to replace hardcoded EKS cluster names in destroy provisioners @aphilippejolivel
+
+#### Changed
+- Updated default 3decision chart version to 3.5.12
+- Updated AWS Load Balancer Controller Helm chart to v3.0.0 with expanded IAM permissions
+- Increased Helm release timeout from 7200 to 72000 seconds
+- Updated ExternalSecret `refreshInterval` to 1 second
+- Enhanced destroy provisioners for `tdecision_chart` with Gateway API resource cleanup and finalizer removal
+- Refactored destroy provisioners to use dynamic cluster name instead of hardcoded `EKS-tdecision`
+
+#### Removed
+- NA
+
 ## [3.5.1] - 2025-11-06
 
 ### Cloudformation
