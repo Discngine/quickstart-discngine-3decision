@@ -29,12 +29,11 @@ Add a `-0` with incrementing numbers in case of a terraform / cloudformation cha
 - Destroy-time kubeconfig setup via `null_resource` to replace hardcoded EKS cluster names in destroy provisioners @aphilippejolivel
 
 #### Changed
-- Updated default 3decision chart version to 3.5.12
-- Updated AWS Load Balancer Controller Helm chart to v3.0.0 with expanded IAM permissions
-- Increased Helm release timeout from 7200 to 72000 seconds
-- Updated ExternalSecret `refreshInterval` to 1 second
-- Enhanced destroy provisioners for `tdecision_chart` with Gateway API resource cleanup and finalizer removal
-- Refactored destroy provisioners to use dynamic cluster name instead of hardcoded `EKS-tdecision`
+- Updated default 3decision chart version to 3.5.12 @aphilippejolivel
+- Updated AWS Load Balancer Controller Helm chart to v3.0.0 with expanded IAM permissions @aphilippejolivel
+- Increased Helm release timeout from 7200 to 72000 seconds @JonathanManass
+- Enhanced destroy provisioners for `tdecision_chart` with Gateway API resource cleanup and finalizer removal @aphilippejolivel
+- Refactored destroy provisioners to use dynamic cluster name instead of hardcoded `EKS-tdecision` @JonathanManass
 
 #### Removed
 - NA
