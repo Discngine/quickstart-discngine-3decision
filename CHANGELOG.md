@@ -8,33 +8,33 @@ Add a `-0` with incrementing numbers in case of a terraform / cloudformation cha
 
 ### Cloudformation
 #### Added
-- MonitoringEmail parameter for ALB health notifications in both main and existing VPC templates
+- MonitoringEmail parameter for ALB health notifications in both main and existing VPC templates @JonathanManass
 
 #### Changed
-- Updated default tdecision chart version to 3.5.1
-- Updated Kubernetes default Version to 1.34
+- Updated default tdecision chart version to 3.5.1 @JonathanManass
+- Updated Kubernetes default Version to 1.34 @JonathanManass
 #### Removed
 - NA
 
 ### Terraform
 #### Added
-- Added ALB health monitoring
-- Lambda-based recurring notification system for persistent alarm states
-- SNS topic and subscription management for monitoring alerts
-- Database maintenance window configuration variable
-- IAM policies for Lambda and EventBridge with appropriate permissions
+- Added ALB health monitoring @JonathanManass
+- Lambda-based recurring notification system for persistent alarm states @JonathanManass
+- SNS topic and subscription management for monitoring alerts @JonathanManass
+- Database maintenance window configuration variable @JonathanManass
+- IAM policies for Lambda and EventBridge with appropriate permissions @JonathanManass
 
 #### Changed
-- Updated EKS cluster version to 1.34 with Amazon Linux 2023 AMI compatibility
-- Migrated from AL2 bootstrap.sh to AL2023 nodeadm configuration system
-- Implemented cloudinit_config for EKS node configuration with maxPods=110
-- Updated SSM parameter references for EKS AMI release versions
-- Refactored user data handling for better custom AMI support
-- Set default for username_is_email variable to true
-- Updated EBS snapshot ID
+- Updated EKS cluster version to 1.34 with Amazon Linux 2023 AMI compatibility @JonathanManass
+- Migrated from AL2 bootstrap.sh to AL2023 nodeadm configuration system @JonathanManass
+- Implemented cloudinit_config for EKS node configuration with maxPods=110 @JonathanManass
+- Updated SSM parameter references for EKS AMI release versions @JonathanManass
+- Refactored user data handling for better custom AMI support @JonathanManass
+- Set default for username_is_email variable to true @JonathanManass
+- Updated EBS snapshot ID @JonathanManass
 
 #### Removed
-- Legacy AL2 user data configuration methods
+- Legacy AL2 user data configuration methods @JonathanManass
 
 ## [3.4.5] - 2025-07-10
 ### Cloudformation
