@@ -1030,7 +1030,107 @@ primary:
           smiles TEXT
         );
         \copy temp_structure_small_mol(small_mol_id, smiles) FROM '/export/export.csv' DELIMITER ',' CSV
-        create table STRUCTURE_SMALL_MOL as (select small_mol_id, smiles as smiles from temp_structure_small_mol where bingo.CheckMolecule(SMILES) is null and bingo.getmass(smiles)>200 and smiles NOT LIKE '%\%%' ESCAPE '\');
+        CREATE TABLE STRUCTURE_SMALL_MOL AS SELECT small_mol_id, smiles as smiles FROM temp_structure_small_mol
+        WHERE bingo.CheckMolecule(smiles) IS null 
+        and bingo.getmass(smiles)>200
+        AND (smiles not like '%\%%' OR (
+            smiles like '%\%%' 
+            -- Others
+            AND smiles NOT LIKE '%[B]%'
+            AND smiles NOT LIKE '%[C]%'
+            -- Transition metals (3d)
+            AND smiles NOT LIKE '%Sc%'
+            AND smiles NOT LIKE '%Ti%'
+            AND smiles NOT LIKE '%V%'
+            AND smiles NOT LIKE '%Cr%'
+            AND smiles NOT LIKE '%Mn%'
+            AND smiles NOT LIKE '%Fe%'
+            AND smiles NOT LIKE '%Co%'
+            AND smiles NOT LIKE '%Ni%'
+            AND smiles NOT LIKE '%Cu%'
+            AND smiles NOT LIKE '%Zn%'
+            -- Transition metals (4d)
+            AND smiles NOT LIKE '%Y%'
+            AND smiles NOT LIKE '%Zr%'
+            AND smiles NOT LIKE '%Nb%'
+            AND smiles NOT LIKE '%Mo%'
+            AND smiles NOT LIKE '%Tc%'
+            AND smiles NOT LIKE '%Ru%'
+            AND smiles NOT LIKE '%Rh%'
+            AND smiles NOT LIKE '%Pd%'
+            AND smiles NOT LIKE '%Ag%'
+            AND smiles NOT LIKE '%Cd%'
+            -- Transition metals (5d)
+            AND smiles NOT LIKE '%Hf%'
+            AND smiles NOT LIKE '%Ta%'
+            AND smiles NOT LIKE '%W%'
+            AND smiles NOT LIKE '%Re%'
+            AND smiles NOT LIKE '%Os%'
+            AND smiles NOT LIKE '%Ir%'
+            AND smiles NOT LIKE '%Pt%'
+            AND smiles NOT LIKE '%Au%'
+            AND smiles NOT LIKE '%Hg%'
+            -- Transition metals (6d)
+            AND smiles NOT LIKE '%Rf%'
+            AND smiles NOT LIKE '%Db%'
+            AND smiles NOT LIKE '%Sg%'
+            AND smiles NOT LIKE '%Bh%'
+            AND smiles NOT LIKE '%Hs%'
+            -- Alkali metals
+            AND smiles NOT LIKE '%Li%'
+            AND smiles NOT LIKE '%Na%'
+            AND smiles NOT LIKE '%K%'
+            AND smiles NOT LIKE '%Rb%'
+            AND smiles NOT LIKE '%Cs%'
+            AND smiles NOT LIKE '%Fr%'
+            -- Alkaline earth metals
+            AND smiles NOT LIKE '%Be%'
+            AND smiles NOT LIKE '%Mg%'
+            AND smiles NOT LIKE '%Ca%'
+            AND smiles NOT LIKE '%Sr%'
+            AND smiles NOT LIKE '%Ba%'
+            AND smiles NOT LIKE '%Ra%'
+            -- Post-transition metals
+            AND smiles NOT LIKE '%Al%'
+            AND smiles NOT LIKE '%Ga%'
+            AND smiles NOT LIKE '%In%'
+            AND smiles NOT LIKE '%Sn%'
+            AND smiles NOT LIKE '%Tl%'
+            AND smiles NOT LIKE '%Pb%'
+            AND smiles NOT LIKE '%Bi%'
+            -- Lanthanides
+            AND smiles NOT LIKE '%La%'
+            AND smiles NOT LIKE '%Ce%'
+            AND smiles NOT LIKE '%Pr%'
+            AND smiles NOT LIKE '%Nd%'
+            AND smiles NOT LIKE '%Pm%'
+            AND smiles NOT LIKE '%Sm%'
+            AND smiles NOT LIKE '%Eu%'
+            AND smiles NOT LIKE '%Gd%'
+            AND smiles NOT LIKE '%Tb%'
+            AND smiles NOT LIKE '%Dy%'
+            AND smiles NOT LIKE '%Ho%'
+            AND smiles NOT LIKE '%Er%'
+            AND smiles NOT LIKE '%Tm%'
+            AND smiles NOT LIKE '%Yb%'
+            AND smiles NOT LIKE '%Lu%'
+            -- Actinides
+            AND smiles NOT LIKE '%Ac%'
+            AND smiles NOT LIKE '%Th%'
+            AND smiles NOT LIKE '%Pa%'
+            AND smiles NOT LIKE '%U%'
+            AND smiles NOT LIKE '%Np%'
+            AND smiles NOT LIKE '%Pu%'
+            AND smiles NOT LIKE '%Am%'
+            AND smiles NOT LIKE '%Cm%'
+            AND smiles NOT LIKE '%Bk%'
+            AND smiles NOT LIKE '%Cf%'
+            -- Metalloids (sometimes included)
+            AND smiles NOT LIKE '%As%'
+            AND smiles NOT LIKE '%Sb%'
+            AND smiles NOT LIKE '%Te%'
+            AND smiles NOT LIKE '%Po%'
+        ));
 
         UPDATE bingo.bingo_config
         SET cvalue = '300000'
