@@ -1015,7 +1015,7 @@ Resources:
             Value: !If [DefaultAdminPassword, "Ch4ng3m3f0rs3cur3p4ss", !Ref AdminInitialPassword]
           - Name: MonitoringEmail
             Value: !Ref MonitoringEmail
-      TimeoutInMinutes: 180
+      TimeoutInMinutes: 1200
       Cache:
         Type: NO_CACHE
       VpcConfig:
