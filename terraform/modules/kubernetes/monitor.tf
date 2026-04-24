@@ -436,7 +436,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_combined" {
 
   alarm_name          = "3decision${local.monitoring_suffix}-unhealthy-targets"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
+  evaluation_periods  = var.alarm_evaluation_periods
   threshold           = "0"
   alarm_description   = "3Decision ALB has unhealthy targets. Services monitored: NEST-FRONT (port 3000), REACT (port 9020), ANGULAR (port 9003). Check individual metrics m1, m2, m3 to identify which service(s) are affected."
   alarm_actions       = var.monitoring_email != "" ? [aws_sns_topic.alb_health_alerts[0].arn] : []
@@ -456,7 +456,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_combined" {
     metric {
       metric_name = "UnHealthyHostCount"
       namespace   = "AWS/ApplicationELB"
-      period      = 60
+      period      = var.alarm_period_seconds
       stat        = "Maximum"
       dimensions = {
         LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
@@ -471,7 +471,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_combined" {
     metric {
       metric_name = "UnHealthyHostCount"
       namespace   = "AWS/ApplicationELB"
-      period      = 60
+      period      = var.alarm_period_seconds
       stat        = "Maximum"
       dimensions = {
         LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix
@@ -486,7 +486,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_unhealthy_targets_combined" {
     metric {
       metric_name = "UnHealthyHostCount"
       namespace   = "AWS/ApplicationELB"
-      period      = 60
+      period      = var.alarm_period_seconds
       stat        = "Maximum"
       dimensions = {
         LoadBalancer = data.aws_lb.tdecision_alb[0].arn_suffix

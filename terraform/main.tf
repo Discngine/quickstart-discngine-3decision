@@ -300,6 +300,8 @@ module "kubernetes" {
   enable_alb_monitoring      = var.enable_alb_monitoring && var.monitoring_email != ""
   monitoring_email           = var.monitoring_email
   monitoring_account         = var.monitoring_account
+  alarm_evaluation_periods   = var.alarm_evaluation_periods
+  alarm_period_seconds       = var.alarm_period_seconds
   # Output
   vpc_id                           = var.create_network ? module.network[0].vpc_id : var.vpc_id
   jwt_ssh_private                  = module.secrets.jwt_private_key
