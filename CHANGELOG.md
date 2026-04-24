@@ -4,6 +4,12 @@ Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
 
+## [Unreleased]
+
+### Terraform
+#### Changed
+- Variabilized ALB alarm evaluation periods and metric period; default changed from 2 minutes to 10 minutes before triggering
+
 ## [3.5.12] - 2025-03-31
 
 ### Cloudformation

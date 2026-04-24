@@ -74,3 +74,15 @@ variable "monitoring_account" {
   type        = string
   description = "Suffix to add to the alarm name to distinguish the account sending the warning"
 }
+
+variable "alarm_evaluation_periods" {
+  type        = number
+  default     = 10
+  description = "Number of consecutive periods the metric must breach the threshold before the alarm triggers"
+}
+
+variable "alarm_period_seconds" {
+  type        = number
+  default     = 60
+  description = "Length of each evaluation period in seconds"
+}
