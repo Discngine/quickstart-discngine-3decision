@@ -35,6 +35,7 @@ Add a `-0` with incrementing numbers in case of a terraform / cloudformation cha
 - Enhanced destroy provisioners for `tdecision_chart` with Gateway API resource cleanup and finalizer removal @aphilippejolivel
 - Refactored destroy provisioners to use dynamic cluster name instead of hardcoded `EKS-tdecision` @JonathanManass
 - Updated postgres chart init script @JonathanManass
+- Variabilized ALB alarm evaluation periods and metric period; default changed from 2 minutes to 10 minutes before triggering @JonathanManass
 
 #### Removed
 - NA
