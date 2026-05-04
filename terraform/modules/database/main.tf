@@ -42,7 +42,7 @@ resource "aws_db_instance" "db_instance" {
   parameter_group_name      = aws_db_parameter_group.db_param_group.name
   engine                    = "oracle-se2-cdb"
   license_model             = var.license_type
-  option_group_name         = var.enable_s3_integration ? aws_db_option_group.oracle_s3[0].name : "default:oracle-se2-cdb-19"
+  option_group_name         = var.enable_s3_integration ? aws_db_option_group.oracle_s3.name : "default:oracle-se2-cdb-19"
   port                      = "1521"
   multi_az                  = var.high_availability
   kms_key_id                = var.kms_key_id
@@ -93,10 +93,14 @@ resource "aws_db_parameter_group" "db_param_group" {
   }
 }
 
+moved {
+  from = aws_db_option_group.oracle_s3[0]
+  to   = aws_db_option_group.oracle_s3
+}
+
 # Custom option group with S3_INTEGRATION for Data Pump
 # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/oracle-s3-integration.preparing.option-group.html
 resource "aws_db_option_group" "oracle_s3" {
-  count                    = var.enable_s3_integration ? 1 : 0
   name_prefix              = "oracle-se2-cdb-19-s3-"
   option_group_description = "Oracle SE2 CDB 19 with S3 integration"
   engine_name              = "oracle-se2-cdb"
