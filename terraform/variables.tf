@@ -343,7 +343,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.5.12")
+    version          = optional(string, "3.5.13")
     create_namespace = optional(bool, true)
   })
   default = {}
