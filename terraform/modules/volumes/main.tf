@@ -2,8 +2,8 @@
 
 locals {
   public_snapshot = {
-    "us-east-1"    = "snap-07f61fba8a2886a72"
-    "eu-central-1" = "snap-004dcbe60320ccba6"
+    "us-east-1"    = "snap-0f60353d9b8170e1c"
+    "eu-central-1" = "snap-081acc992e1d81ae9"
   }
 }
 
