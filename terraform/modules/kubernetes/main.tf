@@ -605,6 +605,12 @@ locals {
   connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
 disableNodeSelectors: true
+# No autoscaling on AWS: KEDA is not installed, so the batch/process workers run at a
+# fixed replica count instead of scaling from RabbitMQ queue length. This matches the
+# chart default and is set explicitly here for clarity. Worker replica counts are set
+# under `Images` below, sized to the fixed t3.2xlarge node group.
+keda:
+  enabled: false
 oracle:
   connectionString: ${local.connection_string}
   hostString: ${local.db_endpoint}
@@ -660,6 +666,18 @@ httproute:
 Images:
   redis:
     repository: fra.ocir.io/discngine1/prod/redis/redis
+  # No-scaling worker replicas, sized for the fixed 3x t3.2xlarge node group.
+  # 3 each => ~33Gi / 4.8 vCPU total across the batch/process workers. Interactive
+  # burst is low here, so this leaves enough headroom on ~85Gi/23vCPU allocatable.
+  # Lower per queue if the interactive backends start getting evicted under load.
+  moe-batch:
+    replicaCount: 3
+  backend-batch:
+    replicaCount: 3
+  moe-process:
+    replicaCount: 3
+  backend-process:
+    replicaCount: 3
 nest:
   ReprocessingEnv:
     public_interaction_registration_reprocessing_timestamp:
