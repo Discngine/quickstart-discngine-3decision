@@ -614,6 +614,13 @@ nfs:
   private:
     serviceIP: ${cidrhost(var.eks_service_cidr, 266)}
 rbac:
+  cluster:
+    # The chart default also lists `redis-cluster`, left over from the standalone redis
+    # sentinel chart. Redis now runs in the release namespace, so that namespace no
+    # longer exists and the log collection service account cannot be created in it.
+    logCollection:
+      namespaces:
+        - ${var.tdecision_chart.namespace}
   namespaced:
     s3Access:
       serviceAccountName: s3-access
