@@ -94,14 +94,6 @@ resource "kubernetes_namespace" "tdecision_namespace" {
   depends_on = [kubernetes_config_map_v1.aws_auth]
 }
 
-resource "kubernetes_namespace" "redis_namespace" {
-  metadata {
-    name = "redis-cluster"
-  }
-
-  depends_on = [kubernetes_config_map_v1.aws_auth]
-}
-
 resource "kubernetes_namespace" "postgres_namespace" {
   metadata {
     name = "postgres"
@@ -296,6 +288,7 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
       AZURE_SECRET                 = var.azure_oidc.secret
       AZURE_CERTIFICATE_THUMBPRINT = var.azure_oidc.certificate_thumbprint
       AZURE_CERTIFICATE_KEY        = var.azure_oidc.certificate_key_path
+      AZURE_AUTHORITY_URL          = "https://login.microsoftonline.com/${var.azure_oidc.tenant}"
       GOOGLE_SECRET                = var.google_oidc.secret
       OKTA_DOMAIN                  = var.okta_oidc.domain
       OKTA_SERVER_ID               = var.okta_oidc.server_id
@@ -436,44 +429,6 @@ resource "kubernetes_priority_class" "low_priority" {
 
 locals {
   storage_class = var.encrypt_volumes ? "gp2-encrypted" : "gp2"
-  values_config = <<YAML
-commonConfiguration: |-
-  # Enable AOF https://redis.io/topics/persistence#append-only-file
-  appendonly no
-  # Disable RDB persistence, AOF persistence already enabled.
-  save 300 1
-sentinel:
-  enabled: true
-  resources:
-    requests:
-      cpu: 500m
-      memory: 500Mi
-master:
-  podAnnotations:
-    karpenter.sh/do-not-disrupt: "true"
-  service:
-    ports:
-      redis: 6380
-replica:
-  podAnnotations:
-    karpenter.sh/do-not-disrupt: "true"
-  priorityClassName: "high-priority"
-  replicaCount: 1
-  resources:
-    requests:
-      cpu: 1000m
-      memory: 2Gi
-global:
-  imageRegistry: fra.ocir.io/discngine1
-  security:
-    allowInsecureImages: true
-  defaultStorageClass: ${local.storage_class}
-  redis:
-    password: lapin80
-auth:
-  password: lapin80
-delete_statefulsets_id: ${terraform_data.delete_sentinel_statefulsets.id}
-YAML
 }
 
 resource "helm_release" "cert_manager_release" {
@@ -493,52 +448,6 @@ resource "helm_release" "cert_manager_release" {
   }
 
   depends_on = [kubernetes_config_map_v1.aws_auth]
-}
-
-# Deletes statefulsets on redis upgrade to avoid patching error
-# Also deletes PVCs with a different storage class
-# As a security measure, the id of this resource is added to the redis helm values so redis will always be updated if this is launched (so the statefulset is recreated)
-resource "terraform_data" "delete_sentinel_statefulsets" {
-  triggers_replace = [var.redis_sentinel_chart.version]
-  provisioner "local-exec" {
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<EOF
-aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
-export KUBECONFIG=$HOME/.kube/config
-kubectl delete statefulset.apps --all -n ${var.redis_sentinel_chart.namespace} --force
-# Delete PVCs with a different storage class
-kubectl get pvc -n ${var.redis_sentinel_chart.namespace} -o json | \
-  jq -r '.items[] | select(.spec.storageClassName != "'${local.storage_class}'") | .metadata.name' | \
-  xargs -r -n1 kubectl delete pvc -n ${var.redis_sentinel_chart.namespace}
-    EOF
-  }
-}
-
-resource "helm_release" "sentinel_release" {
-  name             = var.redis_sentinel_chart.name
-  chart            = var.redis_sentinel_chart.chart
-  namespace        = var.redis_sentinel_chart.namespace
-  create_namespace = var.redis_sentinel_chart.create_namespace
-  version          = var.redis_sentinel_chart.version
-  timeout          = 1200
-  values           = [local.values_config]
-  depends_on = [
-    kubernetes_storage_class_v1.encrypted_storage_class,
-    kubernetes_config_map_v1.aws_auth,
-    terraform_data.delete_sentinel_statefulsets,
-    kubernetes_priority_class.high_priority
-  ]
-  provisioner "local-exec" {
-    when    = destroy
-    command = <<-EOT
-      #!/bin/bash
-      
-      aws eks update-kubeconfig --name EKS-tdecision --kubeconfig $HOME/.kube/config
-      export KUBECONFIG=$HOME/.kube/config
-      kubectl delete statefulsets -n ${self.namespace} --all --force
-      kubectl delete pods -n ${self.namespace} --all --force
-    EOT
-  }
 }
 
 resource "helm_release" "external_secrets_chart" {
@@ -576,34 +485,13 @@ resource "helm_release" "reloader_chart" {
 # APP CHARTS
 ##############
 
-resource "time_static" "tdecision_version_timestamp" {
-  triggers = {
-    version = var.tdecision_chart.version
-  }
-}
-
-
-locals {
-  # Update this list for any version of the 3decision helm chart needing reprocessing
-  public_interaction_registration_reprocessing_version_list = ["2.3.3"]
-  private_structure_reprocessing_version_list               = ["2.3.4"]
-  missing_structure_registration_reprocessing_version_list  = ["2.3.7"]
-  alphafold_structure_registration_version_list             = ["3.0.1"]
-  redis_to_oracle_transfer_version_list                     = ["3.0.7"]
-
-  reprocessing_timestamp = timeadd(time_static.tdecision_version_timestamp.rfc3339, "24h")
-
-  launch_public_interaction_registration_reprocessing = contains(local.public_interaction_registration_reprocessing_version_list, var.tdecision_chart.version)
-  launch_private_structure_reprocessing               = contains(local.private_structure_reprocessing_version_list, var.tdecision_chart.version)
-  launch_missing_structure_registration_reprocessing  = contains(local.missing_structure_registration_reprocessing_version_list, var.tdecision_chart.version)
-  launch_alphafold_structure_registration             = contains(local.alphafold_structure_registration_version_list, var.tdecision_chart.version)
-  launch_redis_to_oracle_transfer                     = contains(local.redis_to_oracle_transfer_version_list, var.tdecision_chart.version)
-}
-
 locals {
   db_endpoint       = element(split(":", var.db_endpoint), 0)
   connection_string = "${var.db_endpoint}/${var.db_name}"
   values            = <<YAML
+# Set explicitly: the chart only renders the ALB Ingress below when cloud_provider is aws
+# (every other provider routes through the Gateway API / HTTPRoute).
+cloud_provider: aws
 disableNodeSelectors: true
 # No autoscaling on AWS: KEDA is not installed, so the batch/process workers run at a
 # fixed replica count instead of scaling from RabbitMQ queue length. This matches the
@@ -678,54 +566,47 @@ Images:
     replicaCount: 3
   backend-process:
     replicaCount: 3
-nest:
-  ReprocessingEnv:
-    public_interaction_registration_reprocessing_timestamp:
-      value: ${local.launch_public_interaction_registration_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
-    rcsb_str_reg_repro_timestamp:
-      value: ${local.launch_missing_structure_registration_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
-    private_structure_reprocessing_timestamp:
-      value: ${local.launch_private_structure_reprocessing ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
-    alphafold_structure_registration_timestamp:
-      name: ALPHAFOLD_STRUCTURE_REGISTRATION_TIMESTAMP
-      value: ${local.launch_alphafold_structure_registration ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
-    event_log_data_transfer_timestamp:
-      name: "EVENT_LOG_DATA_TRANSFER_TIMESTAMP"
-      value: ${local.launch_redis_to_oracle_transfer ? local.reprocessing_timestamp : "2000-01-01T00:00:00"}
-  env:
-    okta_client_id:
-      name: OKTA_CLIENT_ID
-      value: ${var.okta_oidc.client_id}
-    okta_redirect_uri:
-      name: OKTA_REDIRECT_URI
-      value: https://${var.api_subdomain}.${var.domain}/auth/okta/callback
-    azure_client_id:
-      name: AZURE_CLIENT_ID
-      value: ${var.azure_oidc.client_id}
-    azure_redirect_uri:
-      name: AZURE_REDIRECT_URI
-      value: https://${var.api_subdomain}.${var.domain}/auth/azure/callback
-    google_client_id:
-      name: GOOGLE_CLIENT_ID
-      value: ${var.google_oidc.client_id}
-    google_redirect_uri:
-      name: GOOGLE_REDIRECT_URI
-      value: https://${var.api_subdomain}.${var.domain}/auth/google/callback%{if var.pingid_oidc.client_id != "none"}
-    pingid_client_id:
-      name: PINGID_CLIENT_ID
-      value: ${var.pingid_oidc.client_id}
-    pingid_redirect_uri:
-      name: PINGID_REDIRECT_URI
-      value: "https://${var.api_subdomain}.${var.domain}/auth/pingid/callback"%{endif}
-    bucket_name:
-      name: "ALPHAFOLD_BUCKET_NAME"
-      value: ${var.alphafold_bucket_name}
-    aws_object_storage_region:
-      name: AWS_OBJECT_STORAGE_REGION
-      value: ${var.region}
-    username_is_email:
-      name: "USERNAME_IS_EMAIL"
-      value: "${var.username_is_email}"
+  # Chart >= 3.6.0 consolidated every service into the generic `Images`-driven
+  # deployment: the nest values moved from the top-level `nest:` key to
+  # `Images.nest`. Anything left at the top level is silently ignored, which
+  # empties AZURE_REDIRECT_URI and crashes the backend on boot when Azure auth
+  # is configured. `ReprocessingEnv` was dropped by the same chart change (the
+  # backend no longer reads the *_REPROCESSING_TIMESTAMP variables).
+  nest:
+    env:
+      okta_client_id:
+        name: OKTA_CLIENT_ID
+        value: ${var.okta_oidc.client_id}
+      okta_redirect_uri:
+        name: OKTA_REDIRECT_URI
+        value: https://${var.api_subdomain}.${var.domain}/auth/okta/callback
+      azure_client_id:
+        name: AZURE_CLIENT_ID
+        value: ${var.azure_oidc.client_id}
+      azure_redirect_uri:
+        name: AZURE_REDIRECT_URI
+        value: https://${var.api_subdomain}.${var.domain}/auth/azure/callback
+      google_client_id:
+        name: GOOGLE_CLIENT_ID
+        value: ${var.google_oidc.client_id}
+      google_redirect_uri:
+        name: GOOGLE_REDIRECT_URI
+        value: https://${var.api_subdomain}.${var.domain}/auth/google/callback%{if var.pingid_oidc.client_id != "none"}
+      pingid_client_id:
+        name: PINGID_CLIENT_ID
+        value: ${var.pingid_oidc.client_id}
+      pingid_redirect_uri:
+        name: PINGID_REDIRECT_URI
+        value: "https://${var.api_subdomain}.${var.domain}/auth/pingid/callback"%{endif}
+      bucket_name:
+        name: "ALPHAFOLD_BUCKET_NAME"
+        value: ${var.alphafold_bucket_name}
+      aws_object_storage_region:
+        name: AWS_OBJECT_STORAGE_REGION
+        value: ${var.region}
+      username_is_email:
+        name: "USERNAME_IS_EMAIL"
+        value: "${var.username_is_email}"
 
 nfs:
   public:

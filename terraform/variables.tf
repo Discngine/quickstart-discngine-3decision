@@ -426,19 +426,6 @@ variable "reloader_chart" {
   default = {}
 }
 
-variable "redis_sentinel_chart" {
-  description = "A map with information about the redis sentinel helm chart"
-
-  type = object({
-    name             = optional(string, "sentinel")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/redis")
-    namespace        = optional(string, "redis-cluster")
-    create_namespace = optional(bool, true)
-    version          = optional(string, "21.1.3")
-  })
-  default = {}
-}
-
 variable "okta_oidc" {
   type = object({
     client_id = optional(string, "none")

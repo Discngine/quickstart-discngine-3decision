@@ -267,7 +267,6 @@ module "kubernetes" {
   account_id                 = local.account_id
   tdecision_chart            = var.tdecision_chart
   postgres_chart             = var.postgres_chart
-  redis_sentinel_chart       = var.redis_sentinel_chart
   cert_manager_chart         = var.cert_manager_chart
   external_secrets_chart     = var.external_secrets_chart
   reloader_chart             = var.reloader_chart
