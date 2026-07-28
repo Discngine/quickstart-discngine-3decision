@@ -36,9 +36,12 @@ load_balancer_type = "internal"
 certificate_arn = ""
 
 # Domain information
-domain         = "yourdomain.com"
-main_subdomain = "3decision"
-api_subdomain  = "3decision-api"
+# All three subdomains below are served by the load balancer and are handed to the browser
+# by the app, so certificate_arn above must cover every one of them.
+domain                 = "yourdomain.com"
+main_subdomain         = "3decision"
+api_subdomain          = "3decision-api"
+registration_subdomain = "3decision-reg"
 
 # ROUTE 53 Hosted zone id
 hosted_zone_id = null

@@ -544,6 +544,16 @@ httproute:
     httpsListener: https
   class: alb
   host: ${var.domain}
+  # The routes themselves are disabled above, but the chart still builds every URL it hands
+  # to the browser from these values (config.json api.url/frontendv2, WEB_REDIRECT_URL, the
+  # react VITE_* variables). They must mirror the ingress hosts below, otherwise the UI is
+  # served on one hostname and calls the API on the chart's default one.
+  ui:
+    host: ${var.main_subdomain}
+  api:
+    host: ${var.api_subdomain}
+  react:
+    host: ${var.registration_subdomain}
   loadBalancerAttributes:
     idle_timeout.timeout_seconds: "300"
     deletion_protection.enabled: ${!var.force_destroy}

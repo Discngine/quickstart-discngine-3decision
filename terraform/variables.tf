@@ -309,12 +309,12 @@ variable "additional_main_fqdns" {
 
 variable "api_subdomain" {
   default     = "3decision-api"
-  description = "Name used for the api subdomain"
+  description = "Name used for the api subdomain. Must be covered by certificate_arn"
 }
 
 variable "registration_subdomain" {
   default     = "3decision-reg"
-  description = "Name used for the registration subdomain"
+  description = "Name used for the registration subdomain. Must be covered by certificate_arn"
 }
 
 variable "hosted_zone_id" {
