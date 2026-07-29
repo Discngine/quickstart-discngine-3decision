@@ -296,6 +296,7 @@ module "kubernetes" {
   deploy_alb_chart           = var.deploy_alb_chart
   use_pia                    = var.use_pia
   username_is_email          = var.username_is_email
+  run_python_takeovers       = var.run_python_takeovers
   enable_alb_monitoring      = var.enable_alb_monitoring && var.monitoring_email != ""
   monitoring_email           = var.monitoring_email
   monitoring_account         = var.monitoring_account

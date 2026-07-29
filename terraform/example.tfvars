@@ -79,6 +79,12 @@ license_type       = "license-included"
 eks_instance_type  = "t3.2xlarge"
 boot_volume_size   = "50"
 
+# The chart's python takeover runs as a helm hook, and helm blocks until it finishes, so every
+# apply waits out the full takeover. Off by default. It applies data migrations for the chart's
+# appVersion, so set it to true when deploying a chart whose takeovers have not yet been run
+# against the target database.
+run_python_takeovers = false
+
 # DATA MIGRATION (optional one-time import)
 #####################
 # Uses Discngine's S3 bucket (dng-psilo-license). Requires:

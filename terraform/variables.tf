@@ -479,6 +479,17 @@ variable "username_is_email" {
   description = "Set to true to use the email as the username in 3decision"
 }
 
+variable "run_python_takeovers" {
+  type    = bool
+  default = false
+  # The takeover runs as a post-install/post-upgrade helm hook, and helm always blocks until a
+  # hook Job reaches a terminal state, so leaving it on adds the full takeover runtime to every
+  # apply. Note that it applies data migrations for the chart's appVersion: skipping it leaves
+  # them unapplied, so set this to true when deploying a chart whose takeovers have not been
+  # run against the target database yet.
+  description = "Whether to run the chart's python takeover Job on install and upgrade"
+}
+
 ###########
 # Volumes
 ###########

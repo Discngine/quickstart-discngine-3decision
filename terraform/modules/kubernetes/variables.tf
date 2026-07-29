@@ -85,3 +85,8 @@ variable "alarm_period_seconds" {
   default     = 60
   description = "Length of each evaluation period in seconds"
 }
+
+variable "run_python_takeovers" {
+  type        = bool
+  description = "Whether to run the chart's python takeover Job"
+}
