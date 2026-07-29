@@ -638,9 +638,26 @@ rbac:
         eks.amazonaws.com/role-arn: ${var.alphafold_s3_role_arn}
 YAML
 
+  # Sentinel that gates the python takeover Job off for the release only. The chart wraps
+  # that Job in `if has .Chart.AppVersion .Values.pythonTakeovers.versions`, so any list not
+  # containing the chart's appVersion makes helm skip it. It is applied out of band instead,
+  # by null_resource.python_takeover -- see the comment there for why.
+  #
+  # This is deliberately NOT `disable_webhooks = true` on the release: the takeover is not
+  # the only hook in the chart. 3.7.0-aws also ships pre-upgrade hooks in
+  # templates/hooks/pre-upgrade/ (the scaledown Job, plus the ServiceAccount/Role/RoleBinding
+  # the hook Jobs run under), and those do need to run, in order, as part of the upgrade.
+  # Gating on values takes out the takeover and nothing else.
+  python_takeover_disabled = <<YAML
+pythonTakeovers:
+  versions:
+    - disabled-applied-by-terraform
+YAML
+
   # This makes sure the helm chart is updated if we change the deletion script
   final_values = <<YAML
 ${local.values}
+${local.python_takeover_disabled}
 aws_destroy_resources: ${null_resource.delete_resources.id}
 YAML
 }
@@ -761,6 +778,86 @@ resource "helm_release" "tdecision_chart" {
       echo "finished deleting resources"
     EOT
   }
+}
+
+######################
+#  PYTHON TAKEOVERS
+######################
+
+# Renders the chart a second time, client side, purely to recover the python takeover Job
+# that local.python_takeover_disabled gates out of the release. helm_template includes hook
+# manifests in its output, so this is the exact manifest helm would have applied.
+#
+# Rendered from local.values, i.e. WITHOUT that sentinel -- that is the whole point, and it
+# is why the sentinel lives in local.final_values rather than in local.values. Using
+# local.values also keeps this off null_resource.delete_resources.
+data "helm_template" "tdecision_chart" {
+  name      = var.tdecision_chart.name
+  chart     = var.tdecision_chart.chart
+  version   = var.tdecision_chart.version
+  namespace = var.tdecision_chart.namespace
+
+  values = [local.values]
+}
+
+locals {
+  # Absent whenever the chart itself has no takeover to run for its appVersion: the template
+  # is gated on `has .Chart.AppVersion .Values.pythonTakeovers.versions`, and rendering it
+  # here evaluates that gate exactly as helm would, so an appVersion with nothing to take
+  # over yields no key and the null_resource below is not created.
+  #
+  # Looked up out of `manifests` rather than fetched with `show_only`: show_only raises a
+  # hard "could not find template" error when a template renders empty, which would fail the
+  # plan on precisely those chart versions.
+  python_takeover_manifest = trimspace(lookup(
+    data.helm_template.tdecision_chart.manifests,
+    "templates/job/python-takeover-job.yaml",
+    ""
+  ))
+}
+
+resource "null_resource" "python_takeover" {
+  count = local.python_takeover_manifest != "" ? 1 : 0
+
+  # Deliberately excludes the manifest itself: the rendered Job name carries a
+  # `randAlphaNum 4` suffix that changes on every plan, which would re-run the takeover on
+  # every apply. Keyed on the chart coordinates and values instead, so it re-runs when the
+  # release actually changes -- the same conditions under which helm would fire the hook.
+  triggers = {
+    chart     = var.tdecision_chart.chart
+    version   = var.tdecision_chart.version
+    namespace = var.tdecision_chart.namespace
+    values    = sha256(local.values)
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      #!/bin/bash
+      set -euo pipefail
+
+      aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
+      export KUBECONFIG=$HOME/.kube/config
+
+      # Stands in for the hook's `before-hook-creation` delete policy: the Job name is
+      # randomised per render, so superseded takeover Jobs would otherwise accumulate.
+      previous=$(kubectl get jobs -n ${var.tdecision_chart.namespace} -o name \
+        | grep '^job.batch/python-takeover-' || true)
+      if [ -n "$previous" ]; then
+        echo "$previous" | xargs kubectl delete -n ${var.tdecision_chart.namespace} --ignore-not-found
+      fi
+
+      # base64 rather than a nested heredoc: keeps the YAML indentation intact through both
+      # terraform's heredoc trimming and the shell.
+      echo '${base64encode(local.python_takeover_manifest)}' | base64 -d \
+        | kubectl apply -n ${var.tdecision_chart.namespace} -f -
+
+      echo "python takeover job submitted; terraform does not wait for it."
+      echo "follow it with: kubectl logs -n ${var.tdecision_chart.namespace} -l job-name=<job> -f"
+      echo "or check completion with: kubectl get jobs -n ${var.tdecision_chart.namespace}"
+    EOT
+  }
+
+  depends_on = [helm_release.tdecision_chart]
 }
 
 resource "null_resource" "delete_resources" {
