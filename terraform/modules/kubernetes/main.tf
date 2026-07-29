@@ -801,10 +801,9 @@ data "helm_template" "tdecision_chart" {
 }
 
 locals {
-  # Absent whenever the chart itself has no takeover to run for its appVersion: the template
+  # Empty whenever the chart itself has no takeover to run for its appVersion: the template
   # is gated on `has .Chart.AppVersion .Values.pythonTakeovers.versions`, and rendering it
-  # here evaluates that gate exactly as helm would, so an appVersion with nothing to take
-  # over yields no key and the null_resource below is not created.
+  # here evaluates that gate exactly as helm would.
   #
   # Looked up out of `manifests` rather than fetched with `show_only`: show_only raises a
   # hard "could not find template" error when a template renders empty, which would fail the
@@ -817,8 +816,6 @@ locals {
 }
 
 resource "null_resource" "python_takeover" {
-  count = local.python_takeover_manifest != "" ? 1 : 0
-
   # Deliberately excludes the manifest itself: the rendered Job name carries a
   # `randAlphaNum 4` suffix that changes on every plan, which would re-run the takeover on
   # every apply. Keyed on the chart coordinates and values instead, so it re-runs when the
@@ -835,6 +832,17 @@ resource "null_resource" "python_takeover" {
       #!/bin/bash
       set -euo pipefail
 
+      # The gate is enforced here rather than with `count` on this resource: local.values
+      # carries volume ids and bucket names that are not resolved until apply, so the
+      # helm_template read cannot happen during plan and a count derived from it fails with
+      # "Invalid count argument". An empty render means the chart has no takeover for its
+      # appVersion, which is a no-op rather than an error.
+      manifest=$(echo '${base64encode(local.python_takeover_manifest)}' | base64 -d)
+      if [ -z "$manifest" ]; then
+        echo "chart ${var.tdecision_chart.version} renders no python takeover job; nothing to do"
+        exit 0
+      fi
+
       aws eks update-kubeconfig --name ${var.cluster_name} --kubeconfig $HOME/.kube/config
       export KUBECONFIG=$HOME/.kube/config
 
@@ -846,10 +854,9 @@ resource "null_resource" "python_takeover" {
         echo "$previous" | xargs kubectl delete -n ${var.tdecision_chart.namespace} --ignore-not-found
       fi
 
-      # base64 rather than a nested heredoc: keeps the YAML indentation intact through both
-      # terraform's heredoc trimming and the shell.
-      echo '${base64encode(local.python_takeover_manifest)}' | base64 -d \
-        | kubectl apply -n ${var.tdecision_chart.namespace} -f -
+      # base64 above rather than a nested heredoc: keeps the YAML indentation intact through
+      # both terraform's heredoc trimming and the shell.
+      printf '%s\n' "$manifest" | kubectl apply -n ${var.tdecision_chart.namespace} -f -
 
       echo "python takeover job submitted; terraform does not wait for it."
       echo "follow it with: kubectl logs -n ${var.tdecision_chart.namespace} -l job-name=<job> -f"
