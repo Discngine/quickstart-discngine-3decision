@@ -6,7 +6,6 @@ variable "account_id" {}
 variable "vpc_id" {}
 variable "tdecision_chart" {}
 variable "postgres_chart" {}
-variable "redis_sentinel_chart" {}
 variable "cert_manager_chart" {}
 variable "external_secrets_chart" {}
 variable "reloader_chart" {}
@@ -85,4 +84,9 @@ variable "alarm_period_seconds" {
   type        = number
   default     = 60
   description = "Length of each evaluation period in seconds"
+}
+
+variable "run_python_takeovers" {
+  type        = bool
+  description = "Whether to run the chart's python takeover Job"
 }
