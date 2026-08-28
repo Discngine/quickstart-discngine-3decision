@@ -36,9 +36,12 @@ load_balancer_type = "internal"
 certificate_arn = ""
 
 # Domain information
-domain         = "yourdomain.com"
-main_subdomain = "3decision"
-api_subdomain  = "3decision-api"
+# All three subdomains below are served by the load balancer and are handed to the browser
+# by the app, so certificate_arn above must cover every one of them.
+domain                 = "yourdomain.com"
+main_subdomain         = "3decision"
+api_subdomain          = "3decision-api"
+registration_subdomain = "3decision-reg"
 
 # ROUTE 53 Hosted zone id
 hosted_zone_id = null
@@ -75,6 +78,12 @@ db_instance_type   = "db.t3.xlarge"
 license_type       = "license-included"
 eks_instance_type  = "t3.2xlarge"
 boot_volume_size   = "50"
+
+# The chart's python takeover runs as a helm hook, and helm blocks until it finishes, so every
+# apply waits out the full takeover. Off by default. It applies data migrations for the chart's
+# appVersion, so set it to true when deploying a chart whose takeovers have not yet been run
+# against the target database.
+run_python_takeovers = false
 
 # DATA MIGRATION (optional one-time import)
 #####################
