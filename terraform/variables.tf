@@ -309,12 +309,12 @@ variable "additional_main_fqdns" {
 
 variable "api_subdomain" {
   default     = "3decision-api"
-  description = "Name used for the api subdomain"
+  description = "Name used for the api subdomain. Must be covered by certificate_arn"
 }
 
 variable "registration_subdomain" {
   default     = "3decision-reg"
-  description = "Name used for the registration subdomain"
+  description = "Name used for the registration subdomain. Must be covered by certificate_arn"
 }
 
 variable "hosted_zone_id" {
@@ -343,7 +343,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.5.13")
+    version          = optional(string, "3.7.1")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -426,19 +426,6 @@ variable "reloader_chart" {
   default = {}
 }
 
-variable "redis_sentinel_chart" {
-  description = "A map with information about the redis sentinel helm chart"
-
-  type = object({
-    name             = optional(string, "sentinel")
-    chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/redis")
-    namespace        = optional(string, "redis-cluster")
-    create_namespace = optional(bool, true)
-    version          = optional(string, "21.1.3")
-  })
-  default = {}
-}
-
 variable "okta_oidc" {
   type = object({
     client_id = optional(string, "none")
@@ -490,6 +477,17 @@ variable "username_is_email" {
   type        = bool
   default     = true
   description = "Set to true to use the email as the username in 3decision"
+}
+
+variable "run_python_takeovers" {
+  type    = bool
+  default = true
+  # The takeover runs as a post-install/post-upgrade helm hook, and helm always blocks until a
+  # hook Job reaches a terminal state, so leaving it on adds the full takeover runtime to every
+  # apply. Note that it applies data migrations for the chart's appVersion: skipping it leaves
+  # them unapplied, so set this to true when deploying a chart whose takeovers have not been
+  # run against the target database yet.
+  description = "Whether to run the chart's python takeover Job on install and upgrade"
 }
 
 ###########
@@ -605,7 +603,7 @@ variable "alarm_period_seconds" {
 
 variable "data_migration_enabled" {
   type        = bool
-  default     = true
+  default     = false
   description = "Enable one-time data migration from Oracle Data Pump dump file"
 }
 
