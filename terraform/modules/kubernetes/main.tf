@@ -642,15 +642,11 @@ YAML
   final_values = <<YAML
 ${local.values}
 %{if !var.run_python_takeovers}
-# Gates the python takeover Job out of the release: the chart wraps it in
-# `if has .Chart.AppVersion .Values.pythonTakeovers.versions`, so any list that does not
-# contain the chart's appVersion makes helm skip it. Gating on values rather than with
-# `disable_webhooks` on the release is deliberate -- the takeover is not the only hook in the
-# chart, and the pre-upgrade ones (the scaledown Job and the ServiceAccount/Role/RoleBinding
+# Gates the python takeover Job out of the release: if not activated, send an empty list
+# the takeover is not the only hook in the chart, and the pre-upgrade ones (the scaledown Job and the ServiceAccount/Role/RoleBinding
 # the hook Jobs run under) still need to run.
 pythonTakeovers:
-  versions:
-    - disabled-by-terraform
+  versions: []
 %{endif}
 aws_destroy_resources: ${null_resource.delete_resources.id}
 YAML
