@@ -3,6 +3,80 @@ All notable changes to this project will be documented in this file.
 Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
+## [3.7.1] - 2026-08-31
+### Cloudformation
+#### Added
+- NA 
+
+#### Changed
+- `run_python_takeovers` set to true @aphilippejolivel
+- Updated default 3decision chart version to 3.7.1 @aphilippejolivel
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+## [3.6.1] - 2026-08-28
+
+### Cloudformation
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- `run_python_takeovers` variable (default `false`) to gate the chart's python takeover Job out of the release; helm blocks on the hook Job, so every apply would otherwise wait out the full takeover. Set to `true` when deploying a chart whose takeovers have not been run against the target database yet @aphilippejolivel
+- Explicit `cloud_provider: aws` in the chart values so the ALB Ingress is rendered instead of the Gateway API / HTTPRoute path @aphilippejolivel
+- Explicit `keda.enabled: false` and fixed `replicaCount` (3) for the `moe-batch`, `backend-batch`, `moe-process` and `backend-process` workers, sized for the t3.2xlarge node group @aphilippejolivel
+- `httproute.ui/api/react` host values mirroring the ingress hosts: the chart builds the URLs it hands to the browser (config.json api.url/frontendv2, `WEB_REDIRECT_URL`, react `VITE_*`) from these keys even when the routes are disabled @aphilippejolivel
+- `AZURE_AUTHORITY_URL` in the nest authentication secret, built from the configured Azure tenant @aphilippejolivel
+- `rbac.cluster.logCollection.namespaces` pinned to the 3decision namespace, replacing the chart default that still referenced the removed `redis-cluster` namespace @aphilippejolivel
+- `registration_subdomain` in `example.tfvars`, with a note that `certificate_arn` must cover all three subdomains @aphilippejolivel
+
+#### Changed
+- Moved the nest values from the top-level `nest:` key to `Images.nest`, following the chart >= 3.6.0 consolidation of every service into the generic `Images`-driven deployment; values left at the top level are silently ignored, which emptied `AZURE_REDIRECT_URI` and crashed the backend on boot @aphilippejolivel
+- Documented on `api_subdomain` and `registration_subdomain` that both must be covered by `certificate_arn` @aphilippejolivel
+
+#### Removed
+- Standalone redis sentinel helm release, its `redis-cluster` namespace, its values block and the `redis_sentinel_chart` variable; redis is now deployed by the 3decision chart in the release namespace @aphilippejolivel
+- `terraform_data.delete_sentinel_statefulsets` statefulset/PVC cleanup resource used on redis upgrades @aphilippejolivel
+- `nest.ReprocessingEnv` reprocessing timestamps, the `time_static.tdecision_version_timestamp` resource and the per-version reprocessing trigger lists; the backend no longer reads the `*_REPROCESSING_TIMESTAMP` variables @aphilippejolivel
+
+## [3.5.13] - 2026-05-12
+
+### Cloudformation
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- `moved` block migrating `aws_db_option_group.oracle_s3[0]` to `aws_db_option_group.oracle_s3` so existing states are not forced to recreate the option group @JonathanManass
+
+#### Changed
+- Updated default 3decision chart version to 3.5.13 @aphilippejolivel
+- Removed the `count` on the Oracle S3 integration option group and referenced it without the index, fixing the option group reference when `enable_s3_integration` is set @JonathanManass
+
+#### Removed
+- NA
 
 ## [3.5.12] - 2025-03-31
 

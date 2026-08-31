@@ -83,7 +83,7 @@ boot_volume_size   = "50"
 # apply waits out the full takeover. Off by default. It applies data migrations for the chart's
 # appVersion, so set it to true when deploying a chart whose takeovers have not yet been run
 # against the target database.
-run_python_takeovers = false
+run_python_takeovers = true
 
 # DATA MIGRATION (optional one-time import)
 #####################

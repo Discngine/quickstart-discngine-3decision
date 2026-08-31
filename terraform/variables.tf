@@ -343,7 +343,7 @@ variable "tdecision_chart" {
     name             = optional(string, "tdecision")
     chart            = optional(string, "oci://fra.ocir.io/discngine1/prod/helm/tdecision")
     namespace        = optional(string, "tdecision")
-    version          = optional(string, "3.5.13")
+    version          = optional(string, "3.7.1")
     create_namespace = optional(bool, true)
   })
   default = {}
@@ -481,7 +481,7 @@ variable "username_is_email" {
 
 variable "run_python_takeovers" {
   type    = bool
-  default = false
+  default = true
   # The takeover runs as a post-install/post-upgrade helm hook, and helm always blocks until a
   # hook Job reaches a terminal state, so leaving it on adds the full takeover runtime to every
   # apply. Note that it applies data migrations for the chart's appVersion: skipping it leaves
@@ -603,7 +603,7 @@ variable "alarm_period_seconds" {
 
 variable "data_migration_enabled" {
   type        = bool
-  default     = true
+  default     = false
   description = "Enable one-time data migration from Oracle Data Pump dump file"
 }
 
