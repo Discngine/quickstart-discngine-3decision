@@ -267,7 +267,6 @@ module "kubernetes" {
   account_id                 = local.account_id
   tdecision_chart            = var.tdecision_chart
   postgres_chart             = var.postgres_chart
-  redis_sentinel_chart       = var.redis_sentinel_chart
   cert_manager_chart         = var.cert_manager_chart
   external_secrets_chart     = var.external_secrets_chart
   reloader_chart             = var.reloader_chart
@@ -297,6 +296,7 @@ module "kubernetes" {
   deploy_alb_chart           = var.deploy_alb_chart
   use_pia                    = var.use_pia
   username_is_email          = var.username_is_email
+  run_python_takeovers       = var.run_python_takeovers
   enable_alb_monitoring      = var.enable_alb_monitoring && var.monitoring_email != ""
   monitoring_email           = var.monitoring_email
   monitoring_account         = var.monitoring_account
