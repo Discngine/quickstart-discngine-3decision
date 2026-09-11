@@ -62,6 +62,55 @@ variable "eks_private_subnet_ids" {
   description = "List of ids of your private eks subnets"
 }
 
+##############
+# MONITORING
+##############
+
+variable "deploy_otel_collector" {
+  type        = bool
+  default     = true
+  description = "Whether to deploy the OpenTelemetry collector daemonset shipping logs, traces and metrics to the Discngine monitoring stack"
+}
+
+variable "otel_collector_chart" {
+  description = "A map with information about the OpenTelemetry collector helm chart"
+
+  type = object({
+    name             = optional(string, "otel-daemon")
+    repository       = optional(string, "https://open-telemetry.github.io/opentelemetry-helm-charts")
+    chart            = optional(string, "opentelemetry-collector")
+    namespace        = optional(string, "monitoring")
+    version          = optional(string, "0.173.0")
+    create_namespace = optional(bool, true)
+  })
+  default = {}
+}
+
+variable "otel_endpoints" {
+  description = "Endpoints of the Discngine monitoring stack. They resolve to private addresses reached over Netbird, not over the internet"
+
+  type = object({
+    logs    = optional(string, "otel-monitoring-dev.discngine.cloud:443")
+    metrics = optional(string, "https://monitoring-dev-prometheus.discngine.cloud/api/v1/write")
+  })
+  default = {}
+}
+
+variable "monitoring_application" {
+  default     = "3decision"
+  description = "Application name stamped on every record. Data Prepper derives the logs-{app}-* OpenSearch index from it"
+}
+
+variable "monitoring_environment" {
+  default     = "test"
+  description = "Environment name stamped on every record sent to the monitoring stack"
+}
+
+variable "monitoring_cluster_alias" {
+  default     = "io"
+  description = "Name identifying this cluster in the monitoring stack dashboards and index filters"
+}
+
 #########
 # EKS
 #########
