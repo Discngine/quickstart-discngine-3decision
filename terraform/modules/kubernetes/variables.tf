@@ -9,6 +9,12 @@ variable "postgres_chart" {}
 variable "cert_manager_chart" {}
 variable "external_secrets_chart" {}
 variable "reloader_chart" {}
+variable "deploy_otel_collector" {}
+variable "otel_collector_chart" {}
+variable "otel_endpoints" {}
+variable "monitoring_application" {}
+variable "monitoring_environment" {}
+variable "monitoring_cluster_alias" {}
 variable "jwt_ssh_private" {}
 variable "jwt_ssh_public" {}
 variable "okta_oidc" {}

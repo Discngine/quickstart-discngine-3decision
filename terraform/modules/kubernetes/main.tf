@@ -1443,3 +1443,260 @@ resource "null_resource" "update_alb_crds" {
     EOT
   }
 }
+
+##############
+# MONITORING
+##############
+
+# OpenTelemetry collector, ported from the OKE monitoring module's otel-daemon. It
+# tails every pod's stdout off the node and ships logs and traces to Data Prepper and
+# metrics to Prometheus, both hosted in OCI and reached over Netbird.
+#
+# Dropped from the OKE original, all of it OCI-only: the compartment.name /
+# compartment.filter resource attributes and the node.info/compartment.name annotation
+# they were extracted from, the COMPARTMENT env var, and the per-application branches
+# (3dpredict transforms, APEX/Oracle log filtering) that no workload here produces.
+#
+# hostNetwork is not set either. The OKE daemon needs it, but on EKS the kubeletstats
+# receiver reaches the node through its DNS name, so keeping the collector on the pod
+# network avoids binding 4317/4318/8887 on every host.
+resource "helm_release" "otel_collector_chart" {
+  count = var.deploy_otel_collector ? 1 : 0
+
+  name             = var.otel_collector_chart.name
+  chart            = var.otel_collector_chart.chart
+  repository       = var.otel_collector_chart.repository
+  namespace        = var.otel_collector_chart.namespace
+  version          = var.otel_collector_chart.version
+  create_namespace = var.otel_collector_chart.create_namespace
+  timeout          = 1200
+
+  values = [<<YAML
+mode: daemonset
+
+image:
+  repository: docker.io/otel/opentelemetry-collector-contrib
+
+# Root is needed to read the container logs under /var/log/pods.
+securityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
+extraVolumes:
+  - name: varlog
+    hostPath:
+      path: /var/log
+  - name: varlibcontainerd
+    hostPath:
+      path: /var/lib/containerd
+
+extraVolumeMounts:
+  - name: varlog
+    mountPath: /var/log
+    readOnly: true
+  - name: varlibcontainerd
+    mountPath: /var/lib/containerd
+    readOnly: true
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 512Mi
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8887"
+  prometheus.io/path: "/metrics"
+
+presets:
+  kubernetesAttributes:
+    enabled: true
+  kubeletMetrics:
+    enabled: true
+  logsCollection:
+    enabled: true
+  hostMetrics:
+    enabled: true
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+    kubeletstats:
+      collection_interval: 30s
+      endpoint: https://$${KUBE_NODE_NAME}:10250
+      auth_type: serviceAccount
+      insecure_skip_verify: true
+      metric_groups: [node, pod, container]
+
+    hostmetrics:
+      collection_interval: 30s
+      root_path: /hostfs
+      scrapers:
+        cpu: {}
+        memory:
+          metrics:
+            system.memory.limit:
+              enabled: true
+            system.linux.memory.available:
+              enabled: true
+        filesystem:
+          metrics:
+            system.filesystem.utilization:
+              enabled: true
+        network: {}
+        load: {}
+        disk: {}
+
+  processors:
+    batch:
+      timeout: 1s
+      send_batch_size: 1024
+      send_batch_max_size: 2048
+    memory_limiter:
+      check_interval: 2s
+      limit_percentage: 75
+      spike_limit_percentage: 20
+
+    filter/health_checks:
+      logs:
+        exclude:
+          match_type: regexp
+          # "kube-probe" catches the web servers that log the probe itself rather than
+          # the path it hit, which the three path patterns never matched.
+          bodies: ["/health", "/ready", "/ping", "kube-probe"]
+
+    k8sattributes:
+      filter:
+        node_from_env_var: KUBE_NODE_NAME
+      extract:
+        metadata:
+          - k8s.namespace.name
+          - k8s.deployment.name
+          - service.name
+          - k8s.pod.name
+          - k8s.container.name
+          - k8s.cluster.uid
+          - k8s.job.name
+          - container.image.name
+          - container.image.tag
+
+    resource:
+      attributes:
+        - key: app
+          value: ${lower(var.monitoring_application)}
+          action: upsert
+        - key: environment
+          value: ${var.monitoring_environment}
+          action: upsert
+        - key: cluster
+          value: ${var.monitoring_cluster_alias}
+          action: upsert
+        - key: cluster.name
+          value: ${var.cluster_name}
+          action: upsert
+        - key: node.name
+          value: $${KUBE_NODE_NAME}
+          action: upsert
+        - key: node
+          value: $${KUBE_NODE_NAME}
+          action: upsert
+        - key: type
+          value: logs
+          action: upsert
+        - key: job
+          value: otel-daemon-${var.monitoring_cluster_alias}
+          action: upsert
+        - key: logtype
+          value: k8s-pods
+          action: upsert
+
+    filter/drop:
+      error_mode: propagate
+      log_conditions:
+        - IsMatch(resource.attributes["k8s.pod.name"], "otel")
+        - resource.attributes["k8s.namespace.name"] == "kube-system"
+        # The AWS provider logs one info line per secret read, and the
+        # ClusterExternalSecret refreshes 3 x 4 secrets every second, so this namespace
+        # alone produces ~1.6M lines a day - more than every application log combined.
+        - resource.attributes["k8s.namespace.name"] == "external-secrets"
+
+  exporters:
+    # Logs + traces -> Data Prepper (OTLP gRPC), TLS terminated by the Envoy Gateway
+    # fronting it on 443.
+    otlp/dp:
+      endpoint: ${var.otel_endpoints.logs}
+      tls:
+        insecure: false
+        insecure_skip_verify: true
+      sending_queue:
+        enabled: true
+        queue_size: 5000
+        num_consumers: 10
+      retry_on_failure:
+        enabled: true
+        initial_interval: 5s
+        max_interval: 30s
+        max_elapsed_time: 300s
+
+    prometheusremotewrite/prom:
+      endpoint: ${var.otel_endpoints.metrics}
+      tls:
+        insecure: false
+      resource_to_telemetry_conversion:
+        enabled: true
+
+  service:
+    telemetry:
+      logs:
+        level: "INFO"
+        development: false
+        encoding: "json"
+      metrics:
+        readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8887
+    pipelines:
+      logs:
+        receivers: [filelog]
+        processors: [k8sattributes, resource, filter/drop, filter/health_checks, memory_limiter, batch]
+        exporters: [otlp/dp]
+
+      traces:
+        receivers: [otlp]
+        processors: [k8sattributes, resource, filter/health_checks, memory_limiter, batch]
+        exporters: [otlp/dp]
+
+      metrics:
+        receivers: [hostmetrics, kubeletstats]
+        processors: [resource, memory_limiter, batch]
+        exporters: [prometheusremotewrite/prom]
+
+extraEnvs:
+  - name: KUBE_NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: K8S_CLUSTER_NAME
+    value: "${var.cluster_name}"
+  - name: ENVIRONMENT
+    value: "${var.monitoring_environment}"
+  - name: APP
+    value: "${var.monitoring_application}"
+  - name: TYPE
+    value: "logs"
+YAML
+  ]
+
+  depends_on = [kubernetes_config_map_v1.aws_auth]
+}

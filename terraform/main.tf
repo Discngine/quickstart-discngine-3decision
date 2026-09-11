@@ -323,6 +323,13 @@ module "kubernetes" {
 
   data_migration_validated = module.data_migration.migration_completed
 
+  deploy_otel_collector    = var.deploy_otel_collector
+  otel_collector_chart     = var.otel_collector_chart
+  otel_endpoints           = var.otel_endpoints
+  monitoring_application   = var.monitoring_application
+  monitoring_environment   = var.monitoring_environment
+  monitoring_cluster_alias = var.monitoring_cluster_alias
+
   depends_on = [module.eks]
 }
 
