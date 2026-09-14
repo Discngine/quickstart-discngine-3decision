@@ -70,7 +70,7 @@ resource "aws_lambda_function" "secret_rotator_lambda" {
   s3_key           = aws_s3_object.object.id
   source_code_hash = filebase64sha256("${path.root}/function/package.zip")
 
-  runtime = "python3.9"
+  runtime = "python3.14"
   timeout = 120
 
   environment {
