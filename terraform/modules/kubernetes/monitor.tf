@@ -73,7 +73,7 @@ resource "aws_lambda_function" "recurring_alarm_notifier" {
   function_name    = "3decision-recurring-alarm-notifier"
   role            = aws_iam_role.lambda_role[0].arn
   handler         = "index.handler"
-  runtime         = "python3.9"
+  runtime         = "python3.14"
   timeout         = 60
 
   environment {
