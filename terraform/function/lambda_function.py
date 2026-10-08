@@ -12,8 +12,6 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 ADMIN_SECRET_ID = '3dec-admin-db'
-# Profile without failed login limit given to the application users
-NO_LOCKOUT_PROFILE = 'THREEDECISION_NO_LOCKOUT'
 
 
 def lambda_handler(event, context):
@@ -193,12 +191,6 @@ def set_secret(service_client, arn, token):
         logger.error("setSecret: Unable to log into database with previous, current, or pending secret of secret arn %s" % arn)
         raise ValueError("Unable to log into database with previous, current, or pending secret of secret arn %s" % arn)
 
-    # Before the old password stops working, make sure clients still using it cannot lock the account
-    try:
-        ensure_no_lockout_profile(service_client, pending_dict['username'])
-    except Exception as e:
-        logger.warning("setSecret: Failed to set the no-lockout profile for user %s: %s" % (pending_dict['username'], str(e)))
-
     cur = conn.cursor()
 
     # Escape username via DBMS ENQUOTE_NAME
@@ -307,32 +299,6 @@ def get_admin_connection(admin_secret):
     return cx_Oracle.connect(admin_secret['username'],
                              admin_secret['password'],
                              admin_secret['host'] + ':' + admin_port + '/' + admin_secret['dbname'])
-
-
-def ensure_no_lockout_profile(service_client, username):
-    """Assigns a non-admin user to a profile without failed login limit, using the admin account.
-
-    Application users are only used by services with 30 char random passwords: a single pod left
-    with an outdated password must not be able to lock the whole application out.
-    """
-    admin_secret = get_secret_dict(service_client, ADMIN_SECRET_ID, 'AWSCURRENT')
-    if username == admin_secret['username']:
-        return
-    admin_conn = get_admin_connection(admin_secret)
-    try:
-        cur = admin_conn.cursor()
-        try:
-            cur.execute("CREATE PROFILE %s LIMIT FAILED_LOGIN_ATTEMPTS UNLIMITED" % NO_LOCKOUT_PROFILE)
-        except cx_Oracle.DatabaseError as e:
-            # ORA-02379: profile already exists
-            if e.args[0].code != 2379:
-                raise
-        cur.execute("SELECT sys.DBMS_ASSERT.enquote_name(:username) FROM DUAL", username=username)
-        escaped_username = cur.fetchone()[0]
-        cur.execute("ALTER USER %s PROFILE %s" % (escaped_username, NO_LOCKOUT_PROFILE))
-        logger.info("setSecret: User %s assigned to profile %s." % (username, NO_LOCKOUT_PROFILE))
-    finally:
-        admin_conn.close()
 
 
 def unlock_account_if_needed(secret_dict, admin_secret, force=False):
