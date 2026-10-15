@@ -5,7 +5,7 @@ import boto3
 import json
 import logging
 import os
-import cx_Oracle
+import oracledb
 import time
 
 logger = logging.getLogger()
@@ -296,9 +296,9 @@ def finish_secret(service_client, arn, token):
 def get_admin_connection(admin_secret):
     """Gets a connection to Oracle DB as the admin user, raises on failure"""
     admin_port = str(admin_secret['port']) if 'port' in admin_secret else '1521'
-    return cx_Oracle.connect(admin_secret['username'],
-                             admin_secret['password'],
-                             admin_secret['host'] + ':' + admin_port + '/' + admin_secret['dbname'])
+    return oracledb.connect(user=admin_secret['username'],
+                            password=admin_secret['password'],
+                            dsn=admin_secret['host'] + ':' + admin_port + '/' + admin_secret['dbname'])
 
 
 def unlock_account_if_needed(secret_dict, admin_secret, force=False):
@@ -338,7 +338,7 @@ def unlock_admin_password_if_needed(secret_dict):
     db_instance_id = os.environ.get('DB_INSTANCE_IDENTIFIER') or secret_dict.get('db_instance_identifier')
     admin_username_env = os.environ.get('ADMIN_USERNAME')
     try:
-        conn = cx_Oracle.connect(username, password, host + ':' + port + '/' + dbname)
+        conn = oracledb.connect(user=username, password=password, dsn=host + ':' + port + '/' + dbname)
         conn.close()
         logger.info(f"finishSecret: Admin account ({username}) connection successful, no unlock/reset needed.")
     except Exception as e:
@@ -368,7 +368,7 @@ def get_connection(secret_dict):
         secret_dict (dict): The Secret Dictionary
 
     Returns:
-        Connection: The cx_Oracle.Connection object if successful. None otherwise
+        Connection: The oracledb.Connection object if successful. None otherwise
 
     Raises:
         KeyError: If the secret json does not contain the expected keys
@@ -379,12 +379,12 @@ def get_connection(secret_dict):
 
     # Try to obtain a connection to the db
     try:
-        conn = cx_Oracle.connect(secret_dict['username'],
-                                 secret_dict['password'],
-                                 secret_dict['host'] + ':' + port + '/' + secret_dict['dbname'])
+        conn = oracledb.connect(user=secret_dict['username'],
+                                password=secret_dict['password'],
+                                dsn=secret_dict['host'] + ':' + port + '/' + secret_dict['dbname'])
         logger.info("Successfully established connection as user '%s' with host: '%s'" % (secret_dict['username'], secret_dict['host']))
         return conn
-    except (cx_Oracle.DatabaseError, cx_Oracle.OperationalError):
+    except (oracledb.DatabaseError, oracledb.OperationalError):
         return None
 
 
