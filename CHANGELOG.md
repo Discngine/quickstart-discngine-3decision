@@ -3,6 +3,27 @@ All notable changes to this project will be documented in this file.
 Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
+## [3.7.1-0] - 2026-10-15
+### Cloudformation
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- NA
+
+#### Changed
+- RDS `allocated_storage` is now raised to the restored snapshot's size when `db_allocated_storage` is smaller. The AWS provider resizes the instance with a `ModifyDBInstance` right after the snapshot restore, and RDS refuses to shrink storage, so a snapshot larger than `db_allocated_storage` (default 650 GB) failed the apply with `InvalidParameterCombination: Invalid storage size for engine name oracle-se2-cdb and storage type gp2` @JonathanManass
+
+#### Removed
+- NA
+
 ## [3.7.1] - 2026-08-31
 ### Cloudformation
 #### Added
