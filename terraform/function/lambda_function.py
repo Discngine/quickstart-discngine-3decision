@@ -11,6 +11,8 @@ import time
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+ADMIN_SECRET_ID = '3dec-admin-db'
+
 
 def lambda_handler(event, context):
     """Secrets Manager RDS Oracle Handler
@@ -271,39 +273,59 @@ def finish_secret(service_client, arn, token):
     service_client.update_secret_version_stage(SecretId=arn, VersionStage="AWSCURRENT", MoveToVersionId=token, RemoveFromVersionId=current_version)
     logger.info("finishSecret: Successfully set AWSCURRENT stage to version %s for secret %s." % (token, arn))
 
-    # Wait 1 minute, then unlock or reset the account
-    time.sleep(60)
-    try:
-        secret_dict = get_secret_dict(service_client, arn, "AWSCURRENT")
-        username = secret_dict['username']
-        admin_secret = get_secret_dict(service_client, '3dec-admin-db', 'AWSCURRENT')
-        admin_username = admin_secret['username']
-        if username == admin_username:
-            logger.info(f"finishSecret: Admin account detected, testing connection.")
-            unlock_admin_password_if_needed(secret_dict)
-            return
-        unlock_account_if_needed(secret_dict, admin_secret)
-    except Exception as e:
-        logger.warning("finishSecret: Failed to unlock/reset account for user %s: %s" % (username if 'username' in locals() else 'unknown', str(e)))
+    # Clients still holding the old password (pods started before the secret sync) can lock the account
+    # for a few minutes after the rotation, so check every minute and unlock it again when needed
+    watch_minutes = int(os.environ.get('UNLOCK_WATCH_MINUTES', '5'))
+    for attempt in range(1, watch_minutes + 1):
+        time.sleep(60)
+        try:
+            secret_dict = get_secret_dict(service_client, arn, "AWSCURRENT")
+            username = secret_dict['username']
+            # Re-read the admin secret each time, it may be rotated at the same time
+            admin_secret = get_secret_dict(service_client, ADMIN_SECRET_ID, 'AWSCURRENT')
+            if username == admin_secret['username']:
+                logger.info(f"finishSecret: Admin account detected, testing connection.")
+                unlock_admin_password_if_needed(secret_dict)
+                return
+            # Always reset the password on the first check, afterwards only when the account got locked again
+            unlock_account_if_needed(secret_dict, admin_secret, force=(attempt == 1))
+        except Exception as e:
+            logger.warning("finishSecret: Failed to unlock/reset account for user %s (check %d/%d): %s" % (username if 'username' in locals() else 'unknown', attempt, watch_minutes, str(e)))
 
 
-def unlock_account_if_needed(secret_dict, admin_secret):
-    """Unlocks a non-admin user using the admin account."""
+def get_admin_connection(admin_secret):
+    """Gets a connection to Oracle DB as the admin user, raises on failure"""
+    admin_port = str(admin_secret['port']) if 'port' in admin_secret else '1521'
+    return oracledb.connect(user=admin_secret['username'],
+                            password=admin_secret['password'],
+                            dsn=admin_secret['host'] + ':' + admin_port + '/' + admin_secret['dbname'])
+
+
+def unlock_account_if_needed(secret_dict, admin_secret, force=False):
+    """Unlocks a non-admin user using the admin account, resetting its password to the current secret.
+
+    Without force, nothing is done unless the account is locked.
+    """
     username = secret_dict['username']
     password = secret_dict['password']
-    admin_port = str(admin_secret['port']) if 'port' in admin_secret else '1521'
-    admin_conn = oracledb.connect(user=admin_secret['username'],
-                                  password=admin_secret['password'],
-                                  dsn=admin_secret['host'] + ':' + admin_port + '/' + admin_secret['dbname'])
-    cur = admin_conn.cursor()
-    cur.execute("SELECT sys.DBMS_ASSERT.enquote_name(:username) FROM DUAL", username=username)
-    escaped_username = cur.fetchone()[0]
-    sql_unlock = "ALTER USER %s IDENTIFIED BY \"%s\" ACCOUNT UNLOCK" % (escaped_username, password)
-    cur.execute(sql_unlock)
-    admin_conn.commit()
-    logger.info("finishSecret: Successfully unlocked account for user %s in Oracle DB after 1 minute (using admin)." % username)
-    cur.close()
-    admin_conn.close()
+    admin_conn = get_admin_connection(admin_secret)
+    try:
+        cur = admin_conn.cursor()
+        if not force:
+            cur.execute("SELECT account_status FROM dba_users WHERE username = :username", username=username)
+            row = cur.fetchone()
+            if not row or 'LOCKED' not in row[0]:
+                logger.info("finishSecret: Account %s is not locked (%s)." % (username, row[0] if row else 'not found'))
+                return
+            logger.warning("finishSecret: Account %s is locked (%s), unlocking it." % (username, row[0]))
+        cur.execute("SELECT sys.DBMS_ASSERT.enquote_name(:username) FROM DUAL", username=username)
+        escaped_username = cur.fetchone()[0]
+        sql_unlock = "ALTER USER %s IDENTIFIED BY \"%s\" ACCOUNT UNLOCK" % (escaped_username, password)
+        cur.execute(sql_unlock)
+        admin_conn.commit()
+        logger.info("finishSecret: Successfully reset and unlocked account for user %s in Oracle DB (using admin)." % username)
+    finally:
+        admin_conn.close()
 
 
 def unlock_admin_password_if_needed(secret_dict):
