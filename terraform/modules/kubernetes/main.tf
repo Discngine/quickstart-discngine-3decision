@@ -15,6 +15,9 @@ terraform {
     kubectl = {
       source = "alekc/kubectl"
     }
+    random = {
+      source = "hashicorp/random"
+    }
   }
 }
 
@@ -299,6 +302,28 @@ resource "kubernetes_secret" "nest_authentication_secrets" {
       PINGID_METADATA_URL = var.pingid_oidc.metadata_url
     }
   )
+  depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
+}
+
+# Bearer token for the app's internal API. random_uuid keeps the value in state, so
+# applies are idempotent.
+resource "random_uuid" "internal_api_token" {}
+
+# Chart >= 3.8.0 no longer sets the internal API key itself: nest and every async worker
+# read it from this secret (not optional), so it must exist before the chart rolls out.
+# The same token is published under every name the apps read (nest, workers, takeover
+# job, frontend build), as on OCI.
+resource "kubernetes_secret" "internal_api_secrets" {
+  metadata {
+    name      = "internal-api-secrets"
+    namespace = var.tdecision_chart.namespace
+  }
+  data = {
+    INTERNAL_API_TOKEN                     = random_uuid.internal_api_token.result
+    INTERNAL_API_KEY                       = random_uuid.internal_api_token.result
+    JOB_RESULT_REGISTRATION_SERVICE_APIKEY = random_uuid.internal_api_token.result
+    VITE_DNG_INTERNAL_API_KEY              = random_uuid.internal_api_token.result
+  }
   depends_on = [kubernetes_namespace.tdecision_namespace, kubernetes_config_map_v1.aws_auth]
 }
 
@@ -598,7 +623,10 @@ Images:
         value: https://${var.api_subdomain}.${var.domain}/auth/azure/callback
       google_client_id:
         name: GOOGLE_CLIENT_ID
-        value: ${var.google_oidc.client_id}
+        # "" when Google is unconfigured: nest's GoogleAuthModule.isActive() is a truthy
+        # client_id, and since 2.5.1 the login buttons come from the active modules, so
+        # "none" would put a broken Google button on the login page.
+        value: ${var.google_oidc.client_id == "none" ? "" : var.google_oidc.client_id}
       google_redirect_uri:
         name: GOOGLE_REDIRECT_URI
         value: https://${var.api_subdomain}.${var.domain}/auth/google/callback%{if var.pingid_oidc.client_id != "none"}
@@ -717,6 +745,7 @@ resource "helm_release" "tdecision_chart" {
     helm_release.cert_manager_release,
     kubectl_manifest.ClusterExternalSecret,
     kubernetes_secret.nest_authentication_secrets,
+    kubernetes_secret.internal_api_secrets,
     helm_release.aws_load_balancer_controller,
     kubernetes_config_map_v1.aws_auth,
     null_resource.delete_resources,

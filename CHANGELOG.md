@@ -3,6 +3,28 @@ All notable changes to this project will be documented in this file.
 Dates are ISO8601 / YYYY-MM-DD
 Version equals the version of the equivalent 3decision helm chart release
 Add a `-0` with incrementing numbers in case of a terraform / cloudformation change without equivalent helm changes 
+## [3.8.1] - 2026-10-29
+### Cloudformation
+#### Added
+- NA
+
+#### Changed
+- NA
+
+#### Removed
+- NA
+
+### Terraform
+#### Added
+- `internal-api-secrets` secret in the 3decision namespace, carrying one generated `random_uuid` under `INTERNAL_API_TOKEN`, `INTERNAL_API_KEY`, `JOB_RESULT_REGISTRATION_SERVICE_APIKEY` and `VITE_DNG_INTERNAL_API_KEY`: chart >= 3.8.0 no longer ships these keys in `backend-commons-secrets` and nest and every async worker now mount this secret, so the pods could not start without it @aphilippejolivel
+
+#### Changed
+- Updated default 3decision chart version to 3.8.1 (3decision 2.5.1) @aphilippejolivel
+- `GOOGLE_CLIENT_ID` is rendered empty instead of `none` when Google is not configured: nest 2.5.1 builds the login buttons from its active auth modules and activates Google on any truthy client id, so `none` showed a broken "Sign in with Google" button @aphilippejolivel
+
+#### Removed
+- NA
+
 ## [3.7.1-0] - 2026-10-15
 ### Cloudformation
 #### Added
